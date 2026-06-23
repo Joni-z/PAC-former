@@ -1,0 +1,30 @@
+# PAC-Former on the synthetic PAC task. The ablation triplet shares every line
+# below except `mixer` (see synthetic_attention.yaml / synthetic_cotar.yaml).
+mixer: cotar          # attention | cotar | mi
+
+# data
+dataset: synthetic
+n_channels: 4
+seq_len: 2000
+sample_rate: 200
+sampling_rate: 200
+n_train: 512
+n_val: 128
+n_test: 128
+num_classes: 2
+
+# model
+n_bands: 12
+d_model: 64
+depth: 4
+dropout: 0.1
+kernel_size: 201
+
+# training
+batch_size: 32
+epochs: 3
+lr: 0.001
+weight_decay: 0.00001
+num_workers: 2
+seed: 0
+device: cpu
