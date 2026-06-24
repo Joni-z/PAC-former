@@ -4,3 +4,4 @@ __pycache__/
 wandb/
 checkpoints/
 *.pkl
+tuh_eeg/

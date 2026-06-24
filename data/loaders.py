@@ -93,12 +93,38 @@ class SyntheticPACDataset(Dataset):
         return torch.FloatTensor(X), int(self.labels[index])
 
 
-def _split_files(root):
-    return (
-        os.listdir(os.path.join(root, "train")),
-        os.listdir(os.path.join(root, "val")),
-        os.listdir(os.path.join(root, "test")),
-    )
+def _tuab_sets(root, rate):
+    """TUAB: preprocess_tuab.py already wrote disjoint train/val/test folders
+    (subject-disjoint split happens at preprocessing time, like BIOT)."""
+    return [
+        TUABLoader(os.path.join(root, split), os.listdir(os.path.join(root, split)), rate)
+        for split in ("train", "val", "test")
+    ]
+
+
+def _tuev_sets(root, rate):
+    """TUEV: preprocess_tuev.py only writes processed_train/processed_eval (no
+    val split). Val is carved out of train here, by subject, with the same
+    seed/fraction/logic as BIOT's run_multiclass_supervised.py
+    (prepare_TUEV_dataloader) so the split is identical to the literature.
+    """
+    rng = np.random.default_rng(4523)
+    train_files = os.listdir(os.path.join(root, "processed_train"))
+    test_files = os.listdir(os.path.join(root, "processed_eval"))
+
+    train_sub = list(set(f.split("_")[0] for f in train_files))
+    val_sub = set(rng.choice(train_sub, size=int(len(train_sub) * 0.1), replace=False))
+    train_sub = set(train_sub) - val_sub
+
+    val_files = [f for f in train_files if f.split("_")[0] in val_sub]
+    train_files = [f for f in train_files if f.split("_")[0] in train_sub]
+
+    train_dir = os.path.join(root, "processed_train")
+    return [
+        TUEVLoader(train_dir, train_files, rate),
+        TUEVLoader(train_dir, val_files, rate),
+        TUEVLoader(os.path.join(root, "processed_eval"), test_files, rate),
+    ]
 
 
 def build_dataloaders(cfg: dict):
@@ -114,12 +140,10 @@ def build_dataloaders(cfg: dict):
                 for n, s in [(cfg.get("n_train", 512), 0),
                              (cfg.get("n_val", 128), 1),
                              (cfg.get("n_test", 128), 2)]]
-    elif name in ("tuab", "tuev"):
-        Loader = TUABLoader if name == "tuab" else TUEVLoader
-        root = cfg["data_root"]
-        tr, va, te = _split_files(root)
-        sets = [Loader(os.path.join(root, sp), fs, rate)
-                for sp, fs in [("train", tr), ("val", va), ("test", te)]]
+    elif name == "tuab":
+        sets = _tuab_sets(cfg["data_root"], rate)
+    elif name == "tuev":
+        sets = _tuev_sets(cfg["data_root"], rate)
     else:
         raise KeyError(f"unknown dataset '{name}'")
 

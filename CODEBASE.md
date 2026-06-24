@@ -19,9 +19,9 @@ models/
   mixers/
     base.py              TokenMixer interface every mixer obeys (shape/dtype in == out)
     attention.py         baseline: multi-head self-attention   (ported from TeCh)
-    cotar.py             baseline: CoTAR                        (ported from TeCh)
-    mi_operator.py       ★ OURS: directional MVL operator, the contribution
-    __init__.py          name -> class registry (build_mixer)
+    cotar.py              baseline: CoTAR                        (ported from TeCh)
+    mi_operator.py        ★ OURS: directional MVL operator, the contribution
+    __init__.py            name -> class registry (build_mixer)
   block.py               norm -> mixer -> FFN; mixer injected by config
   encoder.py             stack of blocks; threads phase/amplitude through as kwargs
   head.py                mean-pool + linear classifier
@@ -29,9 +29,13 @@ models/
 train.py                 config-driven training loop
 eval.py                  metrics matching BIOT exactly (balanced acc / AUROC / weighted-F1 / Cohen kappa)
 scripts/
-  test_mixers.py         AGENT.md §3 acceptance check: all 3 mixers interchangeable, finite grads
-  synth_pac_test.py      AGENT.md §5 mandatory PAC validation against tensorpac
-reference/               read-only clones of BIOT / TeCh / SincNet / tensorpac (gitignored)
+  test_mixers.py          AGENT.md §3 acceptance check: all 3 mixers interchangeable, finite grads
+  synth_pac_test.py       AGENT.md §5 mandatory PAC validation against tensorpac
+  preprocess_tuab.py      raw TUAB .edf -> BIOT-format pickles (ported from BIOT/datasets/TUAB/process.py)
+  preprocess_tuev.py      raw TUEV .edf/.rec -> BIOT-format pickles (ported from BIOT/datasets/TUEV/process.py)
+preprocess_tuab.slurm     slurm job for the TUAB preprocessing script (CPU only, ~3200 files, 59GB)
+preprocess_tuev.slurm     slurm job for the TUEV preprocessing script (CPU only, ~500 files, 19GB)
+reference/                read-only clones of BIOT / TeCh / SincNet / tensorpac (gitignored)
 ```
 
 `[OURS]` files are written from scratch; everything else is ported/adapted from
@@ -64,7 +68,7 @@ pip install -r requirements.txt
 `requirements.txt` pins CPU torch (this was built on a login node). On a GPU node
 install the matching CUDA `torch`/`torchaudio` instead; nothing else changes.
 
-## Quickstart
+## Quickstart (synthetic task — no real data needed)
 
 ```bash
 # 1. interface check — all three mixers interchangeable (run first)
@@ -77,9 +81,50 @@ python train.py --config configs/synthetic_attention.yaml
 python train.py --config configs/synthetic_cotar.yaml
 ```
 
-Real EEG (TUAB/TUEV) needs an NEDC data application (AGENT.md §7); once granted,
-only `data/loaders.py` paths change. Point a config at `dataset: tuab` /
-`dataset: tuev` with `data_root: <path to processed splits>`.
+## Real data: TUAB / TUEV
+
+The raw TUH EEG corpus is already downloaded at `tuh_eeg/`:
+
+- `tuh_eeg/v3.0.1/edf/{train,eval}/{abnormal,normal}/01_tcp_ar/*.edf` — TUAB
+- `tuh_eeg/v2.0.1/edf/{train,eval}/<subject>/*.edf` (+ `.rec` annotations) — TUEV
+
+These are raw `.edf` files, not the pickle format BIOT's loaders expect, so
+preprocessing has to run once before training:
+
+```bash
+# CPU-bound, IO-heavy — run as a slurm job, not on the login node
+sbatch preprocess_tuab.slurm   # -> tuh_eeg/v3.0.1/edf/processed/{train,val,test}/*.pkl
+sbatch preprocess_tuev.slurm   # -> tuh_eeg/v2.0.1/edf/processed_{train,eval}/*.pkl
+```
+
+Both scripts are verbatim ports of BIOT's `datasets/{TUAB,TUEV}/process.py` —
+same channel montage (16 derived bipolar channels), same resampling (200Hz),
+same windowing (TUAB: 10s non-overlapping; TUEV: 5s around each labelled
+event) — only the root path was changed to point at `tuh_eeg/`. Verified file-
+by-file against a few real recordings before being trusted (output shapes:
+TUAB `(16, 2000)` per window, TUEV `(16, 1250)` per event).
+
+TUAB's train/val/test split happens *during* preprocessing (subject-disjoint,
+80/20 train/val, matching `run_binary_supervised.py`'s seed 12345), so
+`data/loaders.py::_tuab_sets` just reads the three resulting folders. TUEV's
+upstream script only produces `processed_train`/`processed_eval` — the 10%
+subject-held-out validation split is carved out at load time in
+`data/loaders.py::_tuev_sets`, reproducing BIOT's `prepare_TUEV_dataloader`
+split exactly (same seed 4523, same `f.split("_")[0]` subject key).
+
+Once preprocessing has run:
+
+```bash
+python train.py --config configs/tuab_mi.yaml
+python train.py --config configs/tuev_mi.yaml
+# swap mixer: configs/tuab_attention.yaml, configs/tuab_cotar.yaml, etc.
+```
+
+`configs/tuab_*.yaml` / `configs/tuev_*.yaml` already point `data_root` at the
+preprocessing scripts' output paths. Verified end-to-end (forward + backward,
+correct logits shape) against the real channel/window shapes before being
+trusted, with `device: cpu` for that smoke test — set `device: cuda` for an
+actual training run on a GPU node.
 
 ## Open ablation choices (not closed decisions — AGENT.md §9)
 

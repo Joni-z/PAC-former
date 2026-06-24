@@ -1,0 +1,28 @@
+# PAC-Former on TUAB (binary normal/abnormal). Run scripts/preprocess_tuab.py
+# first -- this expects its output layout (data_root/{train,val,test}/*.pkl).
+mixer: cotar          # attention | cotar | mi
+
+# data
+dataset: tuab
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+n_channels: 16
+seq_len: 2000           # 10s @ 200Hz, matches BIOT's TUAB windowing
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+
+# model
+n_bands: 12
+d_model: 64
+depth: 4
+dropout: 0.1
+kernel_size: 201
+
+# training
+batch_size: 32
+epochs: 20
+lr: 0.001
+weight_decay: 0.00001
+num_workers: 4
+seed: 0
+device: cuda
