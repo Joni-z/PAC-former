@@ -1,0 +1,37 @@
+
+EnvironmentLocationNotFound: Not a conda environment: /scratch/zz5070/PAC-former/configs/tuab_attention.yaml
+
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/zz5070/.netrc.
+wandb: Currently logged in as: joniz (ml-nyush) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 8kqksxva
+wandb: Tracking run with wandb version 0.28.0
+wandb: Run data is saved locally in /scratch/zz5070/PAC-former/wandb/run-20260624_133406-8kqksxva
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run tuab-attention
+wandb: ⭐️ View project at https://wandb.ai/ml-nyush/pac-former
+wandb: 🚀 View run at https://wandb.ai/ml-nyush/pac-former/runs/8kqksxva
+Traceback (most recent call last):
+  File "/scratch/zz5070/PAC-former/train.py", line 98, in <module>
+    main()
+  File "/scratch/zz5070/PAC-former/train.py", line 58, in main
+    model = build_model(cfg).to(device)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1369, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/nn/modules/module.py", line 928, in _apply
+    module._apply(fn)
+  File "/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/nn/modules/module.py", line 928, in _apply
+    module._apply(fn)
+  File "/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/nn/modules/module.py", line 955, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1355, in convert
+    return t.to(
+           ^^^^^
+  File "/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/cuda/__init__.py", line 403, in _lazy_init
+    raise AssertionError("Torch not compiled with CUDA enabled")
+AssertionError: Torch not compiled with CUDA enabled
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mtuab-attention[0m at: [34mhttps://wandb.ai/ml-nyush/pac-former/runs/8kqksxva[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20260624_133406-8kqksxva/logs[0m

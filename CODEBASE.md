@@ -65,8 +65,12 @@ conda create -n pacformer python=3.11 -y && conda activate pacformer
 pip install -r requirements.txt
 ```
 
-`requirements.txt` pins CPU torch (this was built on a login node). On a GPU node
-install the matching CUDA `torch`/`torchaudio` instead; nothing else changes.
+`requirements.txt` now pins the CUDA build (`+cu126`) since the `pacformer` env
+runs real training on H200 GPU nodes. If you ever need a CPU-only env (e.g. for
+quick login-node smoke tests), install
+`torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cpu`
+instead — without `--no-deps`, since the CUDA build needs the bundled
+`nvidia-*-cu12` packages as real dependencies, not just a wheel swap.
 
 ## Quickstart (synthetic task — no real data needed)
 

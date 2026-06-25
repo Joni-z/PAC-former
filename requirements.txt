@@ -5,6 +5,7 @@ numpy==2.4.6
 scikit-learn==1.9.0
 scipy==1.17.1
 tensorpac==0.6.5
-torch==2.8.0+cpu
-torchaudio==2.8.0+cpu
+torch==2.8.0+cu126
+torchaudio==2.8.0+cu126
 tqdm==4.68.3
+wandb==0.28.0

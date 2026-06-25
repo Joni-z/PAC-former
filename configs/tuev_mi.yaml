@@ -21,6 +21,7 @@ kernel_size: 201
 # training
 batch_size: 32
 epochs: 20
+eval_every: 1     # run validation every N epochs
 lr: 0.001
 weight_decay: 0.00001
 num_workers: 4
