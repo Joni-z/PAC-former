@@ -24,7 +24,7 @@ def run_epoch(model, loader, device, optimizer=None):
     losses, all_logits, all_y = [], [], []
     criterion = nn.CrossEntropyLoss()
     for X, y in tqdm(loader, leave=False):
-        X, y = X.to(device), y.to(device).long()
+        X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True).long()
         with torch.set_grad_enabled(train):
             logits = model(X)
             loss = criterion(logits, y)

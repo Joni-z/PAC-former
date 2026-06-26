@@ -148,7 +148,10 @@ def build_dataloaders(cfg: dict):
         raise KeyError(f"unknown dataset '{name}'")
 
     return tuple(
-        DataLoader(ds, batch_size=bs, shuffle=(i == 0),
-                   drop_last=(i == 0), num_workers=nw)
+        DataLoader(
+            ds, batch_size=bs, shuffle=(i == 0), drop_last=(i == 0),
+            num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0, prefetch_factor=4 if nw > 0 else None,
+        )
         for i, ds in enumerate(sets)
     )
