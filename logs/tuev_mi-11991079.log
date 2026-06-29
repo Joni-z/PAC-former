@@ -1,0 +1,9 @@
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/zz5070/.netrc.
+wandb: Currently logged in as: joniz (ml-nyush) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 7ysl74cy
+wandb: Tracking run with wandb version 0.28.0
+wandb: Run data is saved locally in /scratch/zz5070/PAC-former/wandb/run-20260629_000211-7ysl74cy
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run tuev-mi
+wandb: ⭐️ View project at https://wandb.ai/ml-nyush/pac-former
+wandb: 🚀 View run at https://wandb.ai/ml-nyush/pac-former/runs/7ysl74cy

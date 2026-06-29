@@ -102,6 +102,24 @@ def _tuab_sets(root, rate):
     ]
 
 
+def _tuev_class_weights(root, files, n_classes=6):
+    """Inverse-frequency class weights from the TUEV training split.
+
+    TUEV is severely imbalanced (background/eye-movement events dominate;
+    spike-wave etc. are rare), which made batch_size=128 training unstable --
+    large batches from a skewed distribution give very noisy gradient signal
+    for the rare classes. This is a one-time pass over the training pickles
+    (label only) before training starts.
+    """
+    counts = np.zeros(n_classes)
+    for f in files:
+        with open(os.path.join(root, f), "rb") as fh:
+            label = int(pickle.load(fh)["label"][0]) - 1
+        counts[label] += 1
+    weights = counts.sum() / (n_classes * np.clip(counts, 1, None))
+    return torch.FloatTensor(weights)
+
+
 def _tuev_sets(root, rate):
     """TUEV: preprocess_tuev.py only writes processed_train/processed_eval (no
     val split). Val is carved out of train here, by subject, with the same
@@ -120,18 +138,26 @@ def _tuev_sets(root, rate):
     train_files = [f for f in train_files if f.split("_")[0] in train_sub]
 
     train_dir = os.path.join(root, "processed_train")
-    return [
+    class_weights = _tuev_class_weights(train_dir, train_files)
+    sets = [
         TUEVLoader(train_dir, train_files, rate),
         TUEVLoader(train_dir, val_files, rate),
         TUEVLoader(os.path.join(root, "processed_eval"), test_files, rate),
     ]
+    return sets, class_weights
 
 
 def build_dataloaders(cfg: dict):
-    """Return (train, val, test) loaders for the dataset named in ``cfg``."""
+    """Return (train, val, test, class_weights) for the dataset named in ``cfg``.
+
+    ``class_weights`` is ``None`` except for TUEV, where it's an inverse-
+    frequency weight tensor (see ``_tuev_class_weights``) meant to be passed
+    into ``nn.CrossEntropyLoss(weight=...)``.
+    """
     name = cfg["dataset"]
     bs, nw = cfg.get("batch_size", 64), cfg.get("num_workers", 4)
     rate = cfg.get("sampling_rate", cfg["sample_rate"])
+    class_weights = None
 
     if name == "synthetic":
         common = dict(n_channels=cfg["n_channels"], seq_len=cfg["seq_len"],
@@ -143,11 +169,11 @@ def build_dataloaders(cfg: dict):
     elif name == "tuab":
         sets = _tuab_sets(cfg["data_root"], rate)
     elif name == "tuev":
-        sets = _tuev_sets(cfg["data_root"], rate)
+        sets, class_weights = _tuev_sets(cfg["data_root"], rate)
     else:
         raise KeyError(f"unknown dataset '{name}'")
 
-    return tuple(
+    loaders = tuple(
         DataLoader(
             ds, batch_size=bs, shuffle=(i == 0), drop_last=(i == 0),
             num_workers=nw, pin_memory=True,
@@ -155,3 +181,4 @@ def build_dataloaders(cfg: dict):
         )
         for i, ds in enumerate(sets)
     )
+    return (*loaders, class_weights)

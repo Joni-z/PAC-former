@@ -18,11 +18,10 @@ from eval import compute_metrics
 from models.build import build_model
 
 
-def run_epoch(model, loader, device, optimizer=None):
+def run_epoch(model, loader, device, criterion, optimizer=None):
     train = optimizer is not None
     model.train(train)
     losses, all_logits, all_y = [], [], []
-    criterion = nn.CrossEntropyLoss()
     for X, y in tqdm(loader, leave=False):
         X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True).long()
         with torch.set_grad_enabled(train):
@@ -54,11 +53,16 @@ def main():
         config=cfg,
     )
 
-    train_loader, val_loader, test_loader = build_dataloaders(cfg)
+    train_loader, val_loader, test_loader, class_weights = build_dataloaders(cfg)
     model = build_model(cfg).to(device)
     optimizer = torch.optim.Adam(
         model.parameters(), lr=cfg.get("lr", 1e-3),
         weight_decay=cfg.get("weight_decay", 1e-5),
+    )
+    # class_weights is set only for TUEV (severe class imbalance); None elsewhere
+    # falls back to nn.CrossEntropyLoss's default uniform weighting.
+    criterion = nn.CrossEntropyLoss(
+        weight=class_weights.to(device) if class_weights is not None else None
     )
 
     n_params = sum(p.numel() for p in model.parameters())
@@ -69,11 +73,11 @@ def main():
     best, best_state = -1.0, None
     key = "auroc" if cfg["num_classes"] == 2 else "balanced_accuracy"
     for epoch in range(cfg.get("epochs", 20)):
-        tr_loss, *_ = run_epoch(model, train_loader, device, optimizer)
+        tr_loss, *_ = run_epoch(model, train_loader, device, criterion, optimizer)
         log = {"epoch": epoch, "train_loss": tr_loss}
 
         if (epoch + 1) % eval_every == 0:
-            _, val_logits, val_y = run_epoch(model, val_loader, device)
+            _, val_logits, val_y = run_epoch(model, val_loader, device, criterion)
             m = compute_metrics(val_y, val_logits, cfg["num_classes"])
             log.update({f"val_{k}": v for k, v in m.items()})
             print(f"epoch {epoch:3d} | train_loss {tr_loss:.4f} | val " +
@@ -87,7 +91,7 @@ def main():
 
     if best_state is not None:
         model.load_state_dict(best_state)
-    _, test_logits, test_y = run_epoch(model, test_loader, device)
+    _, test_logits, test_y = run_epoch(model, test_loader, device, criterion)
     test_m = compute_metrics(test_y, test_logits, cfg["num_classes"])
     print("test | " + " ".join(f"{k}={v:.4f}" for k, v in test_m.items()))
     wandb.log({f"test_{k}": v for k, v in test_m.items()})
