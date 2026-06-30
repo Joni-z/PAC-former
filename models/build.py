@@ -10,21 +10,36 @@ import torch
 import torch.nn as nn
 
 from .frontend import Frontend
+from .frontend.conv import ConvFrontend
 from .encoder import Encoder
 from .head import ClassificationHead
+from .augment import RandomAugment
 
 
 class PACFormer(nn.Module):
     def __init__(self, cfg: dict):
         super().__init__()
         d = cfg["d_model"]
-        self.frontend = Frontend(
-            n_bands=cfg["n_bands"],
-            hidden_dim=d,
-            seq_len=cfg["seq_len"],
-            sample_rate=cfg["sample_rate"],
-            kernel_size=cfg.get("kernel_size", 101),
-        )
+        # training-time augmentation (TeCh-style); empty list -> no-op
+        self.augment = RandomAugment(cfg.get("augmentations", []))
+        # frontend is switchable for the bottleneck diagnostic: "sinc" is ours
+        # (band tokens + phase/amplitude), "conv" is a plain raw-signal patch
+        # tokenizer (no freq decomposition, attention/CoTAR only).
+        if cfg.get("frontend", "sinc") == "conv":
+            self.frontend = ConvFrontend(
+                n_channels=cfg["n_channels"], hidden_dim=d,
+                patch_len=cfg.get("patch_len", 100),
+            )
+        else:
+            self.frontend = Frontend(
+                n_bands=cfg["n_bands"],
+                hidden_dim=d,
+                seq_len=cfg["seq_len"],
+                sample_rate=cfg["sample_rate"],
+                kernel_size=cfg.get("kernel_size", 101),
+                n_channels=cfg["n_channels"],
+                patch_len=cfg.get("patch_len", 200),
+            )
         self.encoder = Encoder(
             depth=cfg["depth"],
             d_model=d,
@@ -36,6 +51,7 @@ class PACFormer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """``x``: (B, C, T) raw EEG -> logits (B, num_classes)."""
+        x = self.augment(x)
         token, phase_unit, amplitude = self.frontend(x)
         h = self.encoder(token, phase_unit=phase_unit, amplitude=amplitude)
         return self.head(h)

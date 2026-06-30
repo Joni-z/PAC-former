@@ -1,6 +1,6 @@
 # PAC-Former on TUAB (binary normal/abnormal). Run scripts/preprocess_tuab.py
 # first -- this expects its output layout (data_root/{train,val,test}/*.pkl).
-mixer: attention      # attention | cotar | mi
+mixer: attention              # attention | cotar | mi
 
 # data
 dataset: tuab
@@ -11,19 +11,22 @@ sample_rate: 200
 sampling_rate: 200
 num_classes: 2
 
-# model
-n_bands: 12
-d_model: 64
-depth: 4
-dropout: 0.1
+# model  (TeCh-aligned: bigger backbone + more band tokens so the mixer has leverage)
+n_bands: 32
+d_model: 128
+depth: 6
+dropout: 0.2
 kernel_size: 201
+patch_len: 200       # time-patch length for the band tokenizer (P = seq_len/patch_len patches per band)
 
-# training
+# training  (TeCh-aligned: lower lr, more epochs + early stopping, augmentation)
 batch_size: 128
-epochs: 20
+epochs: 50
 eval_every: 1     # run validation every N epochs
-lr: 0.001
-weight_decay: 0.00001
+patience: 12      # early stop after this many evals without val improvement
+lr: 0.0001
+weight_decay: 0.0001
+augmentations: [jitter0.1, frequency0.2, mask0.2, channel0.1, drop0.2]
 num_workers: 8
 seed: 0
 device: cuda

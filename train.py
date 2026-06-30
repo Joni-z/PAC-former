@@ -70,7 +70,8 @@ def main():
     wandb.summary["n_params"] = n_params
 
     eval_every = cfg.get("eval_every", 1)  # run val every N epochs
-    best, best_state = -1.0, None
+    patience = cfg.get("patience", 0)      # 0 = no early stopping
+    best, best_state, since_best = -1.0, None, 0
     key = "auroc" if cfg["num_classes"] == 2 else "balanced_accuracy"
     for epoch in range(cfg.get("epochs", 20)):
         tr_loss, *_ = run_epoch(model, train_loader, device, criterion, optimizer)
@@ -83,9 +84,13 @@ def main():
             print(f"epoch {epoch:3d} | train_loss {tr_loss:.4f} | val " +
                   " ".join(f"{k}={v:.4f}" for k, v in m.items()))
             if m[key] > best:
-                best, best_state = m[key], {k: v.cpu() for k, v in model.state_dict().items()}
-        else:
-            print(f"epoch {epoch:3d} | train_loss {tr_loss:.4f}")
+                best, best_state, since_best = m[key], {k: v.cpu() for k, v in model.state_dict().items()}, 0
+            else:
+                since_best += 1
+                if patience and since_best >= patience:
+                    print(f"early stop at epoch {epoch} (no val {key} gain for {patience} evals)")
+                    wandb.log(log)
+                    break
 
         wandb.log(log)
 

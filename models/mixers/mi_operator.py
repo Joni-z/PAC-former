@@ -80,12 +80,23 @@ class MIOperator(TokenMixer):
                 "pass them as keyword arguments (see frontend contract)."
             )
 
-        coupling = self.coupling_matrix(phase_unit, amplitude)  # (B, N, N)
+        coupling = self.coupling_matrix(phase_unit, amplitude)  # (B, n_bands, n_bands)
+        weight = F.softmax(coupling, dim=1)                     # normalise over modulators i
 
-        # aggregate: for each modulated band j, attend over its modulators i
-        weight = F.softmax(coupling, dim=1)              # normalise over i (rows)
-        core = torch.einsum("bij,bid->bjd", weight, x)   # (B, N, D)
+        # The frontend emits (band x time-patch) tokens flattened to (B, n_bands*P, D).
+        # Recover that layout (P = N // n_bands) so the directional band->band
+        # coupling acts on a per-band representation, then broadcasts back to each
+        # band's patches. With P == 1 this is exactly the plain band-token case.
+        B, N, D = x.shape
+        n_bands = phase_unit.shape[1]
+        P = N // n_bands
+        xb = x.view(B, n_bands, P, D)
 
-        # redistribute: concat core onto each token, project
-        core_cat = torch.cat([x, core], dim=-1)
-        return self.lin_out2(F.gelu(self.lin_out1(core_cat)))
+        band_repr = xb.mean(dim=2)                              # (B, n_bands, D)
+        core = torch.einsum("bij,bid->bjd", weight, band_repr)  # aggregate modulators -> (B, n_bands, D)
+        core = core.unsqueeze(2).expand(-1, -1, P, -1)          # broadcast to patches
+
+        # redistribute: concat band-core onto each token, project
+        core_cat = torch.cat([xb, core], dim=-1)
+        out = self.lin_out2(F.gelu(self.lin_out1(core_cat)))
+        return out.reshape(B, N, D)

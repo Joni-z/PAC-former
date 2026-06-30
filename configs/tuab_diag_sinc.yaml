@@ -1,15 +1,16 @@
-# PAC-Former on TUEV (6-class event). Run scripts/preprocess_tuev.py first --
-# this expects its output layout (data_root/processed_train|processed_eval).
-mixer: cotar              # attention | cotar | mi
+# DIAGNOSTIC A: our sinc+analytic band-token frontend (attention mixer).
+# Compare against tuab_diag_conv.yaml — only the frontend differs.
+mixer: attention
+frontend: sinc
 
 # data
-dataset: tuev
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+dataset: tuab
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
 n_channels: 16
-seq_len: 1000           # 5s @ 200Hz after BIOT's resample, matches TUEVLoader
+seq_len: 2000           # 10s @ 200Hz, matches BIOT's TUAB windowing
 sample_rate: 200
 sampling_rate: 200
-num_classes: 6
+num_classes: 2
 
 # model  (TeCh-aligned: bigger backbone + more band tokens so the mixer has leverage)
 n_bands: 32
@@ -17,10 +18,9 @@ d_model: 128
 depth: 6
 dropout: 0.2
 kernel_size: 201
-patch_len: 200       # time-patch length for the band tokenizer (P = seq_len/patch_len patches per band)
 
 # training  (TeCh-aligned: lower lr, more epochs + early stopping, augmentation)
-batch_size: 64
+batch_size: 128
 epochs: 50
 eval_every: 1     # run validation every N epochs
 patience: 12      # early stop after this many evals without val improvement

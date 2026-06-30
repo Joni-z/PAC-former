@@ -45,7 +45,7 @@ def main():
     T = x.shape[-1]
 
     frontend = Frontend(n_bands=N_BANDS, hidden_dim=32, seq_len=T,
-                        sample_rate=SF, kernel_size=201)
+                        sample_rate=SF, kernel_size=201, n_channels=1)
     mi = MIOperator(d_model=32)
 
     token, phase_unit, amplitude = frontend(x)
