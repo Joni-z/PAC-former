@@ -1,0 +1,29 @@
+mixer: mi
+
+# data
+dataset: sleepedf
+data_root: /scratch/zz5070/PAC-former/sleep_edf/processed
+n_channels: 2             # Fpz-Cz + Pz-Oz
+seq_len: 3000             # 30 s @ 100 Hz
+sample_rate: 100
+num_classes: 5            # W / N1 / N2 / N3 / REM
+
+# model
+n_bands: 32
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 101          # 1-second filter @ 100 Hz
+patch_len: 150            # 1.5 s patches → 20 patches per band → 640 tokens
+
+# training
+batch_size: 64
+epochs: 60
+eval_every: 1
+patience: 15
+lr: 0.0001
+weight_decay: 0.0001
+augmentations: [jitter0.1, frequency0.2, mask0.2, channel0.1, drop0.2]
+num_workers: 8
+seed: 0
+device: cuda

@@ -120,6 +120,43 @@ def _tuev_class_weights(root, files, n_classes=6):
     return torch.FloatTensor(weights)
 
 
+class SleepEDFLoader(Dataset):
+    """Sleep-EDF Cassette, 5-class sleep staging (W/N1/N2/N3/REM)."""
+
+    def __init__(self, root, files):
+        self.root, self.files = root, list(files)
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, index):
+        with open(os.path.join(self.root, self.files[index]), 'rb') as fh:
+            sample = pickle.load(fh)
+        X = sample['signal'].astype(np.float32)
+        X = X / (np.quantile(np.abs(X), q=0.95, axis=-1, keepdims=True) + 1e-8)
+        return torch.FloatTensor(X), int(sample['label'])
+
+
+def _sleepedf_class_weights(root, files, n_classes=5):
+    counts = np.zeros(n_classes)
+    for f in files:
+        with open(os.path.join(root, f), 'rb') as fh:
+            label = int(pickle.load(fh)['label'])
+        counts[label] += 1
+    weights = counts.sum() / (n_classes * np.clip(counts, 1, None))
+    return torch.FloatTensor(weights)
+
+
+def _sleepedf_sets(root):
+    sets = []
+    for subset in ('train', 'val', 'test'):
+        d = os.path.join(root, subset)
+        sets.append(SleepEDFLoader(d, sorted(os.listdir(d))))
+    train_dir = os.path.join(root, 'train')
+    class_weights = _sleepedf_class_weights(train_dir, sorted(os.listdir(train_dir)))
+    return sets, class_weights
+
+
 def _tuev_sets(root, rate):
     """TUEV: preprocess_tuev.py only writes processed_train/processed_eval (no
     val split). Val is carved out of train here, by subject, with the same
@@ -170,6 +207,8 @@ def build_dataloaders(cfg: dict):
         sets = _tuab_sets(cfg["data_root"], rate)
     elif name == "tuev":
         sets, class_weights = _tuev_sets(cfg["data_root"], rate)
+    elif name == "sleepedf":
+        sets, class_weights = _sleepedf_sets(cfg["data_root"])
     else:
         raise KeyError(f"unknown dataset '{name}'")
 

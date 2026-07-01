@@ -5,3 +5,4 @@ wandb/
 checkpoints/
 *.pkl
 tuh_eeg/
+sleep_edf/
