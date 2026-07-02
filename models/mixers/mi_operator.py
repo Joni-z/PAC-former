@@ -1,29 +1,26 @@
 """OURS: the differentiable Modulation-Index (MI) token mixer.
 
-This is the contribution. It replaces self-attention with a directional
-phase-amplitude-coupling operator built on the same aggregate -> redistribute
-skeleton as CoTAR, so it is a legitimate attention replacement rather than a
-pooling layer (see README, "MI 算子与 CoTAR 的同构对应").
+Design: PAC-biased cross-band attention.
 
-Construction, given per-band unit phase vectors and amplitudes over time:
+For each target band j, we want to aggregate information from source bands i
+weighted by how strongly i (phase) drives j (amplitude). We do this with
+cross-band attention whose logits are the sum of a learned QK term AND the MVL
+coupling score -- so the operator has both the flexibility of learned attention
+(per-layer, data-driven) and the PAC prior (physiologically motivated).
 
-  1. Aggregate (the Mean-Vector-Length form, Canolty 2006):
-         Z[i, j] = (1/T) sum_t  A_j(t) * e^{i phi_i(t)}
-     row i = low-frequency *modulator* (supplies phase),
-     col j = high-frequency *modulated* band (supplies amplitude).
-     |Z| is the directional N x N coupling matrix -- the part we add on top of
-     CoTAR's symmetric core. Ozkurt-normalised so the model learns coupling,
-     not which band has the most power.
+  attn[j, i] = Q_j · K_i / sqrt(d_k)  +  pac_scale * coupling[i, j]
+  weight[j, i] = softmax_i(attn[j, i])
+  core_j = sum_i weight[j, i] * V_i
 
-  2. Redistribute (concat + MLP, matching CoTAR; AGENT.md section 9 default):
-     for each modulated band j, pull together the modulator tokens weighted by
-     how strongly they couple into j, concat onto x_j, project.
+This strictly generalises the old pure-PAC mixer (set pac_scale >> 0 and freeze
+Q/K) and pure attention (set pac_scale = 0). The model can learn where on that
+spectrum is best for each layer.
 
-Numerical-stability rule (AGENT.md section 4): we never take an angle. Phase
-enters only as a precomputed unit complex vector ``z / |z|``; the operator stays
-in complex arithmetic and the only guarded singularity (|z| -> 0) is handled in
-the frontend.
+Coupling matrix follows Canolty (2006) MVL with Ozkurt normalisation and
+mean-centred amplitude debiasing (van Driel dPAC style).
 """
+
+import math
 
 import torch
 import torch.nn as nn
@@ -33,38 +30,40 @@ from .base import TokenMixer
 
 
 class MIOperator(TokenMixer):
-    def __init__(self, d_model: int, normalize: bool = True, **_):
+    def __init__(self, d_model: int, normalize: bool = True, d_k: int | None = None, **_):
         super().__init__()
         self.normalize = normalize
-        # redistribute MLP: [token ; directional-core] -> token  (mirrors CoTAR)
+        self.d_k = d_k or max(d_model // 4, 16)
+
+        # Per-layer learned Q / K / V projections for cross-band attention
+        self.q_proj = nn.Linear(d_model, self.d_k, bias=False)
+        self.k_proj = nn.Linear(d_model, self.d_k, bias=False)
+        self.v_proj = nn.Linear(d_model, d_model, bias=False)
+
+        # Learnable scale for the PAC bias term (starts at 1.0)
+        self.pac_scale = nn.Parameter(torch.ones(1))
+
+        # Redistribute MLP: [token ; aggregated core] -> token
         self.lin_out1 = nn.Linear(2 * d_model, d_model)
         self.lin_out2 = nn.Linear(d_model, d_model)
 
     def coupling_matrix(
         self, phase_unit: torch.Tensor, amplitude: torch.Tensor
     ) -> torch.Tensor:
-        """Directional MVL coupling |Z|, shape ``(B, N, N)`` (row=phase, col=amp).
+        """Directional MVL coupling |Z|, shape (B, n_bands, n_bands) (row=phase, col=amp).
 
-        ``phase_unit`` : complex ``(B, N, T)``, unit modulus per sample.
-        ``amplitude``  : real ``(B, N, T)``.
-
-        We mean-centre the amplitude envelope before the MVL sum (debiasing, cf.
-        van Driel's dPAC). Raw MVL is ``mean_t A_j e^{i phi_i}``; because A_j is
-        strictly positive it carries a ``mean(A_j) * mean(e^{i phi_i})`` term
-        that is large whenever the phase distribution is non-uniform (low-
-        frequency modulators, finite windows), producing spurious coupling at
-        the lowest bands. Centring A_j removes exactly that term, leaving the
-        genuine phase->amplitude covariance.
+        Mean-centred amplitude debiasing removes the spurious low-frequency term
+        that arises because raw amplitude is strictly positive (van Driel dPAC).
+        Ozkurt normalisation by amplitude std makes the score a coupling measure,
+        not a power measure.
         """
         T = amplitude.shape[-1]
         amp_c = amplitude - amplitude.mean(dim=-1, keepdim=True)
         Z = torch.einsum("bit,bjt->bij", phase_unit, amp_c.to(phase_unit.dtype)) / T
         coupling = Z.abs()
         if self.normalize:
-            # normalise by the amplitude std per band j (Ozkurt-style), so the
-            # operator scores coupling, not which band carries the most power
             denom = torch.sqrt((amp_c ** 2).mean(dim=-1)).clamp_min(1e-6)
-            coupling = coupling / denom.unsqueeze(1)  # broadcast over modulators i
+            coupling = coupling / denom.unsqueeze(1)
         return coupling
 
     def forward(
@@ -76,27 +75,38 @@ class MIOperator(TokenMixer):
     ) -> torch.Tensor:
         if phase_unit is None or amplitude is None:
             raise ValueError(
-                "MIOperator needs `phase_unit` and `amplitude` from the frontend; "
-                "pass them as keyword arguments (see frontend contract)."
+                "MIOperator needs `phase_unit` and `amplitude` from the frontend."
             )
 
-        coupling = self.coupling_matrix(phase_unit, amplitude)  # (B, n_bands, n_bands)
-        weight = F.softmax(coupling, dim=1)                     # normalise over modulators i
-
-        # The frontend emits (band x time-patch) tokens flattened to (B, n_bands*P, D).
-        # Recover that layout (P = N // n_bands) so the directional band->band
-        # coupling acts on a per-band representation, then broadcasts back to each
-        # band's patches. With P == 1 this is exactly the plain band-token case.
         B, N, D = x.shape
         n_bands = phase_unit.shape[1]
         P = N // n_bands
         xb = x.view(B, n_bands, P, D)
 
-        band_repr = xb.mean(dim=2)                              # (B, n_bands, D)
-        core = torch.einsum("bij,bid->bjd", weight, band_repr)  # aggregate modulators -> (B, n_bands, D)
-        core = core.unsqueeze(2).expand(-1, -1, P, -1)          # broadcast to patches
+        # Band-level representations (mean over patches)
+        band_repr = xb.mean(dim=2)   # (B, n_bands, D)
 
-        # redistribute: concat band-core onto each token, project
+        # --- PAC coupling prior ---
+        # coupling[b, i, j]: band i (phase) -> band j (amplitude)
+        # For attention query j attending to key i, pac_bias[b, j, i] = coupling[b, i, j]
+        coupling = self.coupling_matrix(phase_unit, amplitude)   # (B, nb, nb) [i, j]
+        pac_bias = self.pac_scale * coupling.transpose(1, 2)     # (B, nb, nb) [j, i]
+
+        # --- Learned cross-band QK attention ---
+        q = self.q_proj(band_repr)   # (B, nb, d_k)
+        k = self.k_proj(band_repr)   # (B, nb, d_k)
+        v = self.v_proj(band_repr)   # (B, nb, D)
+
+        attn_logits = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.d_k)  # (B, nb, nb) [j, i]
+
+        # PAC-biased attention: learned logits + PAC prior
+        weight = F.softmax(attn_logits + pac_bias, dim=-1)   # (B, nb, nb), softmax over i
+
+        # Aggregate: for each band j, gather from source bands i
+        core = torch.bmm(weight, v)                          # (B, nb, D)
+        core = core.unsqueeze(2).expand(-1, -1, P, -1)      # (B, nb, P, D)
+
+        # Redistribute: concat PAC-aggregated core onto each token, project
         core_cat = torch.cat([xb, core], dim=-1)
         out = self.lin_out2(F.gelu(self.lin_out1(core_cat)))
         return out.reshape(B, N, D)
