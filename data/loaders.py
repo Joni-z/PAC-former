@@ -121,39 +121,37 @@ def _tuev_class_weights(root, files, n_classes=6):
 
 
 class SleepEDFLoader(Dataset):
-    """Sleep-EDF Cassette, 5-class sleep staging (W/N1/N2/N3/REM)."""
+    """Sleep-EDF Cassette, 5-class sleep staging (W/N1/N2/N3/REM).
 
-    def __init__(self, root, files):
-        self.root, self.files = root, list(files)
+    Reads from a consolidated (signals, labels) npy pair per split rather
+    than one pkl per 30s epoch -- ~128k small random-access file opens per
+    epoch starved the GPU (~15 it/s ceiling regardless of GPU speed). mmap
+    lets the OS page-cache the whole split (~1.8GB train) after epoch 1.
+    Run ``scripts/consolidate_sleepedf.py`` once to produce these files.
+    """
+
+    def __init__(self, root, split):
+        self.signals = np.load(os.path.join(root, f'{split}_signals.npy'), mmap_mode='r')
+        self.labels = np.load(os.path.join(root, f'{split}_labels.npy'))
 
     def __len__(self):
-        return len(self.files)
+        return len(self.labels)
 
     def __getitem__(self, index):
-        with open(os.path.join(self.root, self.files[index]), 'rb') as fh:
-            sample = pickle.load(fh)
-        X = sample['signal'].astype(np.float32)
+        X = np.asarray(self.signals[index], dtype=np.float32)
         X = X / (np.quantile(np.abs(X), q=0.95, axis=-1, keepdims=True) + 1e-8)
-        return torch.FloatTensor(X), int(sample['label'])
+        return torch.FloatTensor(X), int(self.labels[index])
 
 
-def _sleepedf_class_weights(root, files, n_classes=5):
-    counts = np.zeros(n_classes)
-    for f in files:
-        with open(os.path.join(root, f), 'rb') as fh:
-            label = int(pickle.load(fh)['label'])
-        counts[label] += 1
+def _sleepedf_class_weights(labels, n_classes=5):
+    counts = np.bincount(labels, minlength=n_classes).astype(np.float64)
     weights = counts.sum() / (n_classes * np.clip(counts, 1, None))
     return torch.FloatTensor(weights)
 
 
 def _sleepedf_sets(root):
-    sets = []
-    for subset in ('train', 'val', 'test'):
-        d = os.path.join(root, subset)
-        sets.append(SleepEDFLoader(d, sorted(os.listdir(d))))
-    train_dir = os.path.join(root, 'train')
-    class_weights = _sleepedf_class_weights(train_dir, sorted(os.listdir(train_dir)))
+    sets = [SleepEDFLoader(root, subset) for subset in ('train', 'val', 'test')]
+    class_weights = _sleepedf_class_weights(sets[0].labels)
     return sets, class_weights
 
 

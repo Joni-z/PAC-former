@@ -1,0 +1,3 @@
+train: 77840 epochs -> train_signals.npy (77840, 2, 3000) + train_labels.npy
+val: 18013 epochs -> val_signals.npy (18013, 2, 3000) + val_labels.npy
+test: 32336 epochs -> test_signals.npy (32336, 2, 3000) + test_labels.npy
