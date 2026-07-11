@@ -5,6 +5,7 @@ run is the YAML (specifically ``mixer``).
 """
 
 import argparse
+import random
 
 import numpy as np
 import torch
@@ -43,8 +44,16 @@ def main():
     args = parser.parse_args()
     cfg = yaml.safe_load(open(args.config))
 
-    torch.manual_seed(cfg.get("seed", 0))
-    np.random.seed(cfg.get("seed", 0))
+    seed = cfg.get("seed", 0)
+    random.seed(seed)          # augment.py picks the per-batch augmentation via
+                                # random.randint -- this module's seed is NOT set
+                                # by torch/numpy seeding and was the main source
+                                # of run-to-run variance before this fix.
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     device = cfg.get("device", "cuda" if torch.cuda.is_available() else "cpu")
 
     wandb.init(
@@ -76,6 +85,12 @@ def main():
     for epoch in range(cfg.get("epochs", 20)):
         tr_loss, *_ = run_epoch(model, train_loader, device, criterion, optimizer)
         log = {"epoch": epoch, "train_loss": tr_loss}
+        # MI-only diagnostic: is the model actually leaning on the PAC prior,
+        # or is pac_scale collapsing toward 0 (degenerating to plain QK
+        # attention regardless of coupling-signal quality)? See AGENT.md 9.7.
+        for i, block in enumerate(model.encoder.blocks):
+            if hasattr(block.mixer, "pac_scale"):
+                log[f"pac_scale/layer{i}"] = block.mixer.pac_scale.item()
 
         if (epoch + 1) % eval_every == 0:
             _, val_logits, val_y = run_epoch(model, val_loader, device, criterion)

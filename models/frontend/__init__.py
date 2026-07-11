@@ -20,8 +20,12 @@ band-structured so the MI operator still has its frequency-band identity:
     MI operator can still build a band x band coupling matrix.
 
 Phase/amplitude (for the MI operator) are still exposed per band at full time
-resolution; channel handling there is left as a channel-mean for now (only the
-MI mixer consumes it, and that path is revisited when MI is tested).
+resolution, and now **per channel** rather than channel-averaged: averaging
+the analytic signal across channels before taking phase/amplitude let
+channels with different phase alignment or scale cancel or dilute each
+other's coupling. The MI operator instead computes a coupling matrix per
+channel and averages the (already-real, non-negative) |Z| scores across
+channels, which cannot cancel the same way (v3 fix, see AGENT.md sec. 9.7).
 """
 
 import torch
@@ -56,7 +60,7 @@ class Frontend(nn.Module):
         """``x``: (B, C, T) raw EEG -> (tokens, phase_unit, amplitude).
 
         tokens: ``(B, n_bands * P, hidden)``  (P = number of time patches)
-        phase_unit / amplitude: ``(B, n_bands, T)``  (per band, full time)
+        phase_unit / amplitude: ``(B, C, n_bands, T)``  (per channel, per band, full time)
         """
         B, C, T = x.shape
         filtered = self.sinc(x.reshape(B * C, 1, T))            # (B*C, n_bands, T)
@@ -68,7 +72,8 @@ class Frontend(nn.Module):
         tokens = feat.transpose(1, 2).reshape(B, self.n_bands, feat.shape[-1], -1)
         tokens = tokens.reshape(B, -1, feat.shape[1])           # (B, n_bands*P, hidden)
 
-        # (b) phase/amplitude per band (channel-averaged analytic signal) for MI
-        z = hilbert(filtered).mean(dim=1)                       # (B, n_bands, T)
+        # (b) phase/amplitude per channel, per band (analytic signal never
+        # averaged across channels -- see module docstring) for MI
+        z = hilbert(filtered)                                    # (B, C, n_bands, T)
         phase_unit, amplitude = phase_amplitude(z)
         return tokens, phase_unit, amplitude

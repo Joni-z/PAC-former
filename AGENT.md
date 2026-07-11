@@ -98,8 +98,11 @@ Current (v2) design — band-preserving conv patch tokenizer:
 - tokens flattened to `(B, n_bands * P, hidden)`, `P = seq_len // patch_len`;
   band identity is recoverable (`P = N // n_bands`) so the MI operator can
   build a band x band coupling matrix
-- `phase_unit` / `amplitude` still exposed per band at full time resolution
-  (channel-mean analytic signal), passed to the MI operator as explicit kwargs
+- `phase_unit` / `amplitude` exposed per **channel**, per band, at full time
+  resolution — `(B, C, n_bands, T)`, never averaged across channels before
+  the Hilbert transform (v3 fix, Section 9.7) — passed to the MI operator as
+  explicit kwargs, which computes coupling per channel and averages `|Z|`
+  across channels
 
 **v1 design (deprecated, see Section 9 for why):** mean-pooled over all
 channels, and collapsed each band's whole time course into a single token via
@@ -280,12 +283,113 @@ First training attempt (job 12168972) was preempted around epoch 46 with no
 final test metrics, but early val_kappa (epoch 6: 0.557) already exceeded
 CoTAR's final val_kappa (0.544) — promising but inconclusive.
 
-**Status: rerun in progress.** Not yet resolved whether v2 clears CoTAR's
-test_kappa (0.5146) by a meaningful margin. Once resolved:
-- kappa clearly > cotar's 0.5146 -> sufficient as the core Sleep-EDF result.
-- still tied -> architecture problem, revisit the design rather than the data.
-- beats but narrowly -> consider adding a second PAC-relevant dataset (e.g.
-  CHB-MIT epilepsy) for robustness before writing up.
+**Resolved (job 12236503):**
+
+| Mixer | val_balanced_accuracy | test_balanced_accuracy | test_kappa | test_f1_weighted |
+|---|---|---|---|---|
+| cotar | — | — | 0.5146 | — |
+| mi (v1) | — | — | 0.5112 | — |
+| mi (v2) | 0.65234 | 0.62933 | **0.51216** | 0.68898 |
+
+MI (v2) essentially ties CoTAR (0.51216 vs. 0.5146) and does not clear MI (v1)
+either — the early-epoch promise (val_kappa 0.557 at epoch 6) did not survive
+to convergence. Per the branch pre-registered above: **tied → architecture
+problem, not a data problem.** See Section 9.7 for the diagnosis and fix
+attempted next, rather than adding a second dataset at this margin.
+
+### 9.7 Frontend v3 — per-channel PAC coupling (fixes a channel-mean bottleneck)
+
+Diagnosis: the v2 frontend (Section 4) fixed the token path's channel-mean
+bottleneck (per-band Conv1d mixes channels instead of averaging, Section 9.3)
+but left the phase/amplitude path — the thing MI's coupling matrix is
+actually computed from — on `hilbert(filtered).mean(dim=1)`, i.e. averaging
+the analytic signal across the 2 Sleep-EDF channels (Fpz-Cz, Pz-Oz) *before*
+computing phase/amplitude. If the two channels differ in phase alignment or
+amplitude scale (plausible — central vs. occipital derivations often carry
+different spindle/delta PAC strength), this can cancel or dilute exactly the
+coupling signal the MI operator is supposed to exploit — the same class of
+bug as the pre-9.3 token bottleneck, just left unfixed on the PAC-computation
+side because MI hadn't been tested yet.
+
+Fix: `Frontend.forward` no longer averages across channels before the
+Hilbert transform — `phase_unit`/`amplitude` are now `(B, C, n_bands, T)`
+(per channel) instead of `(B, n_bands, T)`. `MIOperator.coupling_matrix`
+computes the MVL coupling **per channel** and averages the resulting
+non-negative `|Z|` scores across channels (which cannot cancel the way
+averaging the raw analytic signal can) rather than averaging the phase
+signal itself. `coupling_matrix` still accepts the old 3D
+(no-channel-dim) shape for the single-channel synthetic/unit tests
+(`scripts/test_mixers.py`, `scripts/synth_pac_test.py`) — both re-verified
+passing after the change, including a 2-channel gradient-finiteness check.
+
+**Resolved (job 13230733, 48m35s):**
+
+| Mixer | val_balanced_accuracy | test_balanced_accuracy | test_kappa | test_f1_weighted |
+|---|---|---|---|---|
+| cotar | — | — | 0.5146 | — |
+| mi (v1) | — | — | 0.5112 | — |
+| mi (v2, channel-mean) | 0.65234 | 0.62933 | 0.51216 | 0.68898 |
+| mi (v2, per-channel fix) | 0.62177 | 0.62104 | **0.5138** | 0.68995 |
+
+The per-channel fix moved test_kappa from 0.51216 to 0.5138 — inside normal
+seed-to-seed noise, and still short of CoTAR's 0.5146. **The channel-mean
+bottleneck is not the (or not the main) reason MI fails to clear CoTAR** —
+this hypothesis is now reasonably ruled out. The frontend change is still
+correct on principle (per-channel coupling avoids the theoretical
+cross-channel phase-cancellation failure mode) and stays in, but the search
+for why MI doesn't beat CoTAR moves elsewhere: candidates are (a) `pac_scale`
+collapsing toward 0 during training (the model learning to ignore the PAC
+bias entirely, i.e. degenerating to plain QK attention regardless of input
+quality), (b) the concat+MLP redistribute step (Section 10's flagged open
+ablation — gating instead), (c) the operator design itself rather than any
+one input/output detail. Next: inspect the learned `pac_scale` from the
+13230733 checkpoint before deciding between (b) and (c).
+
+### 9.8 Seed bug found and fixed; controlled mi vs. cotar comparison
+
+No checkpoints are saved to disk (`train.py`'s `best_state` only lives in
+memory for the run's duration), so inspecting `pac_scale` required adding
+per-layer wandb logging (`train.py`, in the epoch loop: `for i, block in
+enumerate(model.encoder.blocks): if hasattr(block.mixer, "pac_scale"): ...`)
+and rerunning. That rerun (job 13233599) landed test_kappa **0.5792** —
+a large jump with *no functional code change* from the prior 0.5138 run
+(same config, same `seed: 0`). That gap (0.5138 -> 0.5792 from supposedly
+identical settings) was bigger than the effect we were trying to measure,
+so it was investigated before trusting the number.
+
+**Root cause: `seed` was never fully controlling the training run.**
+`train.py` only called `torch.manual_seed` and `np.random.seed`. But
+`models/augment.py:109` picks which augmentation to apply each forward pass
+via Python's built-in `random.randint(...)` — the `random` module's seed was
+never set anywhere, so its state was whatever the OS/interpreter initialised
+it to, different every process launch. With one `random.randint` call per
+training batch across 60 epochs, this alone was enough to make "the same
+config, same seed" produce meaningfully different training trajectories.
+GPU-side non-determinism (cuDNN algorithm auto-selection) is a smaller,
+secondary contributor.
+
+Fix (`train.py`, top of `main()`): seed `random`, `numpy`, `torch` (CPU
+*and* CUDA via `torch.cuda.manual_seed_all`) from the same `cfg["seed"]`,
+and set `torch.backends.cudnn.deterministic = True` /
+`torch.backends.cudnn.benchmark = False`. Verified in isolation (running
+`RandomAugment` twice from the same reset seed pair now yields an identical
+augmentation-choice sequence, where before the fix it did not).
+
+**Controlled rerun, same seed=0, both mixers (jobs 13247588 mi / 13247279
+cotar):**
+
+| Mixer | test_balanced_accuracy | test_kappa | test_f1_weighted |
+|---|---|---|---|
+| cotar | 0.5963 | 0.5107 | 0.6913 |
+| mi (v2, per-channel + seed fix) | 0.6130 | **0.5199** | 0.6886 |
+
+With randomness actually controlled, MI beats CoTAR by +0.0092 kappa — real
+but modest, nowhere near the 0.5792 outlier (now understood to be an
+especially favourable, unseeded augmentation draw, not a genuine
+improvement). Single-seed still isn't enough to fully rule out this seed
+itself being favourable; **recommended next step is 1-2 more seeds each
+(e.g. seed 1, 2) before treating "MI > CoTAR on Sleep-EDF" as a settled
+result** for writeup purposes.
 
 ---
 

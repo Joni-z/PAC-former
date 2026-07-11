@@ -56,7 +56,25 @@ class MIOperator(TokenMixer):
         that arises because raw amplitude is strictly positive (van Driel dPAC).
         Ozkurt normalisation by amplitude std makes the score a coupling measure,
         not a power measure.
+
+        Accepts either ``(B, n_bands, T)`` (no channel dim -- used by the
+        synthetic/unit-test single-channel inputs) or ``(B, C, n_bands, T)``
+        (the real frontend, one analytic signal per channel). In the latter
+        case the coupling is computed per channel and *then* averaged -- never
+        the raw analytic signal -- since averaging phase/amplitude across
+        channels first can have channels cancel or dilute each other's
+        coupling (v3 fix, AGENT.md sec. 9.7).
         """
+        if phase_unit.dim() == 4:
+            amp_c = amplitude - amplitude.mean(dim=-1, keepdim=True)
+            Z = torch.einsum("bcit,bcjt->bcij", phase_unit, amp_c.to(phase_unit.dtype))
+            Z = Z / amplitude.shape[-1]
+            coupling = Z.abs()
+            if self.normalize:
+                denom = torch.sqrt((amp_c ** 2).mean(dim=-1)).clamp_min(1e-6)
+                coupling = coupling / denom.unsqueeze(2)
+            return coupling.mean(dim=1)
+
         T = amplitude.shape[-1]
         amp_c = amplitude - amplitude.mean(dim=-1, keepdim=True)
         Z = torch.einsum("bit,bjt->bij", phase_unit, amp_c.to(phase_unit.dtype)) / T
@@ -79,7 +97,8 @@ class MIOperator(TokenMixer):
             )
 
         B, N, D = x.shape
-        n_bands = phase_unit.shape[1]
+        # phase_unit is (B, n_bands, T) [no channel dim] or (B, C, n_bands, T)
+        n_bands = phase_unit.shape[-2] if phase_unit.dim() == 4 else phase_unit.shape[1]
         P = N // n_bands
         xb = x.view(B, n_bands, P, D)
 
