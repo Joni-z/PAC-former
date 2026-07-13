@@ -188,6 +188,27 @@ not the last epoch trained.
 
 ## 9. Experimental log (chronological, with results)
 
+> **MI-operator version naming (canonical, use these going forward):**
+> - **mi v1** = fixed PAC coupling used directly as softmax aggregation weights,
+>   no learned Q/K/V (earliest design; tested on TUAB/TUEV/Sleep-EDF).
+> - **mi v2** = **PAC-biased cross-band attention** (learned single-head Q/K/V +
+>   learnable-scaled PAC coupling as an additive attention bias + concat/MLP
+>   redistribute), but with **channel-averaged** phase/amplitude feeding the
+>   coupling. Intermediate design; still tied CoTAR on Sleep-EDF (kappa 0.51216).
+> - **mi v3** = mi v2 with the **per-channel** coupling fix (coupling computed
+>   per channel then |Z|-averaged, §9.7) + the global seed-control fix (§9.8).
+>   This is the current `mi_operator.py`, and the version that **beats CoTAR
+>   3/3 seeds on Sleep-EDF** (mean kappa 0.5354 vs 0.4996). v2→v3 differs only by
+>   channel-mean→per-channel coupling (plus the seed fix, which was global).
+> - **mi v4** = mi v3 + multi-head Q/K/V + per-head pac_scale + gated injection
+>   (tried, no net gain, **reverted** — see §9.9).
+>
+> NOTE: sections §9.6–§9.9 below were written before this renaming and label the
+> PAC-biased-attention design "v2" (both channel-mean and per-channel variants)
+> and the multi-head+gating design "v3". Read those older labels as: old
+> "v2 channel-mean" = **v2**, old "v2 per-channel" = **v3**, old "v3" = **v4**.
+> (Frontend versions v1/v2/v3 are a *separate* numbering and are unaffected.)
+
 ### 9.1 Old frontend (v1), TUAB / TUEV — first three-way ablation
 
 Frontend v1: sinc filter -> mean-pool over 16 channels -> `Linear(seq_len ->
