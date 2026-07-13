@@ -9,7 +9,9 @@
 %    orange= PAC prior path  (Hilbert, MVL coupling, pac_scale)  <-- our novelty
 %    green = gating (v4 only)
 % ======================================================================
-\documentclass[border=8pt]{standalone}
+% `multi=tikzpicture` gives each TikZ diagram its own cropped page.  Without it, the
+% standalone class places all five diagrams in one very wide horizontal strip.
+\documentclass[multi=tikzpicture,border=8pt]{standalone}
 \usepackage{tikz}
 \usepackage{amsmath}
 \usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds}
@@ -48,13 +50,13 @@
   \node[op, below=14mm of sinc] (tok)  {tokens $(B,\nb P,D)$};
 
   \node[draw, dashed, rounded corners=3pt, fill=blue!4,
-        minimum width=52mm, minimum height=20mm, below=9mm of tok] (blk) {};
+        minimum width=100mm, minimum height=15mm, below=9mm of tok] (blk) {};
   \node[font=\footnotesize\bfseries, above=0.5mm of blk.north] {Encoder block $\times L$};
-  \node[op,   at=($(blk.center)+(-14mm,4mm)$)] (ln1) {LayerNorm};
+  \node[op,   at={($(blk.center)+(-34mm,0)$)}] (ln1) {LayerNorm};
   \node[learn,fill=orange!18,draw=orange!80,
-        at=($(blk.center)+(12mm,4mm)$)]        (mix) {\textbf{Mixer}\\(swappable)};
-  \node[op,   at=($(blk.center)+(-14mm,-5mm)$)] (ln2) {LayerNorm};
-  \node[learn,at=($(blk.center)+(12mm,-5mm)$)]  (ffn) {FFN};
+        at={($(blk.center)+(-11mm,0)$)}]        (mix) {\textbf{Mixer}\\(swappable)};
+  \node[op,   at={($(blk.center)+(12mm,0)$)}] (ln2) {LayerNorm};
+  \node[learn,at={($(blk.center)+(35mm,0)$)}]  (ffn) {FFN};
 
   \node[learn, below=10mm of blk] (head) {Pool + Head};
   \node[io, below=of head]        (out)  {logits $(B,\,\text{n\_cls})$};
@@ -64,14 +66,16 @@
   \draw[fl] (sinc)--(conv);
   \draw[fl] (sinc)--(hilb);
   \draw[fl] (conv)--(tok);
-  \draw[fl] (tok)--(blk);
-  \draw[fl] (blk)--(head);
+  \draw[fl] (tok)--(ln1);
+  \draw[fl] (ln1)--(mix);
+  \draw[fl] (mix)--(ln2);
+  \draw[fl] (ln2)--(ffn);
+  \draw[fl] (ffn)--(head);
   \draw[fl] (head)--(out);
   % phase/amp routed into the mixer
-  \draw[fl,orange!80,dashed] (hilb.east) to[out=0,in=0]
-        node[shp,black]{$\varphi,A$} (mix.east);
+  \draw[fl,orange!80,dashed] (hilb.east) to[out=0,in=0] (mix.east);
 
-  \node[font=\footnotesize, right=16mm of mix, text width=34mm, align=left]
+  \node[font=\footnotesize, right=15mm of ffn, text width=34mm, align=left]
         {The \textbf{Mixer} slot is where\\ attention / CoTAR / \textbf{MI (ours)}\\
          are swapped. The MI variants\\ (v1--v4) are detailed below.};
 \end{tikzpicture}
@@ -99,10 +103,12 @@
 
   \draw[fl](x)--(rs); \draw[fl](rs)--(mean);
   \draw[fl](phi)--(coup); \draw[fl](coup)--(sm);
-  \draw[fl](mean.south) |- (agg.west);
+  \draw[fl](mean.south) -- (agg.north);
   \draw[fl](sm.south) |- (agg.east) node[shp,pos=0.75]{weight};
   \draw[fl](agg)--(exp);\draw[fl](exp)--(cat);
-  \draw[fl](mean.south) .. controls +(0,-4mm) and +(0,18mm) .. (cat.west); % x_b skip
+  % Preserve patch-level tokens for the concat; only the aggregation path is
+  % band-averaged.  Routing this bypass on the left keeps it clear of `core`.
+  \draw[fl] (rs.west) -- ++(-12mm,0) |- (cat.west);
   \draw[fl](cat)--(mlp);\draw[fl](mlp)--(out);
 \end{tikzpicture}
 
@@ -121,7 +127,7 @@
   \node[op, below=8mm of k](qk){$QK^\top/\sqrt{d_k}$\\attn logits $(B,\nb,\nb)$};
 
   % PAC branch (right)
-  \node[pac, right=30mm of rs](phi){$\varphi,A$ channel-mean\\$(B,\nb,T)$};
+  \node[pac, right=48mm of rs](phi){$\varphi,A$ channel-mean\\$(B,\nb,T)$};
   \node[pac, below=8mm of phi](coup){MVL coupling $(B,\nb,\nb)$};
   \node[pac, below=of coup](ps){$\times\ \text{pac\_scale}$\\(learnable scalar)};
 
@@ -141,6 +147,7 @@
   \draw[fl](add)--(sm);\draw[fl](sm)--(agg);
   \draw[fl](v.south) .. controls +(0,-30mm) and +(18mm,0) .. (agg.east)
         node[shp,pos=0.9]{$V$};
+  \draw[fl] (rs.west) -- ++(-12mm,0) |- (cat.west);
   \draw[fl](agg)--(cat);\draw[fl](cat)--(mlp);\draw[fl](mlp)--(out);
 \end{tikzpicture}
 
@@ -158,7 +165,7 @@
   \node[op, below=8mm of k](qk){$QK^\top/\sqrt{d_k}$\\attn logits $(B,\nb,\nb)$};
 
   % PAC branch -- the ONLY change vs v2 is this coupling box
-  \node[pac, right=30mm of rs](phi){$\varphi,A$ \textbf{per channel}\\$(B,C,\nb,T)$};
+  \node[pac, right=48mm of rs](phi){$\varphi,A$ \textbf{per channel}\\$(B,C,\nb,T)$};
   \node[pac, below=8mm of phi](coup){MVL coupling per channel\\then $|Z|$-avg over $C$\\$(B,\nb,\nb)$};
   \node[pac, below=of coup](ps){$\times\ \text{pac\_scale}$};
 
@@ -178,6 +185,7 @@
   \draw[fl](add)--(sm);\draw[fl](sm)--(agg);
   \draw[fl](v.south) .. controls +(0,-30mm) and +(18mm,0) .. (agg.east)
         node[shp,pos=0.9]{$V$};
+  \draw[fl] (rs.west) -- ++(-12mm,0) |- (cat.west);
   \draw[fl](agg)--(cat);\draw[fl](cat)--(mlp);\draw[fl](mlp)--(out);
   \node[font=\scriptsize, right=3mm of coup, text width=30mm, orange!60!black]
         {only change vs v2:\\ coupling computed\\ per-channel, not on\\ channel-averaged $\varphi,A$};
@@ -197,7 +205,7 @@
   \node[learn, below right=9mm and 14mm of rs](v){$V$ proj\\reshape $H$ heads};
   \node[op, below=8mm of k](qk){$QK^\top/\sqrt{d_h}$\\$(B,H,\nb,\nb)$};
 
-  \node[pac, right=32mm of rs](phi){$\varphi,A$ per channel};
+  \node[pac, right=50mm of rs](phi){$\varphi,A$ per channel};
   \node[pac, below=8mm of phi](coup){MVL coupling per ch.\\$|Z|$-avg $(B,\nb,\nb)$};
   \node[pac, below=of coup](ps){$\times\ \text{pac\_scale}_h$\\(per-head, $H$ scalars)};
 
@@ -220,6 +228,7 @@
   \draw[fl](add)--(sm);\draw[fl](sm)--(agg);
   \draw[fl](v.south) .. controls +(0,-26mm) and +(20mm,0) .. (agg.east);
   \draw[fl](agg)--(gate);\draw[fl](agg)--(cp);
+  \draw[fl] (rs.west) to[out=180,in=90,looseness=1.15] (gate.north);
   \draw[fl](gate)--(mul);\draw[fl](cp)--(mul);
   \draw[fl](mul)--(out);
 \end{tikzpicture}
