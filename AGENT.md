@@ -391,6 +391,65 @@ itself being favourable; **recommended next step is 1-2 more seeds each
 (e.g. seed 1, 2) before treating "MI > CoTAR on Sleep-EDF" as a settled
 result** for writeup purposes.
 
+**Resolved — seeds 1 and 2 (jobs 13357185/13357186 mi, 13357187/13357188
+cotar):**
+
+| seed | cotar test_kappa | mi test_kappa | mi lead |
+|---|---|---|---|
+| 0 | 0.5107 | 0.5199 | +0.0092 |
+| 1 | 0.5003 | 0.5491 | +0.0488 |
+| 2 | 0.4878 | 0.5373 | +0.0495 |
+| **mean** | **0.4996** | **0.5354** | **+0.0358** |
+
+MI beats CoTAR on **3/3 seeds**, no sign reversal, and seed 0 (the first
+controlled run) turns out to be the *weakest* margin of the three, not a
+favourable outlier — so the earlier caution about single-seed noise is now
+resolved in MI's favor. **This is currently the most solid evidence in the
+project that PAC-biased cross-band attention (v2 MI) genuinely outperforms
+CoTAR on Sleep-EDF**, once (a) the channel-mean frontend bug (9.7) and (b)
+the `random`-seed bug (9.8) are both fixed. Treat "MI > CoTAR on Sleep-EDF"
+as settled for now; revisit only if a future architecture/data change
+reopens the question.
+
+### 9.9 MI v3 attempt — multi-head + gated injection (tried, reverted, no net gain)
+
+Two changes were tried on top of the settled v2 result (jobs 13364126/27/554,
+seeds 0/1/2): (a) made the cross-band Q/K/V multi-head (4 heads, matching the
+`SelfAttention` baseline exactly, with a per-head learnable `pac_scale`
+instead of one shared scalar) so that `pac_scale -> 0` degenerates to the
+*same* 4-head attention being compared against, instead of a strictly weaker
+single-head one; (b) replaced the concat+MLP redistribute step with a sigmoid
+gate (`gate = sigmoid(W_g[token; core])`, `out = gate * core_proj(core)`)
+added via the Block's residual, so a token can suppress cross-band injection
+entirely (`gate -> 0`) instead of always absorbing it.
+
+| seed | cotar | mi v2 | mi v3 (multi-head + gate) | v2 lead | v3 lead |
+|---|---|---|---|---|---|
+| 0 | 0.5107 | 0.5199 | 0.5347 | +0.0092 | +0.0240 |
+| 1 | 0.5003 | 0.5491 | 0.5490 | +0.0488 | +0.0487 |
+| 2 | 0.4878 | 0.5373 | 0.4892 | +0.0495 | +0.0014 |
+| **mean** | 0.4996 | **0.5354** | 0.5243 | +0.0358 | +0.0247 |
+
+**No net gain — reverted.** v3's mean kappa (0.5243) is *lower* than v2's
+(0.5354) and its seed-to-seed spread nearly doubled (0.0292 -> 0.0598 range).
+seed 0 improved, seed 1 was flat, but seed 2 collapsed to a near-tie with
+CoTAR (+0.0014, down from v2's +0.0495) — still a 3/3 sweep, but a much less
+clean one. Per-head `pac_scale` values did show real differentiation across
+heads (e.g. seed1 layer5: heads 0.037/0.029/**0.185**/0.076) confirming the
+multi-head split lets heads specialize, but overall magnitudes were much
+smaller than v2's single-head values (v2 reached 0.4-0.6 in deep layers; v3
+heads mostly stayed under 0.1) — the gate may be absorbing part of the
+"should this token use cross-band info" decision that `pac_scale` alone used
+to carry, without a net accuracy benefit and with added optimization
+instability (more free parameters: per-head scale + gate projection, on a
+dataset not large enough to reliably fit them).
+
+`mi_operator.py` and `train.py`'s `pac_scale` logging were reverted to the
+v2 (single-head, concat+MLP) design, which remains the reported result.
+Multi-head + gating is not ruled out as a good idea in principle, but this
+attempt did not validate it — revisit only with a clearer hypothesis for why
+seed 2 collapsed, not as a blind retry.
+
 ---
 
 ## 10. Things to flag back to the user rather than deciding alone

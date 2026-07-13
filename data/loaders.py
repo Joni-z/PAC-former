@@ -203,6 +203,10 @@ def build_dataloaders(cfg: dict):
                              (cfg.get("n_test", 128), 2)]]
     elif name == "tuab":
         sets = _tuab_sets(cfg["data_root"], rate)
+    elif name == "tuep":
+        sets = _tuab_sets(cfg["data_root"], rate)  # same pkl format/loader as TUAB
+    elif name == "tusz":
+        sets = _tuab_sets(cfg["data_root"], rate)  # same pkl format/loader as TUAB
     elif name == "tuev":
         sets, class_weights = _tuev_sets(cfg["data_root"], rate)
     elif name == "sleepedf":

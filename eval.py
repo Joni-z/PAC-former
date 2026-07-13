@@ -12,6 +12,7 @@ add recording-level pooling here without matching BIOT's own logic.
 
 import numpy as np
 from sklearn.metrics import (
+    average_precision_score,
     balanced_accuracy_score,
     cohen_kappa_score,
     f1_score,
@@ -21,13 +22,20 @@ from scipy.special import softmax
 
 
 def binary_metrics(y_true: np.ndarray, logits: np.ndarray) -> dict:
-    """``logits``: (N,) or (N, 2). Returns balanced accuracy + AUROC."""
+    """``logits``: (N,) or (N, 2). Returns balanced accuracy + AUROC + PR-AUC.
+
+    pr_auc (average precision) is the primary metric for the highly imbalanced
+    seizure-detection setting (TUSZ, CHB-MIT): with ~2-10% positives AUROC is
+    misleadingly high, so PR-AUC is what the seizure-detection literature and
+    BIOT report as the headline number.
+    """
     logits = np.asarray(logits)
     prob = softmax(logits, axis=1)[:, 1] if logits.ndim == 2 else 1 / (1 + np.exp(-logits))
     pred = (prob > 0.5).astype(int)
     return {
         "balanced_accuracy": balanced_accuracy_score(y_true, pred),
         "auroc": roc_auc_score(y_true, prob),
+        "pr_auc": average_precision_score(y_true, prob),
     }
 
 

@@ -6,3 +6,7 @@ checkpoints/
 *.pkl
 tuh_eeg/
 sleep_edf/
+chb_mit/
+logs/
+*.edf
+*.edf.seizures
