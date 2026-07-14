@@ -28,6 +28,11 @@ import torch.nn.functional as F
 
 from .base import TokenMixer
 
+# Fixed divisor for the MVL-coupling normalisation on the real (per-channel)
+# path. Replaces the numerically unstable per-channel amplitude-std division
+# that produced NaN on flat/dead channels in 16-channel clinical EEG.
+NORM_CONST = 100.0
+
 
 class MIOperator(TokenMixer):
     def __init__(self, d_model: int, normalize: bool = True, d_k: int | None = None, **_):
@@ -71,8 +76,13 @@ class MIOperator(TokenMixer):
             Z = Z / amplitude.shape[-1]
             coupling = Z.abs()
             if self.normalize:
-                denom = torch.sqrt((amp_c ** 2).mean(dim=-1)).clamp_min(1e-6)
-                coupling = coupling / denom.unsqueeze(2)
+                # Fixed-scale normalisation instead of dividing by the per-channel
+                # amplitude std. On 16-channel clinical EEG (TUEV/TUEP/TUSZ) some
+                # channels are flat/dead in parts, so the per-channel std -> 0 and
+                # the division blew up to NaN (only 2-channel Sleep-EDF was safe).
+                # A fixed constant removes the division-by-near-zero entirely; the
+                # learnable pac_scale absorbs the overall magnitude anyway.
+                coupling = coupling / NORM_CONST
             return coupling.mean(dim=1)
 
         T = amplitude.shape[-1]

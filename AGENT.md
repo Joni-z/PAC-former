@@ -2,16 +2,30 @@
 
 ## 0. What this project is
 
+> **Project positioning (updated 2026-07-12, post-meeting with PI — this
+> supersedes any earlier framing in this doc that reads as "we are competing
+> head-to-head with CoTAR"):**
+> **PAC-Former's actual goal is an EEG foundation model.** CoTAR/attention are
+> not the opponents we're trying to beat in a vacuum — they are a source of
+> *time-series architecture ideas/tricks* we are evaluating for inclusion in
+> the eventual foundation-model backbone. The mixer-swap ablation
+> (attention/cotar/mi, §9 below) is how we validate individual design
+> choices (does this idea help, on which tasks, why), not the end goal itself.
+> **Large-scale self-supervised pretraining is the next planned phase** once
+> the backbone design (frontend + mixer) is settled — see §11.
+
 **PAC-Former**: a differentiable phase-amplitude coupling (PAC) operator that
 replaces self-attention in a frequency-domain EEG encoder. Frequency bands are
 tokens. The mixer that moves information between tokens is a learnable
 Modulation Index (MI) operator instead of QKᵀ softmax attention.
 
-The codebase's entire reason for existing is to support one controlled
+The codebase's mixer-swap machinery exists to support one controlled
 ablation: **same backbone, same training, swap only the token mixer** between
 (a) vanilla self-attention, (b) CoTAR, (c) our MI operator. Every design
 decision exists to keep that swap clean. If a change makes the mixer swap
-messier, it's the wrong change.
+messier, it's the wrong change. This ablation is a *validation tool* for the
+backbone design, not the project's deliverable — see the positioning note
+above.
 
 **Do not silently deviate from this guide.** If something here turns out to
 be wrong or impossible once you're in the code, stop and flag it rather than
@@ -128,14 +142,32 @@ weight[j, i] = softmax_i(attn[j, i])
 core_j       = sum_i weight[j, i] * V_i
 ```
 
-`coupling` is the Canolty (2006) MVL score with Ozkurt normalization and
-van-Driel-style mean-centered amplitude debiasing (removes the spurious
-low-frequency term from amplitude being strictly positive). `pac_scale` is a
-learned scalar (init 1.0). This strictly generalizes pure attention
-(`pac_scale -> 0`) and pure PAC-weighted aggregation (frozen Q/K, large
-`pac_scale`), so the model can learn, per layer, how much to lean on the
+`coupling` is the Canolty (2006) MVL score, mean-centered amplitude debiasing
+(removes the spurious low-frequency term from amplitude being strictly
+positive), **normalized by a fixed constant (`NORM_CONST = 100.0`)** rather
+than the per-channel amplitude std (see §9.10 — the std-based Ozkurt
+normalization divides by ~0 on flat/dead channels in 16-channel clinical EEG
+and produced NaN; a fixed divisor removes that failure mode entirely, and
+`pac_scale` being learned absorbs whatever overall magnitude is left). Applies
+only to the real (per-channel, 4D) path; the single-channel/synthetic 3D path
+used by unit tests is unchanged and still uses std-based normalization.
+`pac_scale` is a learned scalar (init 1.0). This strictly generalizes pure
+attention (`pac_scale -> 0`) and pure PAC-weighted aggregation (frozen Q/K,
+large `pac_scale`), so the model can learn, per layer, how much to lean on the
 physiological prior vs. a data-driven cross-band relationship. Redistribute
 step is concat + MLP (matches CoTAR).
+
+**Complexity note:** despite having learned Q/K/V, this mixer is **not**
+O(N²) in the token count N = n_bands·P. Q/K/V are computed on `band_repr`
+(the per-band mean over the P patches, `(B, n_bands, D)`), so the attention
+matrix is a fixed `n_bands × n_bands` (n_bands=32 is a constant hyperparameter,
+independent of sequence length) — O(n_bands²) = O(1) w.r.t. sequence length.
+The only terms that scale with sequence length (T or N) are linear: the
+coupling einsum (O(n_bands²·C·T)) and the concat+MLP redistribute (O(N·D²)).
+This is a relevant selling point for large-scale pretraining (sub-quadratic
+vs. standard self-attention's O(N²)) — at the cost of the cross-band attention
+only ever seeing band-level time-averaged summaries, not patch-level detail
+(patch-level detail is only reintroduced at the final concat with `x_b`).
 
 **v1 design (deprecated):** fixed PAC coupling matrix used directly as
 softmax aggregation weights, no learned Q/K/V. Tied CoTAR on Sleep-EDF but
@@ -169,6 +201,9 @@ not the last epoch trained.
 | TUAB | normal/abnormal EEG | 2 | BIOT-style | 16-channel, requires access application |
 | TUEV | EEG event type | 6 | BIOT-style | 16-channel, severe class imbalance -> inverse-frequency `CrossEntropyLoss` weights |
 | Sleep-EDF Cassette | sleep stage (AASM) | 5 (W/N1/N2/N3/REM) | subject-disjoint, 70/15/15 by sorted subject rank | 2-channel (Fpz-Cz, Pz-Oz), 30s epochs @ 100Hz; downloaded via `scripts/download_sleepedf.sh` (PhysioNet SHA256SUMS-driven, not HTML crawl), preprocessed via `scripts/preprocess_sleepedf.py` |
+| TUEP | epilepsy diagnosis | 2 | patient-disjoint, 70/15/15 (own split, TUEP ships none) | 16-channel, same montage as TUAB; `scripts/preprocess_tuep.py`. **Judged not usable**: attention/cotar baselines ≈ chance (bacc 0.49/0.50) — session-level diagnosis label doesn't reflect every 10s window, label granularity mismatch not a mixer problem. Not pursuing further. |
+| TUSZ | seizure detection (event-level) | 2 | corpus-native train/dev/eval -> train/val/test | 16-channel, same montage as TUAB; `scripts/preprocess_tusz.py`, labels from `.csv_bi` interval annotations, BIOT-style seizure-window oversampling (§9.10) for the extreme (~2%) class imbalance; `eval.py` now reports **pr_auc** (primary metric for this task, AUROC is misleading under this imbalance) alongside balanced_accuracy/auroc. |
+| CHB-MIT | seizure detection | 2 | — | pediatric, 23 subjects, ~42GB; downloaded via `scripts/download_chbmit.sh` (parallel, `xargs -P 10`). Resume logic originally checked file *existence* only (`[[ -f ]]`), so 0-byte files left behind by repeated interrupted runs (login-node process kills, §"login node has no GPU/compute" in memory) were wrongly treated as complete and never retried — found 41 such files after an apparently-"done" run; fixed to check non-empty (`[[ -s ]]`). Preprocessing not yet ported (BIOT's `reference/BIOT/datasets/CHB-MIT/process*.py` is the template to follow, same recipe as TUSZ). |
 
 ---
 
@@ -471,6 +506,157 @@ Multi-head + gating is not ruled out as a good idea in principle, but this
 attempt did not validate it — revisit only with a clearer hypothesis for why
 seed 2 collapsed, not as a blind retry.
 
+### 9.10 NaN bug on 16-channel clinical EEG (TUEV/TUEP/TUSZ) — found, fixed
+
+Running the (Sleep-EDF-winning) MI operator on TUEV and TUEP surfaced a real
+bug, not a task-mismatch result: `train_loss` was `nan` from epoch 0, all
+per-layer `pac_scale` values went `nan`, and the model collapsed to
+predicting a single class (TUEV: balanced_accuracy exactly 1/6 = 0.1667,
+f1≈0, kappa=0 — pure chance on 6 classes). On TUEP (binary) the same NaN
+crashed the job outright (`roc_auc_score` raises on NaN input). Sleep-EDF (2
+channels) and TUAB were never affected.
+
+**Root cause:** `coupling_matrix`'s Ozkurt normalization divides by the
+per-channel amplitude std (`denom = sqrt(mean(amp_c**2))`, clamped to
+`1e-6`). On Sleep-EDF's 2 hand-picked channels this is safe, but 16-channel
+clinical TUH montages routinely have flat/dead channels in parts of a
+recording (electrode pop-off, saturation, artifact) — when a channel's
+amplitude variance is near-zero, the division blows up, and one bad channel
+in a 16-channel batch is enough to poison the whole batch via the einsum ->
+softmax chain. This is a direct side effect of the v2->v3 per-channel-coupling
+fix (§9.7): channel-averaging (old v2) diluted a bad channel's contribution
+across all 16; per-channel computation (v3) isolates and amplifies it instead.
+
+**Fix:** replaced the per-channel-std Ozkurt normalization with a **fixed
+divisor** (`NORM_CONST = 100.0`, module-level constant in `mi_operator.py`)
+on the real/4D (per-channel) path only — removes the division-by-near-zero
+failure mode entirely; the learnable `pac_scale` absorbs whatever coupling
+magnitude is left, so this is not expected to change Sleep-EDF behavior
+materially (untested at time of writing — re-verify Sleep-EDF numbers are
+still consistent with §9.8 after this change, not assumed). The 3D
+(single-channel/synthetic) path used by `synth_pac_test.py`/`test_mixers.py`
+is unchanged and still passes.
+
+**Resolved (job 13460000):** `train_loss` was finite for all epochs (0
+occurrences of `nan` in the log) — fix confirmed on real 16-channel data, not
+just the synth/unit tests.
+
+| Mixer | bacc | kappa | f1_weighted |
+|---|---|---|---|
+| attention | 0.4205 | 0.2925 | 0.6223 |
+| cotar | 0.4227 | 0.2272 | 0.5591 |
+| mi (v3, fixed) | 0.4193 | 0.2569 | 0.5843 |
+
+mi is now a real, trustworthy number (previously 0.1667/0/0 — pure NaN-induced
+chance) and lands between attention and cotar, still the weakest on kappa —
+consistent with §9.4's "PAC doesn't fit TUEV" conclusion, just no longer
+contaminated by a crashed run.
+
+### 9.11 TUSZ three-way ablation — first real result (single seed)
+
+Jobs 13460123 (attention) / 13460124 (cotar) / 13460125 (mi), seed 0, on the
+BIOT-style-oversampled TUSZ data (§7). `eval.py`'s new `pr_auc` (§7) is the
+primary metric given the ~2-6% positive rate; `train_loss` was finite
+throughout all three runs (§9.10 fix holds on TUSZ too).
+
+| Mixer | bacc | AUROC | PR-AUC |
+|---|---|---|---|
+| attention | 0.5748 | 0.7645 | 0.4262 |
+| cotar | 0.6122 | 0.7987 | 0.4694 |
+| mi | 0.5873 | 0.7985 | **0.4697** |
+
+mi and cotar are effectively **tied** on PR-AUC/AUROC (both clearly beat
+attention, mirroring the Sleep-EDF pattern of "structured mixer > plain
+attention"), but unlike Sleep-EDF's clean 3/3-seed mi win, **mi does not
+separate from cotar here**. Single seed only — per the seed-workflow
+convention (dev/tuning = seed 0 only), do not treat this as settled; multi-seed
+would be needed before drawing a conclusion either way.
+
+### 9.12 IO bottleneck on TUAB/TUEV/TUEP/TUSZ — same class of bug as Sleep-EDF, fixed
+
+Discovered while investigating why TUSZ attention (job 13460123) took 3h39m
+(anomalously slow vs. other runs): TUAB/TUEV/TUEP/TUSZ all still use
+`TUABLoader`/`TUEVLoader`'s one-`pickle.load`-per-`__getitem__` pattern
+(`data/loaders.py`) — the exact IO-bound bottleneck `consolidate_sleepedf.py`
+was written to fix for Sleep-EDF's ~128k files (small-file random-access
+reads starve the GPU regardless of GPU speed). These four datasets have
+**113k-416k files each** — as bad as or worse than Sleep-EDF was (TUAB
+409,455; TUSZ 416,362; TUEP 184,739; TUEV 113,353).
+
+**Fix:** generalized the consolidation approach. `scripts/consolidate_pkl_dataset.py`
+packs per-window pkls into one `{split}_signals.npy` + `{split}_labels.npy`
+pair per split (same convention as `consolidate_sleepedf.py`: written directly
+into the dataset's root processed dir). New `TUABNpyLoader`/`TUEVNpyLoader`
+(`data/loaders.py`) read these via `mmap_mode='r'`. `_tuab_sets`
+(TUAB/TUEP/TUSZ, which all share TUABLoader's `{"X","y"}` format) and
+`_tuev_sets` **auto-detect** the consolidated files and use the fast path if
+present, otherwise transparently fall back to the original per-pkl loader —
+no config or call-site changes needed, and nothing breaks for
+not-yet-consolidated datasets.
+
+Two bugs surfaced while building this, both fixed:
+
+1. **OOM on TUAB.** The first version built the whole split array in RAM
+   before writing (`np.empty((n, *shape))`); TUAB's train split alone is
+   ~38GB as float32, which OOM'd a 32GB job (TUSZ's ~29.5GB train barely
+   fit, was not a coincidence-free margin). Fixed by writing through a
+   disk-backed memmap (`np.lib.format.open_memmap`) instead of an in-RAM
+   array — peak RAM is now ~one sample regardless of split size.
+2. **TUEV's val split was not actually reproducible across process launches**
+   despite a fixed `rng.choice(..., seed=4523)` — see §9.13, found while
+   consolidating TUEV and getting a different train/val split size than a
+   fallback run in the same session.
+
+**Status: done.** TUAB (job 13482061, memmap fix, 41min, no OOM), TUEV, and
+TUSZ all consolidated successfully — verified `_tuab_sets`/`_tuev_sets` pick
+up the npy files automatically and return correct sizes/shapes/dtypes/labels.
+TUEP not consolidated (already judged not usable, §7). Any future
+training run on these three datasets automatically gets the speedup with no code
+changes.
+
+### 9.13 TUEV val split was non-deterministic across process launches (PYTHONHASHSEED) — found & fixed
+
+While consolidating TUEV (§9.12), the consolidation script's train/val
+subject split (76772/7160) didn't match a `_tuev_sets` fallback run from the
+same session (74813/9119) — same total (83932), different split. Root cause:
+
+```python
+train_sub = list(set(f.split("_")[0] for f in train_files))   # BUG
+val_sub = rng.choice(train_sub, size=..., seed=4523)
+```
+
+`PYTHONHASHSEED` is unset in this environment (confirmed: `echo $PYTHONHASHSEED`
+is empty), so Python randomizes string hashing **per process** by default.
+`set()` iteration order for strings depends on hash values, so
+`list(set(...))`'s order is different every time a new Python process starts
+— even though `rng.choice`'s numeric seed (4523) is fixed, it draws from a
+differently-ordered input array each run, so **the actual val subjects
+selected differ from run to run**. Verified directly: three separate `python3
+-c "print(list({'aaa','bbb',...}))"` invocations gave three different
+orderings.
+
+This is the same *class* of bug as the Sleep-EDF `random`-module seed issue
+(§9.8): code that looks seeded but isn't actually deterministic across
+process launches. **Practical impact:** every historical TUEV run (v1
+frontend, v2 frontend, all three mixers, the §9.10 NaN-fix rerun) was
+evaluated against a *different* random 10% subset of train subjects held out
+as val, despite `seed=4523` appearing in the code. This does not overturn the
+"PAC doesn't fit TUEV" conclusion (no run was systematically favored — it's
+symmetric noise across mixers, not bias toward one), but it means TUEV
+mixer-to-mixer comparisons have had an uncontrolled noise source this whole
+time, on top of whatever comes from training-run seeding itself.
+
+**Fix:** `train_sub = sorted(set(...))` instead of `list(set(...))`, in both
+`data/loaders.py::_tuev_sets` and `scripts/consolidate_pkl_dataset.py`.
+`sorted()` gives a process-independent order for `rng.choice` to sample from.
+Verified: two separate process launches with the fix now select the identical
+29 val subjects. TUEV consolidated npy files were regenerated with the fix
+(job 13481333) after this was found — the file counts in §9.12 postdate the
+fix. **Not yet re-verified:** whether this changes any of the historical TUEV
+result numbers (§9.4/§9.10) beyond noise — not assumed either way; flag if
+re-running TUEV comparisons and numbers move more than expected run-to-run
+variance.
+
 ---
 
 ## 10. Things to flag back to the user rather than deciding alone
@@ -482,3 +668,31 @@ seed 2 collapsed, not as a blind retry.
   closed decisions.
 - Any numerical instability that survives the unit-complex-vector trick in
   Section 4 — don't patch it ad hoc, surface it.
+
+---
+
+## 11. Roadmap (post-2026-07-12 repositioning)
+
+Per the §0 positioning update, the project's actual deliverable is an EEG
+foundation model, not "mi beats cotar." Current/near-term plan:
+
+1. **Finish validating the backbone design** via the mixer-swap ablation —
+   this is still the right tool for testing individual ideas (does
+   per-channel PAC coupling help, does multi-head/gating help, etc.), just
+   not the paper's headline result. Sleep-EDF's mi-v3-beats-cotar result
+   (§9.8) and the TUEV/TUEP/TUSZ negative-or-pending results are inputs to
+   backbone design decisions, not competing claims against CoTAR.
+2. **Complexity is a real asset for this positioning**: the MI mixer is
+   sub-quadratic (§5's complexity note) — cross-band attention operates on a
+   fixed n_bands=32 summaries regardless of sequence length, unlike standard
+   self-attention's O(N²). Worth keeping front-of-mind when scaling to long
+   pretraining sequences.
+3. **Large-scale self-supervised pretraining** is the next phase once the
+   backbone is settled (no concrete plan/objective/data recipe decided yet as
+   of this writing — do not assume a specific pretraining design without
+   re-confirming with the user).
+4. **TUSZ/CHB-MIT** (§7): being pursued as additional PAC-relevant datasets in
+   service of goal 1, not as a pivot to a different benchmark suite (that
+   "switch to Medformer benchmark" idea was discussed and explicitly not
+   adopted — the user chose to stay on the BIOT/EEG-corpus lineage and
+   reframe the goal instead, per §0).

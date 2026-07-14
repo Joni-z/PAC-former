@@ -33,7 +33,10 @@ mkdir -p $(awk -F/ '{print $1}' .filelist.txt | sort -u)
 
 fetch_one() {
     fname="$1"
-    [[ -f "$fname" ]] && return 0
+    # -s (not just -f): repeated interrupted runs left 0-byte files behind,
+    # and a plain existence check treated those as "already downloaded" --
+    # they'd never get retried. Require non-empty too.
+    [[ -s "$fname" ]] && return 0
     wget -q -c "${BASE}/${fname}" -O "${fname}"
 }
 export -f fetch_one

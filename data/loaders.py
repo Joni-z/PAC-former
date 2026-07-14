@@ -41,6 +41,54 @@ class TUABLoader(Dataset):
         return torch.FloatTensor(X), sample["y"]
 
 
+class TUABNpyLoader(Dataset):
+    """Same normalization/output as TUABLoader, but reads a consolidated
+    (signals, labels) npy pair instead of one pickle.load per __getitem__.
+    Used by TUAB/TUEP/TUSZ, which all share TUABLoader's {"X","y"} pkl format
+    and all have 100k-400k+ per-window files -- the same IO-bound bottleneck
+    scripts/consolidate_sleepedf.py fixed for Sleep-EDF (~15 it/s ceiling
+    regardless of GPU speed). Run scripts/consolidate_pkl_dataset.py once per
+    split to produce the npy files this reads.
+    """
+
+    def __init__(self, root, split, sampling_rate=200):
+        self.signals = np.load(os.path.join(root, f'{split}_signals.npy'), mmap_mode='r')
+        self.labels = np.load(os.path.join(root, f'{split}_labels.npy'))
+        self.default_rate, self.sampling_rate = 200, sampling_rate
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, index):
+        X = np.asarray(self.signals[index], dtype=np.float32)
+        if self.sampling_rate != self.default_rate:
+            X = resample(X, 10 * self.sampling_rate, axis=-1)
+        X = X / (np.quantile(np.abs(X), q=0.95, method="linear", axis=-1, keepdims=True) + 1e-8)
+        return torch.FloatTensor(X), int(self.labels[index])
+
+
+class TUEVNpyLoader(Dataset):
+    """Same normalization/output as TUEVLoader, npy-backed (see TUABNpyLoader
+    docstring). `labels` npy stores raw 1..6 (matches TUEVLoader's `label[0]`
+    before the -1 shift, so consolidate_pkl_dataset.py doesn't need to know
+    about the shift)."""
+
+    def __init__(self, root, split, sampling_rate=200):
+        self.signals = np.load(os.path.join(root, f'{split}_signals.npy'), mmap_mode='r')
+        self.labels = np.load(os.path.join(root, f'{split}_labels.npy'))
+        self.default_rate, self.sampling_rate = 256, sampling_rate
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, index):
+        X = np.asarray(self.signals[index], dtype=np.float32)
+        if self.sampling_rate != self.default_rate:
+            X = resample(X, 5 * self.sampling_rate, axis=-1)
+        X = X / (np.quantile(np.abs(X), q=0.95, method="linear", axis=-1, keepdims=True) + 1e-8)
+        return torch.FloatTensor(X), int(self.labels[index]) - 1
+
+
 class TUEVLoader(Dataset):
     """TUEV 6-class event. 256 Hz default, 5 s windows; labels 1..6 -> 0..5."""
 
@@ -94,12 +142,26 @@ class SyntheticPACDataset(Dataset):
 
 
 def _tuab_sets(root, rate):
-    """TUAB: preprocess_tuab.py already wrote disjoint train/val/test folders
-    (subject-disjoint split happens at preprocessing time, like BIOT)."""
-    return [
-        TUABLoader(os.path.join(root, split), os.listdir(os.path.join(root, split)), rate)
-        for split in ("train", "val", "test")
-    ]
+    """TUAB/TUEP/TUSZ (all share this loader/pkl format): preprocessing already
+    wrote disjoint train/val/test folders (subject-disjoint split happens at
+    preprocessing time, like BIOT).
+
+    Auto-detects a consolidated npy pair per split (see
+    scripts/consolidate_pkl_dataset.py, which writes `{split}_signals.npy` /
+    `{split}_labels.npy` directly into `root` -- same convention as
+    SleepEDFLoader/consolidate_sleepedf.py) and uses the fast mmap-backed
+    TUABNpyLoader if present; otherwise falls back to the original
+    one-pickle-per-window TUABLoader (slow on these 100k-400k+ file
+    datasets, but correct and always available).
+    """
+    sets = []
+    for split in ("train", "val", "test"):
+        if os.path.exists(os.path.join(root, f"{split}_signals.npy")):
+            sets.append(TUABNpyLoader(root, split, rate))
+        else:
+            split_dir = os.path.join(root, split)
+            sets.append(TUABLoader(split_dir, os.listdir(split_dir), rate))
+    return sets
 
 
 def _tuev_class_weights(root, files, n_classes=6):
@@ -160,12 +222,30 @@ def _tuev_sets(root, rate):
     val split). Val is carved out of train here, by subject, with the same
     seed/fraction/logic as BIOT's run_multiclass_supervised.py
     (prepare_TUEV_dataloader) so the split is identical to the literature.
+
+    Auto-detects consolidated npy files (see
+    scripts/consolidate_pkl_dataset.py --format tuev-split, which reproduces
+    this exact subject split once and writes train/val/test npy directly
+    into `root`) and uses the fast mmap-backed TUEVNpyLoader if present;
+    otherwise falls back to the original one-pickle-per-window TUEVLoader.
     """
+    if os.path.exists(os.path.join(root, "train_signals.npy")):
+        sets = [TUEVNpyLoader(root, split, rate) for split in ("train", "val", "test")]
+        counts = np.bincount(sets[0].labels, minlength=7)[1:7].astype(np.float64)
+        class_weights = torch.FloatTensor(counts.sum() / (6 * np.clip(counts, 1, None)))
+        return sets, class_weights
+
     rng = np.random.default_rng(4523)
     train_files = os.listdir(os.path.join(root, "processed_train"))
     test_files = os.listdir(os.path.join(root, "processed_eval"))
 
-    train_sub = list(set(f.split("_")[0] for f in train_files))
+    # sorted(), not list(set(...)): PYTHONHASHSEED randomizes string-set
+    # iteration order per-process, so an unsorted list(set(...)) here made
+    # rng.choice below draw a *different* val subject subset on every
+    # process launch despite the fixed seed=4523 (found & fixed 2026-07-13,
+    # see AGENT.md). sorted() gives a process-independent, truly
+    # reproducible order for rng.choice to sample from.
+    train_sub = sorted(set(f.split("_")[0] for f in train_files))
     val_sub = set(rng.choice(train_sub, size=int(len(train_sub) * 0.1), replace=False))
     train_sub = set(train_sub) - val_sub
 
@@ -206,6 +286,8 @@ def build_dataloaders(cfg: dict):
     elif name == "tuep":
         sets = _tuab_sets(cfg["data_root"], rate)  # same pkl format/loader as TUAB
     elif name == "tusz":
+        sets = _tuab_sets(cfg["data_root"], rate)  # same pkl format/loader as TUAB
+    elif name == "chbmit":
         sets = _tuab_sets(cfg["data_root"], rate)  # same pkl format/loader as TUAB
     elif name == "tuev":
         sets, class_weights = _tuev_sets(cfg["data_root"], rate)
