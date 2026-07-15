@@ -722,3 +722,74 @@ foundation model, not "mi beats cotar." Current/near-term plan:
    "switch to Medformer benchmark" idea was discussed and explicitly not
    adopted — the user chose to stay on the BIOT/EEG-corpus lineage and
    reframe the goal instead, per §0).
+
+---
+
+## 12. PI meeting notes (chronological, verbatim from user)
+
+Kept in the original Chinese as given by the user each time, not translated
+or reworded — these are the source-of-truth record of what was reported to
+and discussed with the PI, separate from this doc's own experimental log
+(§9) and roadmap (§11).
+
+### 2026.6.27
+
+一、上次会议后做的工作
+
+搭建PAC Former codebase包括可学习带通滤波器+可微Hilbert变换提取频带相位/幅度 实现三个可互换的token mixer(包含核心设计的differentiable directional Modulation Index operator)
+
+接入了eeg数据集TUAB和TUEV,完成预处理,跑通了三个mixer在两个数据集上的训练流程,接入wandb做实验追踪
+
+二、讨论内容
+
+初步结果显示MI算子比self-attention稳定地强 但暂时还没超过CoTAR
+
+TUEV上训练不稳定(过拟合,验证集指标噪声大),可能和类别严重不平衡有关
+
+三、后续计划
+
+修复TUEV的训练不稳定问题后重跑,确认MI算子的排名是否依然成立。
+
+针对MI算子做消融实验(频带数量、重分配方式:concat+MLP/gating/matrix-mixing),看能否拉近和CoTAR的差距。
+
+跑Tier-2 baseline(EEGNet等)和整理LaBraM/BIOT等文献数字,确认我们的频域encoder整体处在合理区间。
+
+### 2026.7.2
+
+一、上次会议后做的工作
+
+调整模型backbone结构（频带数、隐藏维度、训练策略对齐）在TUAB、TUEV上跑到接近BIOT论文同量级的指标阈值。
+
+换数据集到Sleep-EDF，跑了两版mi，mi和cotar的效果都略高于self-attention，且mi收敛更快。
+
+二、讨论内容
+
+数据集选择上TUAB、TUEV上PAC先验与任务不匹配，是否需要切换PAC生理学意义更明确的数据集。
+
+当前mi算子设计相比cotar势不够明显，应该在各数据集上做优化而不是盲目切换数据集。
+
+三、后续计划
+
+继续修改模型架构：优化frontend，并尝试引入gating机制。
+
+引入更多数据集验证mi的泛化表现，为后续做pretrain做准备。
+
+### 2026.7.13
+
+一、上次会议后做的工作
+
+搜集及处理新数据集，为实验准备。
+
+模型迭代到v4版本，在六个数据集上进行实验（CHB-MIT、Sleep-EDF、TUAB、TUEP、TUEV、TUSZ）。
+
+二、讨论内容
+
+v3版本目前表现最佳，但优势和数据集强相关：在PAC先验强的数据集上效果突出，在不太依赖PAC先验的常规EEG数据集上表现平庸，没有明显优势。
+
+模型结构讨论了两点：一是当前设计容易被误解为self-attention的小变种，需要调整结构的顺序或在表述上凸显核心设计；二是复杂度目前是线性的，还有优化空间。
+
+三、后续计划
+
+继续改模型架构，方向可以是使其能自适应调节对PAC先验的依赖程度，在非PAC数据集上也表现更好。
+
+寻找baseline，并筛选适合pretrain的数据集，为后续预训练做准备。
