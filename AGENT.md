@@ -657,6 +657,32 @@ result numbers (§9.4/§9.10) beyond noise — not assumed either way; flag if
 re-running TUEV comparisons and numbers move more than expected run-to-run
 variance.
 
+### 9.14 CHB-MIT three-way ablation — first result, mi wins clearly (single seed)
+
+Jobs 13560489 (attention) / 13560490 (cotar) / 13560491 (mi), seed 0, on the
+consolidated CHB-MIT npy data (§9.12-style `_tuab_sets` fast path — CHB-MIT
+shares TUAB's loader/pkl format). All three early-stopped cleanly (patience
+12), no NaN/OOM issues.
+
+| Mixer | best-val epoch | val AUROC (peak) | test AUROC | test bacc | test PR-AUC |
+|---|---|---|---|---|---|
+| attention | 0 | 0.764 | 0.642 | 0.509 | 0.044 |
+| cotar | 17 | 0.773 | 0.635 | 0.514 | 0.045 |
+| **mi** | 5 | **0.862** | **0.735** | 0.529 | ~0.30+ |
+
+mi is the clear winner here, unlike TUSZ (§9.11, mi/cotar tied) — test AUROC
+0.735 vs. ~0.64 for the other two, and per-epoch val PR-AUC sits in the
+0.27-0.36 range for mi vs. 0.02-0.24 for attention/cotar, on CHB-MIT's heavily
+imbalanced event-level positive rate. attention is notably the worst: its best
+val AUROC is at epoch 0 and degrades monotonically after, with val
+balanced_accuracy stuck at ~0.50 (chance level) throughout — it does not
+appear to learn a useful discriminative signal at all on this dataset.
+balanced_accuracy for all three mixers stays low (~0.50-0.53) at the default
+0.5 threshold given the class imbalance; AUROC/PR-AUC are the more informative
+metrics here. Single seed only — per the seed-workflow convention (dev/tuning
+= seed 0 only), multi-seed averaging would be needed before this is a settled
+result for reporting.
+
 ---
 
 ## 10. Things to flag back to the user rather than deciding alone
