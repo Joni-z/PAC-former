@@ -85,11 +85,16 @@ def main():
     for epoch in range(cfg.get("epochs", 20)):
         tr_loss, *_ = run_epoch(model, train_loader, device, criterion, optimizer)
         log = {"epoch": epoch, "train_loss": tr_loss}
-        # MI-only diagnostic: is the model actually leaning on the PAC prior,
-        # or is pac_scale collapsing toward 0 (degenerating to plain QK
-        # attention regardless of coupling-signal quality)? See AGENT.md 9.7.
+        # MI-only diagnostic: how much is each layer actually leaning on the PAC
+        # branch? `last_gate` is the mean of the input-conditioned gate g from
+        # that layer's most recent forward -- near 0 means PAC is switched off
+        # (falling back to the attention floor), near 1 means the prior is fully
+        # injected. See AGENT.md 9.15. (Older `pac_scale` designs logged a
+        # learned scalar instead; kept for backward compat.)
         for i, block in enumerate(model.encoder.blocks):
-            if hasattr(block.mixer, "pac_scale"):
+            if hasattr(block.mixer, "last_gate"):
+                log[f"gate/layer{i}"] = block.mixer.last_gate
+            elif hasattr(block.mixer, "pac_scale"):
                 log[f"pac_scale/layer{i}"] = block.mixer.pac_scale.item()
 
         if (epoch + 1) % eval_every == 0:

@@ -1,0 +1,33 @@
+# DIAGNOSTIC B: plain conv patch tokenizer on raw signal (no freq decomposition).
+# Compare against tuab_diag_conv.yaml — only the frontend differs.
+mixer: cotar
+frontend: conv
+patch_len: 100
+
+# data
+dataset: tuab
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+n_channels: 16
+seq_len: 2000           # 10s @ 200Hz, matches BIOT's TUAB windowing
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+
+# model  (TeCh-aligned: bigger backbone + more band tokens so the mixer has leverage)
+n_bands: 32
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+
+# training  (TeCh-aligned: lower lr, more epochs + early stopping, augmentation)
+batch_size: 128
+epochs: 50
+eval_every: 1     # run validation every N epochs
+patience: 12      # early stop after this many evals without val improvement
+lr: 0.0001
+weight_decay: 0.0001
+augmentations: [jitter0.1, frequency0.2, mask0.2, channel0.1, drop0.2]
+num_workers: 8
+seed: 0
+device: cuda

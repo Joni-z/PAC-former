@@ -1,0 +1,37 @@
+# CoTAR sanity check (AGENT.md sec. 9.16): does CoTAR trail attention because
+# it is a crippled baseline, or only because the band-structured frontend
+# disadvantages it? This gives BOTH mixers a plain conv (bag-of-patch) frontend
+# -- CoTAR's native token space, no band structure to collapse -- and compares
+# them head to head. Pair: tuev_diag_conv_attention.yaml / tuev_diag_conv_cotar.yaml
+# (only `mixer` differs). Expectation for the check to pass: conv CoTAR >= conv attention.
+mixer: attention
+frontend: conv
+patch_len: 100
+
+# data
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000           # 5s @ 200Hz after BIOT's resample, matches TUEVLoader
+sample_rate: 200
+sampling_rate: 200
+num_classes: 6
+
+# model
+n_bands: 32
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+
+# training
+batch_size: 64
+epochs: 50
+eval_every: 1
+patience: 12
+lr: 0.0001
+weight_decay: 0.0001
+augmentations: [jitter0.1, frequency0.2, mask0.2, channel0.1, drop0.2]
+num_workers: 8
+seed: 0
+device: cuda

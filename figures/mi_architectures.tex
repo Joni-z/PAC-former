@@ -1,13 +1,18 @@
 % ======================================================================
-%  PAC-Former: backbone + four MI-operator variants (v1 / v2 / v3 / v4)
+%  PAC-Former: backbone + five MI-operator variants (v1 / v2 / v3 / v4 / v5)
 %  Compile:  pdflatex mi_architectures.tex
 %  (needs TikZ; uses only standard libraries -> compiles out of the box)
 %
 %  Colour legend:
 %    blue  = learnable module (Linear / Conv / projection)
 %    gray  = parameter-free op (reshape, mean, softmax, matmul, concat)
-%    orange= PAC prior path  (Hilbert, MVL coupling, pac_scale)  <-- our novelty
-%    green = gating (v4 only)
+%    orange= PAC prior path  (Hilbert, MVL coupling, coupling_scale)  <-- our novelty
+%    green = gating (v4, v5)
+%
+%  v5 (current) is the redesign: PAC is no longer an additive bias on the QK
+%  logits (v2-v4) but a SEPARATE gated branch parallel to a full self-attention
+%  floor -- so g->0 recovers the attention baseline exactly, and the gate keys
+%  on coupling structure to decide how much PAC to inject.  See AGENT.md 9.15.
 % ======================================================================
 % `multi=tikzpicture` gives each TikZ diagram its own cropped page.  Without it, the
 % standalone class places all five diagrams in one very wide horizontal strip.
@@ -231,6 +236,75 @@
   \draw[fl] (rs.west) to[out=180,in=90,looseness=1.15] (gate.north);
   \draw[fl](gate)--(mul);\draw[fl](cp)--(mul);
   \draw[fl](mul)--(out);
+\end{tikzpicture}
+
+% ======================================================================
+% FIGURE 5 -- MI v5 : adaptive gated PAC branch over a full self-attention
+%             floor.  CURRENT design.  Two structural changes vs v2-v4:
+%               (i)  the learned mixing is now a FULL token-level multi-head
+%                    self-attention over all n_b*P tokens (branch A, "floor"),
+%                    identical to the attention baseline -> g->0 recovers it
+%                    exactly (fixes "non-PAC 平庸": floor is >= baseline);
+%               (ii) PAC is a SEPARATE gated branch (branch B), not an additive
+%                    bias on the QK logits -> no longer reads as an attention
+%                    variant, and the gate is conditioned on the coupling
+%                    matrix's own (scale-invariant) statistics.
+% ======================================================================
+\begin{tikzpicture}[node distance=6mm]
+  \node[font=\small\bfseries](title){MI v5 \; --- adaptive gated PAC branch over a full self-attention floor \;\; \textbf{(current; $g\!\to\!0$ $=$ attention baseline exactly)}};
+  \node[io, below=4mm of title](x){token $x$ \; $(B,\nb P,D)$};
+
+  % ---------- Branch A : full token-level multi-head self-attention (floor) --
+  \node[learn, below left=13mm and 30mm of x](aqkv){Multi-head $QKV$ proj\\(all $\nb P$ tokens)};
+  \node[op,   below=of aqkv](asm){softmax$(QK^\top\!/\sqrt{d_h})\cdot V$\\merge heads};
+  \node[learn, below=of asm](aout){out proj\\core\_attn $(B,\nb P,D)$};
+  \node[font=\scriptsize, left=2mm of asm, text width=20mm, align=center, black!60]
+        {\textbf{floor}\\$=$ vanilla\\attention\\baseline};
+
+  % ---------- Branch B : gated PAC coupling aggregation (ceiling) ------------
+  \node[op, below right=13mm and 4mm of x](rs){reshape + mean patches\\band\_repr $(B,\nb,D)$};
+  \node[learn, below=7mm of rs](v){$V$ proj};
+
+  % PAC prior column (far right)
+  \node[pac, right=44mm of rs](phi){$\varphi,A$ per channel\\$(B,C,\nb,T)$};
+  \node[pac, below=7mm of phi](coup){MVL coupling per ch.\\$|Z|$-avg $(B,\nb,\nb)$};
+  \node[op,  below=8mm of coup](sm){softmax$_i(\text{c\_scale}\cdot C^\top)$\\weight $(B,\nb,\nb)$};
+
+  \node[op, below=9mm of v](agg){$\text{weight}\cdot V \to$ core\_pac $(B,\nb,D)$};
+  \node[op, below=of agg](cat){expand $P$ $+$ concat $[x_b;\text{core\_pac}]$};
+  \node[learn, below=of cat](mlp){Linear$\to$GELU$\to$Linear\\pac\_delta $(B,\nb P,D)$};
+
+  % ---------- Gate (green) : conditioned ONLY on coupling statistics ---------
+  \node[gate, below=9mm of sm](gate){$g=\sigma\!\big(\text{MLP}(\text{stats}(C))\big)$\\per (sample, band) $\in(0,1)$};
+  \node[op, below=10mm of mlp](mul){$g\odot\text{pac\_delta}$};
+
+  % ---------- converge : core_attn + g (.) pac_delta ------------------------
+  \node[add] (add) at ($(aout)!0.5!(mul) + (0,-13mm)$) {$+$};
+  \node[io, below=6mm of add](out){out $(B,\nb P,D)$ \; (Block adds residual)};
+
+  % arrows -- branch A
+  \draw[fl](x) -| (aqkv.north);
+  \draw[fl](aqkv)--(asm);\draw[fl](asm)--(aout);
+  % arrows -- branch B spine
+  \draw[fl](x) -| (rs.north);
+  \draw[fl](rs)--(v);\draw[fl](v)--(agg);
+  \draw[fl](agg)--(cat);\draw[fl](cat)--(mlp);\draw[fl](mlp)--(mul);
+  % x_b bypass into the concat (left of the spine, clear of branch A)
+  \draw[fl](rs.west) -- ++(-8mm,0) |- (cat.west) node[shp,pos=0.78]{$x_b$};
+  % PAC prior -> aggregation weight
+  \draw[fl](phi)--(coup);\draw[fl](coup)--(sm);
+  \draw[fl](sm.west) -- (agg.east) node[shp,pos=0.5]{weight};
+  % gate : coupling stats -> g -> multiplies pac_delta
+  \draw[fl](coup.east) -- ++(9mm,0) |- (gate.east) node[shp,pos=0.75]{stats$(C)$};
+  \draw[fl](gate.south) |- (mul.east) node[shp,pos=0.75]{$g$};
+  % converge
+  \draw[fl](aout.south) |- (add.west) node[shp,pos=0.85]{core\_attn};
+  \draw[fl](mul.south)  |- (add.east);
+  \draw[fl](add)--(out);
+
+  \node[font=\scriptsize, below=2mm of gate, text width=34mm, green!45!black, align=left]
+        {gate keys on coupling \emph{structure}\\(scale-invariant stats), not\\
+         magnitude $\Rightarrow$ detects whether\\PAC is really present, per band};
 \end{tikzpicture}
 
 \end{document}

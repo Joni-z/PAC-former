@@ -1,9 +1,11 @@
-"""Pre-mixer-norm transformer block: the mixer is injected, nothing else changes.
+"""Post-norm transformer block: the mixer is injected, nothing else changes.
 
-Structure follows TeCh's EncoderLayer (norm -> mixer -> residual; norm -> FFN ->
-residual). The mixer is whichever ``TokenMixer`` the config chose; ``**kwargs``
-(phase/amplitude) are forwarded to it untouched so the MI operator gets what it
-needs and the other two ignore them.
+Structure follows TeCh's EncoderLayer, which is **post-norm**:
+``x = norm(x + sublayer(x))`` for both the mixer and the FFN (verified against
+TeCh's ``layers/Transformer_EncDec.py::EncoderLayer.forward``). The mixer is
+whichever ``TokenMixer`` the config chose; ``**kwargs`` (phase/amplitude, and
+the encoder-precomputed ``coupling``) are forwarded to it untouched so the MI
+operator gets what it needs and the other two ignore them.
 """
 
 import torch

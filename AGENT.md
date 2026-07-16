@@ -100,6 +100,13 @@ class TokenMixer(nn.Module):
         raise NotImplementedError
 ```
 
+**3.2 Coupling caching.** The MI operator's band×band coupling matrix depends
+only on the frontend's phase/amplitude, so `Encoder.forward` computes it once
+and threads it to every block as `coupling=` (guarded by `hasattr(mixer,
+"coupling_matrix")`, so attention/CoTAR are unaffected and the swap stays
+clean). MI still recomputes it itself if called standalone without `coupling`
+(the unit tests do this). Saves `depth−1` coupling einsums per forward.
+
 ---
 
 ## 4. Frontend (`models/frontend/__init__.py`)
@@ -133,45 +140,67 @@ dividing.
 
 ## 5. MI operator (`models/mixers/mi_operator.py`) — current design
 
-**PAC-biased cross-band attention.** For target band j attending to source
-band i:
+**v5 (current): adaptive gated PAC branch over an attention floor.** Two
+parallel branches plus an input-conditioned gate (see §9.15 for the why):
 
 ```
-attn[j, i]   = Q_j . K_i / sqrt(d_k)  +  pac_scale * coupling[i, j]
-weight[j, i] = softmax_i(attn[j, i])
-core_j       = sum_i weight[j, i] * V_i
+core_attn = MultiHeadSelfAttention(x)              # branch A: full token-level attention
+core_pac  = redistribute( coupling-weighted cross-band aggregate of V )  # branch B: PAC
+g[b, j]   = sigmoid( gate_mlp( coupling_stats(b, j) ) )   # per-(sample, target-band) in (0,1)
+out       = core_attn  +  g * core_pac             # residual added by the block
 ```
 
-`coupling` is the Canolty (2006) MVL score, mean-centered amplitude debiasing
-(removes the spurious low-frequency term from amplitude being strictly
-positive), **normalized by a fixed constant (`NORM_CONST = 100.0`)** rather
-than the per-channel amplitude std (see §9.10 — the std-based Ozkurt
-normalization divides by ~0 on flat/dead channels in 16-channel clinical EEG
-and produced NaN; a fixed divisor removes that failure mode entirely, and
-`pac_scale` being learned absorbs whatever overall magnitude is left). Applies
-only to the real (per-channel, 4D) path; the single-channel/synthetic 3D path
-used by unit tests is unchanged and still uses std-based normalization.
-`pac_scale` is a learned scalar (init 1.0). This strictly generalizes pure
-attention (`pac_scale -> 0`) and pure PAC-weighted aggregation (frozen Q/K,
-large `pac_scale`), so the model can learn, per layer, how much to lean on the
-physiological prior vs. a data-driven cross-band relationship. Redistribute
-step is concat + MLP (matches CoTAR).
+Branch B, in detail: `V = v_proj(band_repr)` (band_repr = per-band mean over
+patches); `weight[j,i] = softmax_i(coupling_scale · coupling[i,j])`;
+`core_pac_j = Σ_i weight[j,i]·V_i`; broadcast over patches, then a CoTAR-style
+`concat([x_b, core_pac]) → MLP` redistribute. `coupling` is the Canolty (2006)
+MVL score with mean-centered amplitude debiasing (removes the spurious
+low-frequency term from amplitude being strictly positive), **normalized by a
+fixed constant (`NORM_CONST = 100.0`)** rather than the per-channel amplitude
+std (see §9.10 — the std-based Ozkurt normalization divides by ~0 on flat/dead
+channels in 16-channel clinical EEG and produced NaN). Applies only to the real
+(per-channel, 4D) path; the single-channel/synthetic 3D path used by unit tests
+still uses std-based normalization. **The coupling matrix depends only on the
+frontend's phase/amplitude, so `Encoder` computes it once and threads it to
+every block as `coupling=` — no per-layer recompute (§3.2).**
 
-**Complexity note:** despite having learned Q/K/V, this mixer is **not**
-O(N²) in the token count N = n_bands·P. Q/K/V are computed on `band_repr`
-(the per-band mean over the P patches, `(B, n_bands, D)`), so the attention
-matrix is a fixed `n_bands × n_bands` (n_bands=32 is a constant hyperparameter,
-independent of sequence length) — O(n_bands²) = O(1) w.r.t. sequence length.
-The only terms that scale with sequence length (T or N) are linear: the
-coupling einsum (O(n_bands²·C·T)) and the concat+MLP redistribute (O(N·D²)).
-This is a relevant selling point for large-scale pretraining (sub-quadratic
-vs. standard self-attention's O(N²)) — at the cost of the cross-band attention
-only ever seeing band-level time-averaged summaries, not patch-level detail
-(patch-level detail is only reintroduced at the final concat with `x_b`).
+Why this shape (both problems solved by one change):
+- **Floor ≥ baseline.** `core_attn` is *bit-for-bit* the vanilla-attention
+  baseline mixer (`models/mixers/attention.py`), so when `g → 0` the PAC branch
+  switches off and MI collapses to exactly the attention baseline — not to the
+  crippled single-head band-level attention the old additive-bias design
+  degenerated into on non-PAC data (that was the mechanism behind "MI平庸 on
+  non-PAC datasets"). *Verified numerically*: with the gate forced to 0, MI's
+  output equals a weight-tied `SelfAttention` to 0.0.
+- **Ceiling preserved.** When `g` is high the directional PAC aggregation is
+  injected → the physiological prior on PAC-strong tasks.
+- **Adaptive & input-conditioned.** `g` is a function of 3 *scale-invariant*
+  statistics of the coupling column for each target band (mean drive, peak
+  drive, peakedness = peak−mean, after dividing the matrix by its own mean), so
+  the model *detects* whether real cross-frequency structure is present per
+  input/band and dials the prior accordingly. No longer a frozen per-layer
+  scalar. Diagnostic: train.py logs `gate/layer{i}` = mean g per layer.
+- **Not an attention variant.** PAC is a separate gated structural operator, no
+  longer a bias folded into the QK logits — directly addresses the "looks like
+  a self-attention variant" critique.
 
-**v1 design (deprecated):** fixed PAC coupling matrix used directly as
-softmax aggregation weights, no learned Q/K/V. Tied CoTAR on Sleep-EDF but
-had no mechanism to exceed it (Section 9).
+**Complexity note (deliberately O(N²) as of v5).** Branch A is full
+token-level multi-head self-attention over N = n_bands·P tokens → O(N²·D).
+This is an *intentional* trade made 2026-07-14 (PI steer): the older design
+kept the cross-band attention on band-level summaries only (O(n_bands²),
+sub-quadratic in sequence length) but never saw patch-level detail, and its
+floor sat below baseline. We spend the O(N²) to (a) get patch-level attention
+and (b) guarantee floor = attention baseline. Branch B stays O(n_bands²), and
+the coupling einsum (O(n_bands²·C·T), now computed once for all layers) is the
+only sequence-length term left in the PAC path. If the sub-quadratic property
+is wanted back for long-sequence pretraining, branch A can later be swapped for
+a linear-attention kernel without touching branch B or the gate.
+
+**Deprecated designs:** v1 = fixed coupling matrix as softmax weights, no
+learned Q/K/V (tied CoTAR, couldn't exceed). v3/v4 = PAC as an additive bias
+`pac_scale · coupling[i,j]` on QK logits with a learned per-layer scalar
+`pac_scale` (good ceiling on PAC-strong data, but floor below baseline on
+non-PAC data + reads as an attention variant — the two problems v5 fixes).
 
 Validated with `scripts/synth_pac_test.py` (10 Hz phase -> 60 Hz amplitude
 synthetic signal via `tensorpac`): recovers the correct coupling peak,
@@ -683,15 +712,104 @@ metrics here. Single seed only — per the seed-workflow convention (dev/tuning
 = seed 0 only), multi-seed averaging would be needed before this is a settled
 result for reporting.
 
+### 9.15 MI redesign v5 — adaptive gated PAC branch over an attention floor
+
+**Motivation.** Across the six-dataset sweep (§9.1–9.14) the v3/v4 MI operator
+showed a consistent shape: it wins where PAC is physiologically load-bearing
+(Sleep-EDF §9.8, CHB-MIT §9.14) but is *平庸 / no better, sometimes worse* on
+datasets where PAC is not the driving signal (TUAB §9.3, TUEV §9.4). Root-cause
+analysis (PI review, 2026-07-14) pinned this on the operator's structure, not
+its hyperparameters:
+
+- v3/v4 added PAC as an **additive bias on the QK logits**, scaled by a single
+  learned per-layer scalar `pac_scale` (init 1.0). On non-PAC data training just
+  drives `pac_scale → 0`, at which point MI is a **single-head, band-level**
+  attention over `band_repr` (per-band mean over patches). But the *attention
+  baseline* it's compared against is **multi-head, token-level**. So the
+  degenerate MI is strictly *weaker* than baseline — the floor sat **below**
+  baseline, which is exactly the "non-PAC 平庸" symptom.
+- Secondary problem: "PAC = attention + a bias term" reads as a trivial
+  self-attention variant (a repositioning/novelty risk, per the 7.13 meeting).
+
+**Change (both problems, one redesign).** MI is now two parallel branches + an
+input-conditioned gate (full spec in §5):
+
+```
+out = MultiHeadSelfAttention(x)  +  g · redistribute(PAC-coupling aggregate)
+g   = sigmoid(gate_mlp(scale-invariant coupling stats)), per (sample, target band)
+```
+
+- **Floor = baseline, by construction.** Branch A is bit-for-bit the vanilla
+  attention mixer; `g → 0` ⇒ MI ≡ attention baseline (verified: forced-zero gate
+  gives `max|MI − weight-tied SelfAttention| = 0.0`). So non-PAC data can no
+  longer push MI below baseline.
+- **Ceiling kept.** `g` high ⇒ directional PAC aggregation injected.
+- **Adaptive.** `g` reads three scale-invariant statistics of the coupling
+  column per target band (mean drive, peak drive, peakedness) — it *detects*
+  whether real cross-frequency structure exists in this input, per band. Directly
+  implements the 7.13 "自适应调节对 PAC 先验的依赖" ask. train.py logs
+  `gate/layer{i}`.
+- **Not an attention variant.** PAC is a separate gated structural operator now,
+  not entangled in the QK logits.
+
+**Complexity.** Deliberately O(N²) now (branch A is token-level attention) —
+a trade the PI signed off on: spend the quadratic cost to get patch-level
+attention + a guaranteed floor, giving up the old sub-quadratic-in-seq-len
+property. Branch A is swappable for a linear-attention kernel later if
+long-sequence pretraining needs it back (§11). Coupling einsum is now computed
+once per forward and reused across layers (§3.2), not `depth` times.
+
+**Validation done (CPU, pre-EEG, all green):** `scripts/test_mixers.py`
+(interface + finite grads), `scripts/synth_pac_test.py` (still localizes the
+10→60 Hz synthetic coupling — `coupling_matrix` unchanged), full-model
+forward/backward on synthetic data (every MI param gets finite non-None grad),
+and the floor + caching equalities above. **Not yet run on real EEG** — the
+six-dataset re-sweep with v5 is the next step; expectation to check is
+"non-PAC datasets (TUAB/TUEV) now ≥ attention baseline (floor fix) while
+PAC-strong (Sleep-EDF/CHB-MIT) keeps mi's lead (ceiling)."
+
+### 9.16 CoTAR baseline sanity check — is CoTAR crippled, or just disadvantaged?
+
+**Risk (PI review).** In the band-frontend ablations CoTAR sometimes trails
+even vanilla attention (TUEV §9.4: CoTAR kappa 0.2272 < attention 0.2925). A
+reviewer's first read of that is "you didn't implement/tune CoTAR properly",
+which would taint the "MI > CoTAR" claims elsewhere. We need to separate
+"baseline is broken" from "baseline is task-disadvantaged".
+
+**Finding (code audit).** `models/mixers/cotar.py::CoTAR.forward` is numerically
+equivalent to TeCh's `layers/Transformer_EncDec.py::CoTAR.forward`
+(aggregate-MLP → softmax over tokens → single core → concat+MLP redistribute,
+`d_core = d_model//4`) — **no port bug**. The block is also genuinely post-norm
+like TeCh (only the old docstring wording said "Pre-mixer-norm"; fixed in
+`block.py`). CoTAR's weakness is architectural: (a) our frontend adds **no
+positional encoding** (TeCh does), which hurts CoTAR most since it's a
+permutation-invariant global pool; (b) our band-preserving frontend deliberately
+keeps 32-band structure for MI, which CoTAR immediately collapses to a rank-1
+core — CoTAR is structurally disadvantaged *exactly where MI should win*.
+
+**Check (running).** To show CoTAR is a healthy baseline in its *native* token
+space, give both attention and CoTAR the plain `conv` frontend (bag-of-patch
+tokens, no band split) and compare head-to-head. Configs:
+`tuev_diag_conv_{attention,cotar}.yaml` (the embarrassing case) and
+`tuab_diag_conv_cotar.yaml` (pairs with the existing `tuab_diag_conv.yaml`
+attention run, TUAB conv attention was 0.8023/0.8765 in §9.2). Pass criterion:
+conv CoTAR ≳ conv attention → "CoTAR is fine, the band frontend just isn't its
+game", which is what legitimizes MI's band-structured win. This does **not**
+touch the main ablation (band frontend, same-backbone swap) — that setup is
+correct as-is and stays.
+
 ---
 
 ## 10. Things to flag back to the user rather than deciding alone
 
 - Any case where TUAB/TUEV preprocessing details aren't fully specified by
   the BIOT repo and require a judgment call.
-- Any change to the MI operator's redistribute step (currently concat+MLP,
-  matching CoTAR) — gating and matrix-mixing are open ablation choices, not
-  closed decisions.
+- The MI operator's two-branch structure (attention floor + gated PAC branch,
+  §5/§9.15) and the gate's conditioning signal (scale-invariant coupling
+  column stats) are the current committed design as of v5. The redistribute
+  step (concat+MLP) and matrix-mixing remain open ablation choices; changing
+  the branch structure or the floor-equals-baseline guarantee is a bigger
+  decision — flag it.
 - Any numerical instability that survives the unit-complex-vector trick in
   Section 4 — don't patch it ad hoc, surface it.
 
@@ -708,11 +826,16 @@ foundation model, not "mi beats cotar." Current/near-term plan:
    not the paper's headline result. Sleep-EDF's mi-v3-beats-cotar result
    (§9.8) and the TUEV/TUEP/TUSZ negative-or-pending results are inputs to
    backbone design decisions, not competing claims against CoTAR.
-2. **Complexity is a real asset for this positioning**: the MI mixer is
-   sub-quadratic (§5's complexity note) — cross-band attention operates on a
-   fixed n_bands=32 summaries regardless of sequence length, unlike standard
-   self-attention's O(N²). Worth keeping front-of-mind when scaling to long
-   pretraining sequences.
+2. **Complexity (updated 2026-07-14):** the MI mixer is now **O(N²)** by
+   deliberate choice — v5's attention floor is token-level (§5/§9.15). The old
+   sub-quadratic property (cross-band attention on n_bands=32 summaries only)
+   was traded for patch-level attention + a guaranteed ≥-baseline floor. The
+   PAC branch itself is still O(n_bands²) and the coupling einsum is now shared
+   across layers (§3.2), so the *PAC-specific* cost stays cheap; the quadratic
+   term is the generic attention. For long-sequence pretraining, branch A is
+   isolated enough to later swap for a linear-attention kernel (recovering
+   sub-quadratic) without touching the PAC branch or gate — keep this as the
+   escape hatch rather than a current selling point.
 3. **Large-scale self-supervised pretraining** is the next phase once the
    backbone is settled (no concrete plan/objective/data recipe decided yet as
    of this writing — do not assume a specific pretraining design without
