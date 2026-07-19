@@ -942,7 +942,11 @@ foundation model, not "mi beats cotar."
 3. **Large-scale self-supervised pretraining** — no longer "the phase after the
    backbone is settled". Per §13.2 it is the **keystone**: the phase-conditioned
    amplitude reconstruction objective (§13.7) is what makes the frequency prior
-   load-bearing at all. Recipe/schedule still undecided.
+   load-bearing at all. **First result in (§13.10, 2026-07-18/19): crossfreq
+   masking beats random-mask MAE on 3/5 datasets (TUAB/CHB-MIT/TUSZ), loses on
+   2/5 (TUEV/Sleep-EDF)** — partial, single-seed evidence the keystone bet pays
+   off; not yet settled. Full recipe/schedule (curriculum across the other
+   §13.7 objectives, multi-dataset joint pretrain) still undecided.
 4. **TUSZ/CHB-MIT** (§7): additional PAC-relevant datasets, not a pivot to a
    different benchmark suite (the "switch to Medformer benchmark" idea was
    discussed and explicitly not adopted — stay on the BIOT/EEG-corpus lineage
@@ -1224,3 +1228,84 @@ it is now an axis mixer, not a global one.
 4. Historical baselines (§9.1-9.14) were measured with n_bands=32 and the
    channel-collapsing frontend. **They are not directly comparable to v2
    numbers** — baselines must be re-run on the v2 skeleton before any claim.
+
+### 13.10 First SSL-keystone result — coherence-gate backbone fails again, crossfreq MAE wins 3/5 (2026-07-18/19)
+
+Two independent experiments, both single seed (seed 0):
+
+**(a) Supervised sweep — new freq-mixer primitive.** `FreqCoherenceGate`
+(`models/triaxial.py:158`, `freq_mixer="coherence"`) multiplies the softmax
+attention probabilities by a coupling-derived sigmoid gate and renormalizes,
+instead of `FreqCoupling`'s additive `pac_scale · coupling` bias (§9.17). Init
+`gate_w=0` → uniform gate → exactly plain attention at init, so it can only
+switch gating on if it helps — same graceful-degradation intent as v5's floor
+guarantee (§9.15), applied to the multiplicative form instead. Jobs
+14213997-14214001 (`configs/{ds}_v2_coherence.yaml`), vs. the existing v2
+attention/coupling/cotar baselines (§13, jobs 14117818-96):
+
+| dataset | coherence | attention | coupling | cotar |
+|---|---|---|---|---|
+| TUAB (bacc/auroc/pr_auc) | 0.797/0.868/0.858 | 0.794/0.867/0.865 | 0.797/0.872/0.869 | — |
+| CHB-MIT (bacc/auroc/pr_auc) | 0.500/0.532/0.018 | (run failed) | 0.500/0.526/0.018 | 0.500/0.645/0.047 |
+| Sleep-EDF (bacc/f1/kappa) | 0.622/0.689/0.509 | 0.601/0.692/0.511 | 0.626/0.702/0.531 | 0.619/0.731/0.572 |
+| TUEV (bacc/f1/kappa) | 0.487/0.650/0.344 | 0.525/0.660/0.376 | 0.515/0.649/0.370 | — |
+| TUSZ (bacc/auroc/pr_auc) | 0.631/0.829/0.583 | 0.697/0.826/0.577 | 0.654/0.835/0.605 | — |
+
+No win anywhere; worse than at least one existing baseline on Sleep-EDF, TUEV,
+TUSZ. **Same pattern as v5 (§9.17): a new competing-layer design for PAC,
+evaluated under plain supervised training, does not separate from attention.**
+This is now three redesigns in a row (v4 gating, v5 attn+gated-PAC-branch,
+coherence multiplicative gate) failing to clear this bar under supervised
+training — treat "architecture-side PAC layer, supervised loss" as a closed
+question, not worth another redesign attempt. Reinforces §13.2's framing: the
+prior only pays off if the *objective* forces it.
+
+**(b) MAE pretrain sweep — the §13.7 keystone objective, first real run.**
+`models/pretrain.py` (`MAEPretrain`): frontend + tri-axial encoder
+(`freq_mixer="attention"`, no coupling matrix given to the encoder — see
+below) pretrained via masked reconstruction of per-(electrode, band,
+patch) log amplitude, then linear-probed. Two `mask_mode`s (`_mask`,
+`models/pretrain.py:51`):
+- `random` — standard MAE, independent Bernoulli per token, `mask_ratio=0.5`.
+  Safety net / proven-paradigm control.
+- `crossfreq` (**OURS**) — deterministically hide the entire upper half of
+  bands (`m[:, :, nb//2:, :] = True`) for every electrode/patch, leaving only
+  low bands visible. The only signal that can reconstruct hidden high-band
+  amplitude is low-phase→high-amplitude coupling, so the objective forces the
+  mechanism directly — this is §13.7's keystone, and the direct answer to
+  §9.17 Finding 1 ("supervised training has no incentive to learn cross-
+  frequency mechanism"). The true coupling matrix is zeroed before the
+  encoder in this mode (`cpl = torch.zeros_like(coupling)`) since it's
+  computed from the very bands being hidden and would leak the target.
+
+Jobs 14214002-14214011 (`configs/pretrain_{ds}_{crossfreq,random}.yaml`,
+`pretrain.slurm`; 30 pretrain epochs + 20 probe epochs each, checkpoint saved
+before probing so a probe timeout doesn't lose the encoder):
+
+| dataset | crossfreq (bacc/auroc-or-f1/pr_auc-or-kappa) | random | verdict |
+|---|---|---|---|
+| TUAB | 0.779 / 0.857 / 0.862 | 0.743 / 0.809 / 0.811 | crossfreq wins ✓ |
+| CHB-MIT | 0.535 / 0.878 / **0.393** | 0.500 / 0.743 / 0.136 | crossfreq wins big (pr_auc ~3x) ✓ |
+| TUSZ | 0.669 / 0.836 / 0.551 | 0.558 / 0.809 / 0.453 | crossfreq wins ✓ |
+| TUEV | 0.447 / f1=0.563 / κ=0.271 | 0.472 / f1=0.644 / κ=0.356 | random wins ✗ |
+| Sleep-EDF | 0.557 / f1=0.649 / κ=0.451 | 0.586 / f1=0.657 / κ=0.483 | random wins ✗ |
+
+**Reading.** crossfreq beats random 3/5, and by a wide margin on the two
+extreme-imbalance binary seizure tasks (CHB-MIT, TUSZ) plus TUAB; random wins
+on the two multi-class tasks (TUEV 6-way, Sleep-EDF 5-way). This lines up with
+a **binary-vs-multiclass split, not yet confirmed as causal** — one plausible
+account is that hiding an entire frequency half teaches a coarse
+"anomalous/coupled or not" signal that transfers to binary detection tasks but
+under-serves fine-grained multi-way discrimination; not tested against
+alternative explanations (e.g. dataset size, channel count) yet.
+
+**Status: this is the first positive evidence for §13.2 layer 3 (the SSL
+keystone) actually paying off** — but it is partial (3/5, single seed) and
+does not close the question raised in §13.2 ("if the SSL objective does not
+deliver, novelty rests on a prior our own ablations call weak"). Next steps,
+not yet done: (1) explain the TUEV/Sleep-EDF losses before claiming the
+keystone generally works; (2) multi-seed on at least the 3 winning datasets
+before treating this as settled (per seed-workflow convention, dev used seed
+0 only so far); (3) decide whether (a) is worth another architecture attempt
+given (b) — current read is **no**, resource should shift to the pretrain
+objective, not the mixer.
