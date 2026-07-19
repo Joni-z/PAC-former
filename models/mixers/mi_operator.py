@@ -1,51 +1,46 @@
 """OURS: the differentiable Modulation-Index (MI) token mixer.
 
-Design (v5): **adaptive gated PAC branch on top of a full-strength attention
-floor.**
+Design (v6): **gated convex mix between token-level attention and the
+band-level PAC-biased operator.**
 
-Motivation (AGENT.md sec. 9.15). The previous design (v3/v4) added the PAC
-coupling score as an *additive bias on the QK attention logits*, with a single
-learned per-layer scalar `pac_scale`:
+    core_attn = MultiHeadSelfAttention(x)              # token-level  (g -> 0 end)
+    core_band = v3 band-level op(x, coupling)          # band-level   (g -> 1 end)
+    g         = sigmoid(MLP(coupling_statistics))      # per-(sample, band) in (0, 1)
+    out       = (1 - g) * core_attn  +  g * core_band
 
-    attn[j, i] = Q_j . K_i / sqrt(d_k)  +  pac_scale * coupling[i, j]
+Why this shape (AGENT.md sec. 9.17). v5 tried "attention floor + additive
+gated PAC side-branch" on the theory that when PAC is useless the operator
+should fall back to the attention baseline, because v3's `pac_scale -> 0`
+degenerate form (a *single-head, band-level* attention on `band_repr`) was
+assumed to be strictly weaker than the multi-head token-level baseline. **The
+logs say that assumption is false.** On CHB-MIT, v3's `pac_scale` collapsed to
+~0 by epoch 4 -- yet that run still scored 0.735 test AUROC against the
+attention baseline's 0.642. The band-level bottleneck (mean-pool the P patches
+per band, mix across the n_bands summaries, broadcast back) is not a
+degeneracy, it is *the asset* -- a strong structural prior on noisy, heavily
+imbalanced EEG. v5 demoted exactly that to an optional side branch and welded
+the always-on token-level attention into the main path, which cost the ceiling
+(Sleep-EDF kappa 0.5199 -> 0.5101; CHB-MIT val AUROC 0.853 -> 0.720 at epoch 0).
 
-That had two problems. (1) On tasks where PAC is not the driving signal,
-training simply pushes `pac_scale -> 0` and the operator degenerates into a
-*single-head, band-level* attention built on `band_repr` (the per-band mean
-over patches) -- strictly weaker than the multi-head, token-level attention
-baseline, so MI's *floor* sat below baseline instead of matching it. (2) The
-whole thing reads as "attention + a bias term", i.e. a trivial self-attention
-variant.
+So the axis the data actually wants to adapt along is **band-level bottleneck
+vs. token-level attention**, not "attention plus optional PAC". v6 spans both
+endpoints with a convex mix:
 
-v5 fixes both at once by splitting the mixer into two parallel branches and a
-learned gate:
+  * `g -> 0`: `out == core_attn`, *exactly* the vanilla-attention baseline
+    mixer -- the floor that TUAB/TUEV want (v5 did prove this fix works there:
+    TUAB val bacc 0.8045 >= attention's 0.7959).
+  * `g -> 1`: `out == core_band`, *exactly* the v3 operator, including its own
+    learned per-layer `pac_scale` on the coupling bias -- the ceiling that
+    Sleep-EDF / CHB-MIT want. Note `pac_scale` is kept *inside* branch B
+    precisely because the two datasets use it differently (Sleep-EDF settles
+    ~0.2-0.3, CHB-MIT ~0), so the operator must be able to express both.
+  * in between: `g` is input-conditioned on the coupling matrix's own
+    scale-invariant statistics, so the model *detects* whether real
+    cross-frequency structure is present and picks the regime per band, per
+    sample, per layer.
 
-    core_attn = MultiHeadSelfAttention(x)          # floor: full token-level attention
-    core_pac  = DirectionalCouplingAggregation(x)  # ceiling: PAC-weighted cross-band mixing
-    g         = sigmoid(MLP(coupling_statistics))   # per-(sample, band) detector in (0, 1)
-    out       = core_attn  +  g * redistribute(core_pac)
-
-Properties:
-  * **Floor >= baseline.** When g -> 0 the PAC branch is switched off entirely
-    and `out == core_attn`, which is *exactly* the vanilla-attention baseline
-    mixer (same multi-head computation) -- so on non-PAC data MI can, by
-    construction, fall back to the attention baseline rather than to a
-    crippled single-head one.
-  * **Ceiling preserved.** When g is high the directional PAC aggregation is
-    injected, giving the physiological prior on PAC-strong tasks.
-  * **Input-conditioned adaptivity.** `g` is a function of the coupling
-    matrix's own (scale-invariant) statistics -- the model *detects* whether a
-    genuine cross-frequency coupling structure is present in this input and
-    dials the prior up/down accordingly, per band, per sample. It is no longer
-    a frozen scalar.
-  * **Distinct from attention.** PAC is now a separate, gated structural
-    operator (coupling-weighted aggregation), not a bias folded into the QK
-    logits.
-
-Complexity: the attention floor makes this O(N^2) in the token count
-N = n_bands*P (a deliberate choice -- see AGENT.md sec. 5 complexity note --
-trading the old sub-quadratic property for the accuracy of patch-level
-attention). The PAC branch stays O(n_bands^2). The coupling matrix depends
+Complexity: O(N^2) in the token count N = n_bands*P via branch A (deliberate --
+see AGENT.md sec. 5). Branch B stays O(n_bands^2). The coupling matrix depends
 only on the frontend's phase/amplitude, so it is computed once and reused
 across all layers (see `Encoder`); each block only re-does the cheap gate +
 aggregation.
@@ -75,25 +70,32 @@ class MIOperator(TokenMixer):
         d_model: int,
         n_heads: int = 4,
         normalize: bool = True,
+        d_k: int | None = None,
         gate_hidden: int = 16,
         **_,
     ):
         super().__init__()
         self.normalize = normalize
         self.n_heads = n_heads
+        self.d_k = d_k or max(d_model // 4, 16)
         self.attn_scale = (d_model // n_heads) ** -0.5
 
-        # --- Branch A: full-strength multi-head self-attention (the "floor").
+        # --- Branch A: token-level multi-head self-attention (the g->0 end).
         # Identical computation to models/mixers/attention.py::SelfAttention, so
         # that g -> 0 recovers the attention baseline exactly.
         self.attn_qkv = nn.Linear(d_model, d_model * 3)
         self.attn_out = nn.Linear(d_model, d_model)
 
-        # --- Branch B: directional PAC-coupling aggregation (the "ceiling").
+        # --- Branch B: the band-level PAC-biased operator (the g->1 end).
+        # This is the *whole v3 operator*: learned cross-band QK on band_repr
+        # plus the MVL coupling as an additive logit bias with its own learned
+        # per-layer pac_scale. Restored deliberately in v6 -- it is what the
+        # v3 numbers actually came from (sec. 9.17).
+        self.q_proj = nn.Linear(d_model, self.d_k, bias=False)
+        self.k_proj = nn.Linear(d_model, self.d_k, bias=False)
         self.v_proj = nn.Linear(d_model, d_model, bias=False)
-        # temperature on the coupling logits before softmax (learned, init 1.0)
-        self.coupling_scale = nn.Parameter(torch.ones(1))
-        # redistribute MLP: [token ; PAC-aggregated core] -> token (CoTAR-style)
+        self.pac_scale = nn.Parameter(torch.ones(1))
+        # redistribute MLP: [token ; band-aggregated core] -> token (CoTAR-style)
         self.lin_out1 = nn.Linear(2 * d_model, d_model)
         self.lin_out2 = nn.Linear(d_model, d_model)
 
@@ -214,24 +216,32 @@ class MIOperator(TokenMixer):
         P = N // n_bands
         xb = x.view(B, n_bands, P, D)
 
-        # --- Branch A: full-strength attention (floor) ---
+        # --- Branch A (g -> 0 end): token-level multi-head attention ---
         core_attn = self._self_attention(x)             # (B, N, D)
 
-        # --- Branch B: directional PAC-coupling aggregation (ceiling) ---
+        # --- Branch B (g -> 1 end): band-level PAC-biased operator (= v3) ---
         band_repr = xb.mean(dim=2)                      # (B, nb, D)
+        q = self.q_proj(band_repr)                      # (B, nb, d_k)
+        k = self.k_proj(band_repr)                      # (B, nb, d_k)
         v = self.v_proj(band_repr)                      # (B, nb, D)
-        # target band j aggregates source bands i by coupling[i -> j]
-        logits = self.coupling_scale * coupling.transpose(1, 2)  # (B, nb, nb)[j,i]
-        weight = F.softmax(logits, dim=-1)
-        core_pac = torch.bmm(weight, v)                 # (B, nb, D)
-        core_pac = core_pac.unsqueeze(2).expand(-1, -1, P, -1)   # (B, nb, P, D)
+        # learned cross-band QK logits + the MVL coupling as an additive prior;
+        # pac_scale lets each layer set how much of the prior it wants (on
+        # Sleep-EDF it settles ~0.2-0.3, on CHB-MIT it goes to ~0 and the band
+        # structure alone does the work -- sec. 9.17).
+        attn_logits = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.d_k)
+        pac_bias = self.pac_scale * coupling.transpose(1, 2)     # (B, nb, nb)[j,i]
+        weight = F.softmax(attn_logits + pac_bias, dim=-1)
+        core_band = torch.bmm(weight, v)                # (B, nb, D)
+        core_band = core_band.unsqueeze(2).expand(-1, -1, P, -1)  # (B, nb, P, D)
 
-        # redistribute (CoTAR-style concat + MLP), then gate the whole branch
-        core_cat = torch.cat([xb, core_pac], dim=-1)
-        pac_delta = self.lin_out2(F.gelu(self.lin_out1(core_cat)))  # (B, nb, P, D)
-        pac_delta = pac_delta.reshape(B, N, D)
+        # redistribute (CoTAR-style concat + MLP)
+        core_cat = torch.cat([xb, core_band], dim=-1)
+        band_out = self.lin_out2(F.gelu(self.lin_out1(core_cat)))  # (B, nb, P, D)
+        band_out = band_out.reshape(B, N, D)
 
+        # --- convex mix: spans BOTH endpoints (sec. 9.17) ---
+        # g=0 -> exactly the attention baseline; g=1 -> exactly the v3 operator.
         g = self._gate(coupling)                        # (B, nb, 1)
         g_tokens = g.unsqueeze(2).expand(-1, -1, P, -1).reshape(B, N, 1)
 
-        return core_attn + g_tokens * pac_delta
+        return (1.0 - g_tokens) * core_attn + g_tokens * band_out

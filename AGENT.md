@@ -27,6 +27,12 @@ messier, it's the wrong change. This ablation is a *validation tool* for the
 backbone design, not the project's deliverable — see the positioning note
 above.
 
+> **Architecture status (2026-07-15):** the shipped code is the v1 single-mixer
+> design; the **plan of record is the §13 v2 spec** (tri-axial space/frequency/time
+> tokenization, coupling as the frequency-axis mixer, coupling-based SSL as the
+> keystone). §§3-5 describe the *current code*, not the target. Read §13 and
+> §9.17 before making architecture decisions.
+
 **Do not silently deviate from this guide.** If something here turns out to
 be wrong or impossible once you're in the code, stop and flag it rather than
 improvising a different design.
@@ -140,8 +146,16 @@ dividing.
 
 ## 5. MI operator (`models/mixers/mi_operator.py`) — current design
 
-**v5 (current): adaptive gated PAC branch over an attention floor.** Two
-parallel branches plus an input-conditioned gate (see §9.15 for the why):
+> **Superseded 2026-07-15 — read §13 first.** This section documents the v1..v6
+> single-mixer line, which is closed (§9.17: v5 lost the ceiling; the PAC prior
+> was not carrying the supervised wins; the coupling was being averaged into
+> mush). The architecture of record is the **§13 tri-axial v2 spec**, where this
+> operator becomes the *frequency-axis* mixer with time-resolved, per-channel
+> coupling. The description below still matches the code in
+> `models/mixers/mi_operator.py` (currently v6, written but never trained).
+
+**v6 (in code, not the plan of record): convex mix of an attention branch and
+the v3 band-level operator.** Two branches plus an input-conditioned gate:
 
 ```
 core_attn = MultiHeadSelfAttention(x)              # branch A: full token-level attention
@@ -787,16 +801,107 @@ permutation-invariant global pool; (b) our band-preserving frontend deliberately
 keeps 32-band structure for MI, which CoTAR immediately collapses to a rank-1
 core — CoTAR is structurally disadvantaged *exactly where MI should win*.
 
-**Check (running).** To show CoTAR is a healthy baseline in its *native* token
-space, give both attention and CoTAR the plain `conv` frontend (bag-of-patch
-tokens, no band split) and compare head-to-head. Configs:
-`tuev_diag_conv_{attention,cotar}.yaml` (the embarrassing case) and
-`tuab_diag_conv_cotar.yaml` (pairs with the existing `tuab_diag_conv.yaml`
-attention run, TUAB conv attention was 0.8023/0.8765 in §9.2). Pass criterion:
-conv CoTAR ≳ conv attention → "CoTAR is fine, the band frontend just isn't its
-game", which is what legitimizes MI's band-structured win. This does **not**
-touch the main ablation (band frontend, same-backbone swap) — that setup is
-correct as-is and stays.
+**Check.** To show CoTAR is a healthy baseline in its *native* token space, give
+both attention and CoTAR the plain `conv` frontend (bag-of-patch tokens, no band
+split) and compare head-to-head. Configs: `tuev_diag_conv_{attention,cotar}.yaml`
+(the embarrassing case) and `tuab_diag_conv_cotar.yaml` (pairs with the existing
+`tuab_diag_conv.yaml` attention run, §9.2). Pass criterion: conv CoTAR ≳ conv
+attention.
+
+**Result — PASSED, and the sign flips (TUEV, seed 0, jobs 13933318/13933319):**
+
+| frontend | attention kappa | cotar kappa | cotar − attention |
+|---|---|---|---|
+| band (main ablation, §9.4) | 0.2925 | 0.2272 | **−0.0653** (CoTAR loses) |
+| conv (CoTAR's native token space) | 0.2303 | **0.2501** | **+0.0198** (CoTAR wins) |
+
+Full conv-frontend test metrics — attention: bacc 0.3979 / kappa 0.2303 /
+f1_w 0.5696; cotar: bacc 0.4088 / kappa 0.2501 / f1_w 0.5852. **CoTAR is ≥
+attention on all three test metrics**, and val agrees (kappa 0.3596 vs 0.3263),
+so it is not a single-metric artifact.
+
+**Reading.** The *ordering* between CoTAR and attention reverses purely by
+swapping the frontend, with the mixer code untouched. That is direct evidence
+for the audit conclusion: **CoTAR is implemented correctly and behaves like a
+healthy baseline when given bag-of-patch tokens; it under-performs in our main
+ablation because the band-structured frontend disadvantages it** (it is a
+permutation-invariant global pool, gets no positional encoding from our
+frontend, and collapses the 32-band structure to a rank-1 core). So "MI >
+CoTAR on band-structured PAC tasks" is a fair win over a working baseline, not
+an artifact of a broken one — which was the review risk this check existed to
+close.
+
+**Caveats.** Single seed; the conv-space margin is small (+0.02 kappa). Note
+also that TUEV conv attention (0.2303) is *worse* than band attention (0.2925)
+— on TUEV the band frontend helps attention, so conv is not a strictly stronger
+setup, it is just CoTAR's fairer one. This check does **not** touch the main
+ablation (band frontend, same-backbone swap) — that setup is correct as-is.
+
+**TUAB second data point (job 13933320):** conv CoTAR 0.7940 bacc / 0.8698
+AUROC vs conv attention's 0.8023 / 0.8765 (§9.2) — essentially a tie, CoTAR a
+hair below. So the strong form ("conv CoTAR always ≥ conv attention") does
+*not* hold; the honest claim is **CoTAR is within noise of attention in its
+native token space and clearly ahead on TUEV, i.e. it is a working baseline,
+not a crippled one** — which is all this check needed to establish.
+
+### 9.17 v5 failed on the PAC-strong datasets — and the two findings that explain it
+
+**v5 result (seed 0, jobs 13933313-17), against the historical baselines:**
+
+| dataset | v5 mi | reference | verdict |
+|---|---|---|---|
+| Sleep-EDF kappa | 0.5101 | v3 mi 0.5199 / cotar 0.5107 | ✗ v3's lead gone |
+| CHB-MIT test AUROC | **0.5721** | v3 mi 0.735 / attn 0.642 / cotar 0.635 | ✗✗ **below both baselines** |
+| TUAB bacc / AUROC | 0.7954 / 0.8748 | attention 0.7959 / 0.8764 | ≈ tie (floor held, no gain) |
+| TUEV bacc / kappa | 0.4334 / 0.2825 | attention 0.4205 / 0.2925 | ≈ mixed |
+| TUSZ AUROC / PR-AUC | 0.8001 / 0.5052 | v3 mi 0.7985 / 0.4697 | ✓ marginal gain |
+
+v5's floor fix worked (TUAB/TUEV now match baseline) but **cost the ceiling**,
+catastrophically on CHB-MIT. Gate diagnostics say why: on CHB-MIT `g` froze at
+**~0.50** in 5 of 6 layers (0.9217, 0.5018, 0.4961, 0.4974, 0.4996, 0.5017) —
+the additive form `attn + g·pac_delta` cannot express "pure band-level
+operator", which is what v3 actually won with, so the gate just straddled and
+did neither well. Sleep-EDF's gate did differentiate (0.20-0.85) and still lost
+the ceiling.
+
+**Finding 1 — the PAC prior was never carrying the supervised wins.**
+`pac_scale` trajectories from the v3 runs:
+
+| dataset | v3 `pac_scale` converged | v3 mi score | attention |
+|---|---|---|---|
+| Sleep-EDF (job 13247588) | 0.17 / 0.25 / 0.28 (nonzero) | kappa 0.5199 | cotar 0.5107 |
+| CHB-MIT (job 13560491) | **5e-05 / -9e-05 / 0.0** (collapsed by ep4) | **AUROC 0.735** | **0.642** |
+
+CHB-MIT's best checkpoint (epoch 5) already had `pac_scale ≈ 0`, yet beat
+attention by ~0.09 AUROC. **So the band-level bottleneck — mean-pool the P
+patches per band, mix across the n_bands summaries, broadcast back — is the
+asset, not the PAC bias.** This kills the review-facing claim "we wrote PAC
+into the mixer and that is why we win", on our own evidence. It does *not*
+show PAC is useless: it shows **single-dataset supervised training has no
+incentive to learn a cross-frequency mechanism** — it fits labels via the
+cheapest route available. A prior only pays off if the *objective* demands it,
+which is the core argument for making the SSL objective the keystone (§13).
+
+**Finding 2 — we were computing the coupling into mush.**
+`coupling_matrix` runs the einsum over the **entire** window and then
+`.mean(dim=1)` over channels → **one 32×32 matrix per sample**, averaged over
+16 electrodes and 2000 timesteps. Seizures are **focal** (few electrodes) and
+**transient** (seconds). Averaging over all channels and all time leaves a
+statistic that is near-constant across samples, i.e. carrying almost no
+discriminative information. `pac_scale → 0` on CHB-MIT is then the *correct*
+thing for the optimizer to do. **This is not the prior being wrong, it is the
+prior being averaged away** — and it is a plain bug-class defect that should be
+fixed regardless of what happens to the rest of the redesign. Fix: compute
+coupling per **(channel, time-patch)**, which falls out naturally of the
+tri-axial grid in §13.
+
+**Status.** v5 is abandoned. A v6 (convex mix `(1-g)·attn + g·v3_band_op`,
+spanning both endpoints exactly — verified `g→0` ≡ attention baseline and
+`g→1` ≡ v3 operator to 0.0) was written and validated on CPU but **never
+submitted**: the PI called a halt to redesign the architecture wholesale for
+foundation-model readiness rather than keep patching the mixer (§13). The v6
+code is the current state of `mi_operator.py` and is a reasonable fallback if
+§13 stalls, but it does not address Finding 2 and is not the plan of record.
 
 ---
 
@@ -815,36 +920,38 @@ correct as-is and stays.
 
 ---
 
-## 11. Roadmap (post-2026-07-12 repositioning)
+## 11. Roadmap
+
+> **Superseded 2026-07-15.** The plan of record is now the **§13 v2 architecture
+> spec** (tri-axial tokenization + coupling on the frequency axis + coupling-based
+> SSL). The mixer-patching line this roadmap was written around (v1..v6) is
+> closed — see §9.17 for why. Kept below for history; where it conflicts with
+> §13, §13 wins.
 
 Per the §0 positioning update, the project's actual deliverable is an EEG
-foundation model, not "mi beats cotar." Current/near-term plan:
+foundation model, not "mi beats cotar."
 
-1. **Finish validating the backbone design** via the mixer-swap ablation —
-   this is still the right tool for testing individual ideas (does
-   per-channel PAC coupling help, does multi-head/gating help, etc.), just
-   not the paper's headline result. Sleep-EDF's mi-v3-beats-cotar result
-   (§9.8) and the TUEV/TUEP/TUSZ negative-or-pending results are inputs to
-   backbone design decisions, not competing claims against CoTAR.
-2. **Complexity (updated 2026-07-14):** the MI mixer is now **O(N²)** by
-   deliberate choice — v5's attention floor is token-level (§5/§9.15). The old
-   sub-quadratic property (cross-band attention on n_bands=32 summaries only)
-   was traded for patch-level attention + a guaranteed ≥-baseline floor. The
-   PAC branch itself is still O(n_bands²) and the coupling einsum is now shared
-   across layers (§3.2), so the *PAC-specific* cost stays cheap; the quadratic
-   term is the generic attention. For long-sequence pretraining, branch A is
-   isolated enough to later swap for a linear-attention kernel (recovering
-   sub-quadratic) without touching the PAC branch or gate — keep this as the
-   escape hatch rather than a current selling point.
-3. **Large-scale self-supervised pretraining** is the next phase once the
-   backbone is settled (no concrete plan/objective/data recipe decided yet as
-   of this writing — do not assume a specific pretraining design without
-   re-confirming with the user).
-4. **TUSZ/CHB-MIT** (§7): being pursued as additional PAC-relevant datasets in
-   service of goal 1, not as a pivot to a different benchmark suite (that
-   "switch to Medformer benchmark" idea was discussed and explicitly not
-   adopted — the user chose to stay on the BIOT/EEG-corpus lineage and
-   reframe the goal instead, per §0).
+1. ~~**Finish validating the backbone design** via the mixer-swap ablation.~~
+   Done and concluded (§9.1-9.17). Outcome: the ablation is kept but *narrowed*
+   to the frequency axis (§13.8), and its headline finding is uncomfortable —
+   the PAC prior was not carrying the supervised wins (§9.17 Finding 1).
+2. ~~**Complexity:** MI is O(N²) by deliberate choice (v5's token-level floor).~~
+   Moot — v5 is abandoned. §13 recovers cheap mixing structurally via tri-axial
+   factorization (frequency axis back to O(n_bands²), constant in sequence
+   length), and explicitly rejects Mamba for the time axis (§13.5).
+3. **Large-scale self-supervised pretraining** — no longer "the phase after the
+   backbone is settled". Per §13.2 it is the **keystone**: the phase-conditioned
+   amplitude reconstruction objective (§13.7) is what makes the frequency prior
+   load-bearing at all. Recipe/schedule still undecided.
+4. **TUSZ/CHB-MIT** (§7): additional PAC-relevant datasets, not a pivot to a
+   different benchmark suite (the "switch to Medformer benchmark" idea was
+   discussed and explicitly not adopted — stay on the BIOT/EEG-corpus lineage
+   and reframe the goal instead, per §0).
+5. **Build order for §13** (staged, per §13.9): (a) tri-axial skeleton + physics
+   PE, attention on all three axes — prove montage-agnostic and no regression;
+   (b) swap coupling into the frequency axis, re-run the narrowed ablation;
+   (c) pretraining. Note §13.9(4): historical baselines are **not** comparable
+   to v2 and must be re-run on the v2 skeleton.
 
 ---
 
@@ -916,3 +1023,204 @@ v3版本目前表现最佳，但优势和数据集强相关：在PAC先验强的
 继续改模型架构，方向可以是使其能自适应调节对PAC先验的依赖程度，在非PAC数据集上也表现更好。
 
 寻找baseline，并筛选适合pretrain的数据集，为后续预训练做准备。
+
+---
+
+## 13. PAC-Former v2 architecture spec (decided 2026-07-15; skeleton built + running)
+
+**Status: design of record. Supersedes the v1..v6 mixer-patching line (§9.15-9.17).**
+The decision to stop patching the mixer and redesign wholesale came from the PI
+on 2026-07-15: the mixer line was "应用面太局限" — it only made sense as a narrow
+PAC-former, not as an EEG foundation model, which is the actual deliverable (§0).
+
+**Built 2026-07-15** (supervised path; SSL/pretraining §13.7 NOT built yet):
+- `models/frontend/triaxial.py` — `TriAxialFrontend` (grid tokens + patch-resolved
+  per-channel coupling, §13.3/13.6) and `patch_coupling()`.
+- `models/triaxial.py` — `BandPE`/`SpatialPE`/`rope`, axis mixers
+  (`FreqCoupling`/`FreqAttention`/`FreqCoTAR` + `_MHA`), `TriAxialBlock`,
+  `TriAxialEncoder`.
+- `models/build.py` — `TriAxialPACFormer`, selected by `cfg["arch"]=="triaxial"`;
+  v1 `PACFormer` kept intact. Frequency-axis mixer chosen by `cfg["freq_mixer"]`.
+- Configs `configs/{chbmit,sleep,tuab,tuev,tusz}_v2_{coupling,attention,cotar}.yaml`
+  (n_bands=8, batch=32 — the channel axis is restored so tokens are ~C× more).
+- CPU-verified: all 3 freq mixers forward/backward with finite grads; coupling is
+  time-resolved AND channel-specific; C=19 runs (encoder channel-dynamic). GPU
+  canary (CHB-MIT coupling, 1.68M params) trains without OOM at batch 32.
+
+**Supervised validation sweep running (seed 0):** coupling jobs 14117818-22
+(chbmit/sleep/tuab/tuev/tusz), baselines 14117990-96. Reminder (§13.9-4): these
+are NOT comparable to the §9.1-9.14 numbers (those used n_bands=32 + the
+channel-collapsing frontend) — the v2 attention/cotar freq-mixer runs ARE the
+right baselines. Reading the sweep (§13.2): supervised evidence tests the
+*skeleton health* and *Finding-2 fix* (does time-resolved coupling now beat
+attention on the freq axis, esp. CHB-MIT/TUSZ), NOT the SSL keystone.
+
+Known simplifications in this build, to revisit before pretraining:
+- `SpatialPE` is a learned per-index embedding, not yet the coordinate MLP
+  (§13.4). Fine for single-montage validation; swap in coords for cross-montage.
+- Coupling is recomputed inside the frontend each forward (not cached like the
+  v1 encoder did); cheap relative to the tri-axial attention, revisit if needed.
+
+### 13.1 Thesis
+
+Existing EEG foundation models (BIOT, LaBraM, CBraMod, REVE) tokenize by
+**time segment** and let the model discover frequency structure implicitly.
+PAC-Former v2 makes the three physical axes of EEG — **space (electrode),
+frequency (band), time (patch)** — explicit token dimensions, mixes along each
+axis with a physically-appropriate operator, and **pretrains with an objective
+that forces cross-frequency mechanism learning**. The frequency axis is mixed
+by a directional coupling operator; it is always on and is the only channel
+through which bands exchange information — no attention fallback path.
+
+### 13.2 Novelty stack (four layers; each is load-bearing)
+
+1. **Frequency-prior tri-axial tokenization.** Tokens are
+   (electrode × band × time-patch), with explicit analytic-signal phase and
+   amplitude carried alongside. Frequency is a *prior*, not a posterior.
+2. **Time-resolved, channel-specific directional coupling** as the frequency
+   axis mixer. Unlike QK attention (symmetric learned *similarity*), coupling
+   is asymmetric and *mechanistic*: "does band i's phase drive band j's
+   amplitude". Direction is physically real (slow gates fast).
+3. **Phase-conditioned amplitude reconstruction (SSL) — the keystone.** See
+   13.6. This is what turns layers 1-2 from decorative into load-bearing.
+4. **Interpretability, for free.** The operator emits a time-resolved,
+   per-electrode comodulogram at every layer — a readout neuroscientists
+   already use. Competing foundation models are black boxes.
+
+**Honest position on novelty (do not let this get lost):** on *supervised*
+evidence alone, layer 2's claim is weak — §9.17 Finding 1 shows `pac_scale→0`
+on CHB-MIT while still beating baseline, i.e. the band-level bottleneck, not
+the PAC prior, won. Layer 3 is the answer to that, not a nice-to-have: a prior
+only pays off when the objective demands it. **If the SSL objective does not
+deliver, the novelty falls back to a prior our own ablations call weak. That is
+the bet, and it should be taken with eyes open.** Note however that §9.17
+Finding 2 (coupling averaged into mush) is an independent, plain defect — fixing
+it is justified regardless of how the bet resolves.
+
+### 13.3 Token grid
+
+Worked example: 16 electrodes, 10 s @ 200 Hz, n_bands=8, patch_len=200.
+
+```
+raw (C=16, T=2000) + electrode coords (C, 3)
+  --sinc filterbank (learnable cutoffs)-->  (16, 8, 2000)
+  --differentiable Hilbert-->  phase_unit (16, 8, 2000), amplitude (16, 8, 2000)
+  --per-(channel,band) conv patch tokenizer, stride=patch_len-->
+       token grid (C=16, B=8, P=10), each d_model=128   = 1280 tokens
+```
+
+Each token means "electrode c, band b, second p".
+
+**Critical change vs v1:** the current frontend convs the 16 channels *away*
+(mixes them into hidden). v2 must **not** — the channel axis stays explicit,
+otherwise (a) variable montages are impossible and (b) focal signal is averaged
+away (§9.17 Finding 2).
+
+**n_bands 32 → 8 (decided).** Token count is C·B·P, so bands are a 4x memory
+multiplier: 16·8·10 = 1280 tokens vs 16·32·10 = 5120. Physiologically the
+canonical bands (delta/theta/alpha/beta/low-gamma/high-gamma) are ~6-8; 32 was
+only ever chosen to "give the mixer leverage" (§9.3-era) and is poor value in a
+foundation-model setting.
+
+### 13.4 Physics-aware positional encoding (closes the montage gap)
+
+```
+spatial : MLP(electrode xyz)          -> d_model
+band    : MLP(center_freq, bandwidth) -> d_model
+time    : RoPE over patch index
+```
+
+Encode electrodes by **coordinate, not index** — "channel 3" means nothing
+across datasets, but xyz is universal. This is what makes the model
+montage-agnostic and removes `n_channels` as a hardcoded hyperparameter (the
+gap called out in the PI's competitive analysis; REVE-style in spirit).
+
+Encoding bands by **center frequency, not index** buys the same flexibility on
+the frequency axis: the filterbank becomes swappable (pretrain with one bank,
+finetune with another).
+
+### 13.5 Tri-axial encoder block
+
+Each block mixes along one axis at a time (norm + residual per sub-mixer, FFN
+at the end). Inspired by Crossformer / CBraMod's criss-cross and iTransformer's
+variate-as-token, extended to three axes — the frequency axis being ours.
+
+| # | axis | operator | applied over | cost |
+|---|---|---|---|---|
+| 1 | time | **RoPE self-attention** | P patches, per (c, b) fiber | O(P²), P=10 |
+| 2 | space | self-attention + spatial PE | C electrodes, per (b, p) | O(C²)=256 |
+| 3 | frequency | **directional coupling operator** | B bands, per (c, p) | O(B²)=64 |
+
+**Why factorized:** full attention over all 1280 tokens is ~1.6M pairs.
+Factorized, the three axes cost 100 + 256 + 64. **The factorization — not any
+exotic sequence operator — is what wins the complexity fight.** The frequency
+axis stays O(B²), i.e. constant in sequence length; the compute-primitive
+advantage over standard O(N²) foundation models is preserved.
+
+**Time axis = attention, NOT Mamba (decided 2026-07-15).** Mamba was considered
+and rejected: (a) P≈10-30 (≤300 even for a 5-min window) — attention is already
+free there, Mamba's linear-vs-quadratic edge needs P≫1000; (b) Mamba is causal,
+our task is offline, so it would need a bidirectional variant for no gain;
+(c) our frontend is *already* non-causal (whole-signal FFT Hilbert, centered
+201-tap sinc kernels), so Mamba's streaming advantage is moot by construction;
+(d) `mamba-ssm` needs compiled CUDA kernels — a real dependency risk against
+torch 2.8.0+cu126 — for zero payoff; (e) it adds no novelty (commodity in 2026)
+and introduces a confound that directly weakens attribution of our actual claim
+("how much of the gain is just Mamba?"). **Keep the infrastructure boring so the
+frequency-axis ablation stays sharp.** Hedge: implement the time-axis mixer
+behind the same swappable interface as the frequency-axis mixer, so switching
+later (sample-level resolution, or hours-long context) is a config change.
+
+### 13.6 Coupling, computed properly
+
+```
+v1 (broken): einsum over the whole window, then .mean over channels
+             -> ONE 32x32 matrix per sample          <- averaged into mush
+v2:          computed within each patch, per channel
+             -> coupling[c, p] : (16, 10, 8, 8)      <- time-resolved, focal-preserving
+```
+
+The frequency mixer at (c, p) uses `coupling[c, p]`. The space axis then
+aggregates across electrodes (so focal events survive rather than being
+pre-averaged), and the time axis propagates across patches. The MVL math itself
+(unit complex phase vector, mean-centred amplitude debiasing, no `atan2`) is
+unchanged and still validated by `scripts/synth_pac_test.py`.
+
+### 13.7 Pretraining objectives
+
+- **Keystone — phase-conditioned amplitude reconstruction.** Mask the
+  *amplitude envelope* of a (channel, high band, patch); require reconstruction
+  from the **other bands' phase** plus spatio-temporal context. The only
+  structure that can solve this is phase→amplitude coupling, so the objective
+  trains the mechanism directly and the model has no cheap route around it
+  (this is the direct answer to §9.17 Finding 1).
+- **Masked token reconstruction** (standard) — general representation.
+- **Cross-electrode reconstruction** — mask an electrode, rebuild from
+  neighbours — trains the space axis.
+
+Mixed curriculum. No recipe/schedule decided yet.
+
+### 13.8 Ablation contract (preserved, sharpened)
+
+The old contract was "same backbone, swap the mixer". The new one is **"same
+backbone, swap only the frequency-axis mixer"** (coupling / attention / cotar),
+with the space and time axes held fixed. This is a cleaner scientific question
+than before: *given identical spatial and temporal modelling, does the
+directional coupling operator beat plain attention on the frequency axis?*
+`models/mixers/base.py`'s TokenMixer contract needs restating in these terms —
+it is now an axis mixer, not a global one.
+
+### 13.9 Risks / open items
+
+1. **Memory.** Token count C·B·P with the channel axis restored. n_bands=8
+   keeps it at 1280; watch it if C or P grows.
+2. **The bet.** See 13.2 — if the SSL objective does not pay, novelty rests on a
+   prior our own supervised ablations call weak.
+3. **Scope.** This is a rewrite of frontend output shape, encoder, PE, and the
+   mixer contract — not a patch. Stage it: (a) tri-axial skeleton + PE with
+   attention on all three axes, prove montage-agnostic + no regression;
+   (b) swap coupling into the frequency axis, re-run the ablation;
+   (c) pretraining.
+4. Historical baselines (§9.1-9.14) were measured with n_bands=32 and the
+   channel-collapsing frontend. **They are not directly comparable to v2
+   numbers** — baselines must be re-run on the v2 skeleton before any claim.

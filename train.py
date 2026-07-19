@@ -85,17 +85,21 @@ def main():
     for epoch in range(cfg.get("epochs", 20)):
         tr_loss, *_ = run_epoch(model, train_loader, device, criterion, optimizer)
         log = {"epoch": epoch, "train_loss": tr_loss}
-        # MI-only diagnostic: how much is each layer actually leaning on the PAC
-        # branch? `last_gate` is the mean of the input-conditioned gate g from
-        # that layer's most recent forward -- near 0 means PAC is switched off
-        # (falling back to the attention floor), near 1 means the prior is fully
-        # injected. See AGENT.md 9.15. (Older `pac_scale` designs logged a
-        # learned scalar instead; kept for backward compat.)
+        # MI diagnostic: the coupling mixer's learned pac_scale per layer. In v2
+        # (tri-axial) the mixer lives at block.freq; in v1 (flat) at block.mixer.
+        # Watching pac_scale is how we see whether the now time-resolved coupling
+        # is actually being used (contrast v1, where it collapsed to ~0 on
+        # CHB-MIT because the coupling was averaged into mush -- AGENT.md 9.17).
         for i, block in enumerate(model.encoder.blocks):
-            if hasattr(block.mixer, "last_gate"):
-                log[f"gate/layer{i}"] = block.mixer.last_gate
-            elif hasattr(block.mixer, "pac_scale"):
-                log[f"pac_scale/layer{i}"] = block.mixer.pac_scale.item()
+            mix = getattr(block, "mixer", None)
+            if mix is None:
+                mix = getattr(block, "freq", None)
+            if mix is None:
+                continue
+            if hasattr(mix, "last_gate"):
+                log[f"gate/layer{i}"] = mix.last_gate
+            if hasattr(mix, "pac_scale"):
+                log[f"pac_scale/layer{i}"] = mix.pac_scale.item()
 
         if (epoch + 1) % eval_every == 0:
             _, val_logits, val_y = run_epoch(model, val_loader, device, criterion)
