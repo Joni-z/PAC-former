@@ -115,7 +115,8 @@ class FreqCoupling(nn.Module):
         self.lin_out1 = nn.Linear(2 * d_model, d_model)
         self.lin_out2 = nn.Linear(d_model, d_model)
 
-    def forward(self, x: torch.Tensor, coupling: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, coupling: torch.Tensor,
+                pac_vector: torch.Tensor | None = None) -> torch.Tensor:
         # x: (M, nb, D) with M = B*C*P ; coupling: (M, nb, nb) [i, j]
         q, k, v = self.q_proj(x), self.k_proj(x), self.v_proj(x)
         logits = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.d_k)
@@ -133,7 +134,7 @@ class FreqAttention(nn.Module):
         super().__init__()
         self.mha = _MHA(d_model, n_heads)
 
-    def forward(self, x, coupling=None):
+    def forward(self, x, coupling=None, pac_vector=None):
         return self.mha(x)
 
 
@@ -148,7 +149,7 @@ class FreqCoTAR(nn.Module):
         self.lin3 = nn.Linear(d_model + d_core, d_model)
         self.lin4 = nn.Linear(d_model, d_model)
 
-    def forward(self, x, coupling=None):
+    def forward(self, x, coupling=None, pac_vector=None):
         B, N, D = x.shape
         core = self.lin2(F.gelu(self.lin1(x)))
         core = torch.sum(core * F.softmax(core, dim=1), dim=1, keepdim=True).repeat(1, N, 1)
@@ -183,7 +184,8 @@ class FreqCoherenceGate(nn.Module):
         self.gate_b = nn.Parameter(torch.zeros(1))
         self.last_gate = 0.0
 
-    def forward(self, x: torch.Tensor, coupling: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, coupling: torch.Tensor | None = None,
+                pac_vector: torch.Tensor | None = None) -> torch.Tensor:
         M, L, D = x.shape
         hd = D // self.h
         qkv = self.qkv(x).reshape(M, L, 3, self.h, hd).permute(2, 0, 3, 1, 4)
@@ -201,11 +203,67 @@ class FreqCoherenceGate(nn.Module):
         return self.out(o)
 
 
+class FreqPhaseSteered(nn.Module):
+    """Parameter-free, directional cross-band communication through complex PAC.
+
+    ``pac_vector[i, j] = mean_t A_j(t) exp(i phi_i(t))`` retains both the
+    coupling magnitude and its preferred physical phase.  For every target
+    band j, messages may arrive only from slower bands i < j.  Each source
+    token is rotated in paired feature planes by angle(pac_vector[i, j]) before
+    magnitude-normalised aggregation.
+
+    There is deliberately no QK path, learned PAC scale, gate, or value/output
+    projection in this mixer.  Consequently the only way information crosses
+    the frequency axis is the measured phase-amplitude geometry itself.  The
+    surrounding block still supplies the ordinary within-token residual and
+    FFN; those cannot create cross-band communication.
+    """
+
+    def __init__(self, d_model: int, **_):
+        super().__init__()
+        if d_model % 2:
+            raise ValueError("FreqPhaseSteered requires an even d_model")
+
+    def forward(self, x: torch.Tensor, coupling: torch.Tensor | None = None,
+                pac_vector: torch.Tensor | None = None) -> torch.Tensor:
+        if pac_vector is None:
+            raise ValueError("FreqPhaseSteered requires the complex pac_vector")
+
+        M, nb, D = x.shape
+        if pac_vector.shape != (M, nb, nb):
+            raise ValueError(
+                f"pac_vector shape {tuple(pac_vector.shape)} != {(M, nb, nb)}"
+            )
+
+        # Convert [source phase i, target amplitude j] to [target j, source i].
+        z = pac_vector.transpose(1, 2)
+        valid = torch.tril(
+            torch.ones(nb, nb, dtype=torch.bool, device=x.device), diagonal=-1
+        )  # row=target j, col=source i; only i < j
+        z = z * valid
+
+        mag = z.abs()
+        denom = mag.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+        weight = mag / denom
+        unit = z / mag.clamp_min(1e-8)
+        c, s = unit.real, unit.imag
+
+        # Adjacent feature pairs form 2-D planes.  Complex batched matrix
+        # multiplication performs the per-edge rotation and source aggregation
+        # without materialising an (M, target, source, D/2) tensor.  That tensor
+        # was the dominant cost on 16-electrode TUSZ/CHB-MIT batches.
+        value = torch.view_as_complex(x.reshape(M, nb, D // 2, 2).contiguous())
+        coeff = weight * torch.complex(c, s)               # (M, target, source)
+        out = torch.bmm(coeff, value)                       # (M, target, D/2), complex
+        return torch.view_as_real(out).reshape(M, nb, D)
+
+
 FREQ_MIXERS = {
     "coupling": FreqCoupling,
     "attention": FreqAttention,
     "cotar": FreqCoTAR,
     "coherence": FreqCoherenceGate,
+    "phase": FreqPhaseSteered,
 }
 
 
@@ -229,7 +287,7 @@ class TriAxialBlock(nn.Module):
             nn.Linear(2 * d_model, d_model), nn.Dropout(dropout),
         )
 
-    def forward(self, x, coupling):
+    def forward(self, x, coupling, pac_vector=None):
         # x: (B, C, nb, P, D) ; coupling: (B, C, P, nb, nb)
         B, C, nb, P, D = x.shape
 
@@ -245,7 +303,8 @@ class TriAxialBlock(nn.Module):
         # freq: mix over nb, per (B, C, P), using this (C,P)'s coupling matrix
         h = self.n_freq(x).permute(0, 1, 3, 2, 4).reshape(B * C * P, nb, D)
         cpl = coupling.reshape(B * C * P, nb, nb)
-        h = self.freq(h, cpl).reshape(B, C, P, nb, D).permute(0, 1, 3, 2, 4)
+        pac = None if pac_vector is None else pac_vector.reshape(B * C * P, nb, nb)
+        h = self.freq(h, cpl, pac).reshape(B, C, P, nb, D).permute(0, 1, 3, 2, 4)
         x = x + h
 
         x = x + self.ffn(self.n_ffn(x))
@@ -259,7 +318,7 @@ class TriAxialEncoder(nn.Module):
             TriAxialBlock(d_model, freq_mixer, n_heads, dropout, **mk) for _ in range(depth)
         ])
 
-    def forward(self, x, coupling):
+    def forward(self, x, coupling, pac_vector=None):
         for blk in self.blocks:
-            x = blk(x, coupling)
+            x = blk(x, coupling, pac_vector)
         return x

@@ -34,19 +34,26 @@ class MAEPretrain(nn.Module):
         d = cfg["d_model"]
         self.mask_mode = cfg.get("mask_mode", "random")
         self.mask_ratio = cfg.get("mask_ratio", 0.5)
+        self.pretrain_task = cfg.get("pretrain_task", "mae")
+        self.freq_mixer = cfg.get("freq_mixer", "attention")
+        self.needs_pac_vector = (
+            self.freq_mixer == "phase" or self.pretrain_task == "phase_align"
+        )
         self.frontend = TriAxialFrontend(
             n_bands=cfg["n_bands"], hidden_dim=d, sample_rate=cfg["sample_rate"],
             kernel_size=cfg.get("kernel_size", 201), patch_len=cfg.get("patch_len", 200),
+            return_pac_vector=self.needs_pac_vector,
         )
         self.band_pe = BandPE(d)
         self.spatial_pe = SpatialPE(cfg["n_channels"], d)
         self.encoder = TriAxialEncoder(
             depth=cfg["depth"], d_model=d,
-            freq_mixer=cfg.get("freq_mixer", "attention"),
+            freq_mixer=self.freq_mixer,
             n_heads=cfg.get("n_heads", 4), dropout=cfg.get("dropout", 0.1),
         )
         self.mask_token = nn.Parameter(torch.zeros(d))
         self.recon = nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Linear(d, 1))
+        self.align_head = nn.Linear(d, 1)
 
     def _mask(self, B, C, nb, P, device):
         """Return a boolean (B, C, nb, P) mask, True = hidden/reconstruct."""
@@ -59,14 +66,27 @@ class MAEPretrain(nn.Module):
 
     def encode(self, x):
         """Frontend + PEs + encoder with NO masking -- for probing/finetuning."""
-        tokens, coupling, band_hz = self.frontend(x)
+        frontend_out = self.frontend(x)
+        if self.needs_pac_vector:
+            tokens, coupling, band_hz, pac_vector = frontend_out
+        else:
+            tokens, coupling, band_hz = frontend_out
+            pac_vector = None
         B, C, nb, P, D = tokens.shape
         tokens = tokens + self.band_pe(band_hz).view(1, 1, nb, 1, D)
         tokens = tokens + self.spatial_pe(C, tokens.device).view(1, C, 1, 1, D)
-        return self.encoder(tokens, coupling)          # (B, C, nb, P, D)
+        return self.encoder(tokens, coupling, pac_vector)  # (B, C, nb, P, D)
 
     def forward(self, x):
-        tokens, coupling, band_hz, amp_target = self.frontend(x, return_amp_target=True)
+        if self.pretrain_task == "phase_align":
+            return self._phase_alignment_loss(x)
+
+        frontend_out = self.frontend(x, return_amp_target=True)
+        if self.needs_pac_vector:
+            tokens, coupling, band_hz, amp_target, pac_vector = frontend_out
+        else:
+            tokens, coupling, band_hz, amp_target = frontend_out
+            pac_vector = None
         B, C, nb, P, D = tokens.shape
         mask = self._mask(B, C, nb, P, x.device)                        # (B,C,nb,P)
 
@@ -76,11 +96,63 @@ class MAEPretrain(nn.Module):
         tok = tok + self.band_pe(band_hz).view(1, 1, nb, 1, D)
         tok = tok + self.spatial_pe(C, x.device).view(1, C, 1, 1, D)
 
-        # crossfreq: don't hand the encoder the true coupling (built from the very
-        # high bands we're hiding) -- that would leak the answer.
-        cpl = torch.zeros_like(coupling) if self.mask_mode == "crossfreq" else coupling
-        h = self.encoder(tok, cpl)                                      # (B,C,nb,P,D)
+        # Leakage control (applies to any freq_mixer that USES coupling, i.e.
+        # "coupling"; attention/cotar ignore it). coupling[.., i, j] = mean_t(
+        # phase_i * amp_j) within a patch, so an entry touching a hidden band leaks
+        # that band's own amplitude/phase -- exactly the reconstruction target. Keep
+        # coupling ONLY between band-tokens that are BOTH visible at each (channel,
+        # patch); zero every entry whose driving band i or driven band j is masked.
+        # For crossfreq this leaves the low->low block (the operator must still LEARN
+        # low->high routing through its Q/K/V -- the coupling prior can't hand it the
+        # answer); for random it leaves the visible-visible pairs. Same policy in both
+        # objective columns so the 2x2 doesn't confound objective with leakage policy.
+        vis = (~mask).permute(0, 1, 3, 2)                              # (B,C,P,nb) True=visible
+        keep = (vis.unsqueeze(-1) & vis.unsqueeze(-2)).to(coupling.dtype)  # (B,C,P,nb,nb)
+        cpl = coupling * keep
+        pac = None if pac_vector is None else pac_vector * keep
+        h = self.encoder(tok, cpl, pac)                                 # (B,C,nb,P,D)
 
         pred = self.recon(h).squeeze(-1)                               # (B,C,nb,P)
         loss = F.mse_loss(pred[mask], amp_target.detach()[mask])
         return loss
+
+    def _phase_alignment_loss(self, x):
+        """Discriminate measured PAC geometry from magnitude-matched phase scrambles.
+
+        Positive and negative examples share *identical tokens and coupling
+        magnitudes*.  The negative changes only the complex preferred phase of
+        every PAC edge, so power, amplitude, and ordinary spectral shortcuts are
+        unavailable.  With ``freq_mixer=phase`` the encoder must learn whether
+        the phase-steered cross-band messages are consistent with the EEG token
+        content.  This directly trains the mechanism that mean-amplitude MAE only
+        encouraged indirectly.
+        """
+        tokens, coupling, band_hz, pac_vector = self.frontend(x)
+        B, C, nb, P, D = tokens.shape
+        tok = tokens + self.band_pe(band_hz).view(1, 1, nb, 1, D)
+        tok = tok + self.spatial_pe(C, x.device).view(1, C, 1, 1, D)
+
+        # Keep the *entire real preferred-phase distribution* and every local
+        # |Z|, but break their correspondence to the token grid by permuting
+        # phase angles across (electrode, patch) locations within each sample.
+        # Detach both geometries so the frontend cannot manufacture an easy
+        # positive/negative separation by moving its filter cutoffs.
+        pac_reference = pac_vector.detach()
+        mag = pac_reference.abs()
+        unit = pac_reference / mag.clamp_min(1e-8)
+        flat = unit.reshape(B, C * P, nb, nb)
+        order = torch.rand(B, C * P, device=x.device).argsort(dim=1)
+        gather = order[:, :, None, None].expand_as(flat)
+        shuffled_unit = flat.gather(1, gather).reshape_as(unit)
+        pac_negative = mag * shuffled_unit
+
+        h_pos = self.encoder(tok, coupling, pac_reference)
+        h_neg = self.encoder(tok, coupling, pac_negative)
+        pooled = torch.cat(
+            [h_pos.mean(dim=(1, 2, 3)), h_neg.mean(dim=(1, 2, 3))], dim=0
+        )
+        logits = self.align_head(pooled).squeeze(-1)
+        labels = torch.cat(
+            [torch.ones(B, device=x.device), torch.zeros(B, device=x.device)]
+        )
+        return F.binary_cross_entropy_with_logits(logits, labels)

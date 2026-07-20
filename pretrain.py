@@ -87,7 +87,8 @@ def main():
     train_loader, val_loader, test_loader, class_weights = build_dataloaders(cfg)
     mae = MAEPretrain(cfg).to(device)
     n_params = sum(p.numel() for p in mae.parameters())
-    print(f"[pretrain {cfg.get('mask_mode')}] {n_params/1e6:.2f}M params on {device}")
+    task = cfg.get("pretrain_task", cfg.get("mask_mode", "mae"))
+    print(f"[pretrain {task}] {n_params/1e6:.2f}M params on {device}")
     wandb.summary["n_params"] = n_params
 
     # ---- Phase 1: masked-reconstruction pretraining ----
@@ -95,8 +96,9 @@ def main():
                             weight_decay=cfg.get("weight_decay", 1e-4))
     for epoch in range(cfg.get("pretrain_epochs", 30)):
         loss = pretrain_epoch(mae, train_loader, device, opt)
-        print(f"[pretrain] epoch {epoch:3d} | recon_loss {loss:.5f}")
-        wandb.log({"pretrain_epoch": epoch, "recon_loss": loss})
+        loss_name = "align_loss" if task == "phase_align" else "recon_loss"
+        print(f"[pretrain] epoch {epoch:3d} | {loss_name} {loss:.5f}")
+        wandb.log({"pretrain_epoch": epoch, loss_name: loss})
 
     ckpt = f"checkpoints/{cfg.get('wandb_run_name', 'pretrain')}.pt"
     import os; os.makedirs("checkpoints", exist_ok=True)

@@ -1309,3 +1309,180 @@ before treating this as settled (per seed-workflow convention, dev used seed
 0 only so far); (3) decide whether (a) is worth another architecture attempt
 given (b) — current read is **no**, resource should shift to the pretrain
 objective, not the mixer.
+
+**Critical gap the §13.10(b) runs do NOT close: all 10 used
+`freq_mixer="attention"`.** The coupling matrix was zeroed, so the directional
+coupling OPERATOR (`FreqCoupling`) was never actually exercised under the
+crossfreq objective. The flagship claim we'd publish — "the directional
+coupling operator beats attention *when the objective forces it*" — lives in
+the untested interaction cell of the 2×2 {freq_mixer: attention/coupling} ×
+{objective: random/crossfreq}. Identified while reading the 2026-07-19
+landscape/positioning doc ("Designing a Novel, Publishable EEG Foundation
+Model…", repo root), which makes running this 2×2 its #1 recommendation.
+
+### 13.11 The operator×objective 2×2 — leakage control + jobs submitted (2026-07-19)
+
+The two missing cells (coupling+random, coupling+crossfreq) require feeding a
+real coupling matrix to `FreqCoupling` under masking, which reintroduces the
+target-leakage problem the §13.10(b) runs dodged by zeroing it.
+`coupling[.., i, j] = mean_t(phase_i · amp_j)` within a patch, so any entry
+whose driving band i or driven band j is a hidden token carries that band's
+own amplitude/phase — i.e. the reconstruction target. Feeding the full matrix
+trivializes the task.
+
+**Leakage control (implemented, `models/pretrain.py` forward):** keep coupling
+ONLY between band-tokens that are BOTH visible at each (channel, patch); zero
+every entry touching a masked band. `vis=(~mask).permute(0,1,3,2)` →
+`keep = vis.unsqueeze(-1) & vis.unsqueeze(-2)` → `cpl = coupling*keep`. For
+crossfreq this leaves the **low→low block only** (the operator must still LEARN
+low→high routing through its Q/K/V + pac_scale; the coupling prior cannot hand
+it the answer); for random it leaves the visible-visible pairs. Applied
+uniformly to both objective columns so the 2×2 does not confound objective with
+leakage policy. Replaces the old crude `zeros_like if crossfreq else coupling`
+(which was moot anyway — attention ignores coupling). CPU smoke test
+(`scratchpad/smoke_coupling.py`): both modes give finite loss + finite grads,
+`pac_scale` receives gradient, and the leak-check confirms **zero coupling mass
+on hidden high bands** while the low→low prior (mass ~2.46) is preserved.
+
+**Jobs (seed 0, `configs/pretrain_{ds}_{crossfreq,random}_coupling.yaml`,
+freq_mixer=coupling):** 14246031-41 — submitted priority order: coupling+
+crossfreq on tusz/tuab/chbmit (the interaction cell on the 3 datasets crossfreq
+already won) first, then their coupling+random controls, then tuev/sleep for
+completeness. Reading, once done: compare each dataset's 4 cells
+(attn+random §13.10, attn+crossfreq §13.10, coup+random, coup+crossfreq). The
+flagship result is coup+crossfreq **> all three others** — that's "operator ×
+objective interaction". If coupling only matches attention but crossfreq still
+wins, the paper falls back to an objective-only claim (doc Recommendation 5b).
+Still single-seed dev; multi-seed the winners before any writeup.
+
+**Outcome (2026-07-19) — the flagship interaction cell NEVER RAN.** Jobs
+14246031-36 (the coupling variants on the 3 binary datasets tusz/tuab/chbmit,
+BOTH crossfreq and random) were all **CANCELLED** before completion; only the
+two multi-class datasets finished (14246038-41). So the 2×2 exists ONLY for
+TUEV and Sleep-EDF — the two datasets crossfreq already LOST on in §13.10:
+
+| dataset (kappa) | attn+random | attn+crossfreq | coup+random | coup+crossfreq |
+|---|---|---|---|---|
+| TUEV | 0.356 | 0.271 | 0.271 | 0.286 |
+| Sleep-EDF | 0.483 | 0.451 | 0.468 | **0.493** |
+
+On Sleep-EDF, coup+crossfreq (0.493) is the best of the four cells — a *hint*
+the operator×objective interaction may be real — but it is on a dataset in the
+"loser" column and single-seed, so not load-bearing. **The decisive test —
+coupling+crossfreq on TUAB/CHB-MIT/TUSZ, the 3 datasets crossfreq won — is
+still UNRUN and must be resubmitted.** This is the single most important open
+cell in the whole project.
+
+### 13.12 Phase-steered mixer + phase-alignment objective (2026-07-19)
+
+Motivated by the same landscape/positioning doc, a **stronger, parameter-free
+realization of the coupling prior** than any mixer tried before. This is now the
+frontier of the project and the strongest novelty candidate.
+
+**(a) `FreqPhaseSteered` mixer (`freq_mixer="phase"`, `models/triaxial.py:206`).**
+Parameter-free directional cross-band communication through the *complex* PAC
+vector. The frontend now returns `pac_vector[i,j] = mean_t A_j(t)·exp(i·φ_i(t))`
+— coupling magnitude AND preferred physical phase (`return_pac_vector=True` when
+freq_mixer=phase, `models/build.py:65`). For every target band j, messages arrive
+only from slower bands i<j (strict lower-triangular mask); each source token is
+rotated in adjacent 2-D feature planes by `angle(pac_vector[i,j])`, then
+magnitude-normalised aggregated (complex batched matmul, avoids the
+(M,target,source,D/2) tensor that dominated cost on 16-electrode TUSZ/CHB-MIT).
+**No QK, no learned pac_scale, no gate, no value/output projection** — the ONLY
+pathway across the frequency axis is the measured phase-amplitude geometry
+itself. This is the sharpest possible form of §13.2's "the prior IS the
+mechanism": unlike `coupling`/`coherence` (which add a *learnable* cross-band
+path that supervised training then zeroes, §9.17/§13.10a), phase-steered
+*cannot* route cross-band except through real PAC.
+
+Built-in mechanism ablation (`train.py:127`): at test, re-run with
+`phase_mode ∈ {magnitude` (zero the preferred phase, keep |PAC|), `scramble`
+(randomise per-edge phase, keep |PAC|)`}` — the decisive test of whether the
+measured phase actually carries the signal.
+
+Supervised results, jobs 14253205-209 (first batch 14253034-38 cancelled),
+seed 0:
+
+| dataset (key metric) | normal | magnitude | scramble | vs best OTHER mixer |
+|---|---|---|---|---|
+| TUAB (auroc) | **0.873** | 0.824 | 0.873 | best (coupling 0.872) |
+| TUEV (kappa) | **0.413** | 0.178 | 0.332 | best (attention 0.376) |
+| Sleep-EDF (kappa) | 0.516 | 0.040 | 0.507 | mid (cotar 0.572) |
+| TUSZ (auroc / bacc) | 0.835 / 0.594 | 0.770 / 0.633 | 0.803 / 0.582 | auroc ties coupling; bacc worse than attn 0.697 |
+| CHB-MIT | **TIMEOUT** (14253209, hit 12h wall — NO RESULT) | — | — | — |
+
+Reading: phase is the **best supervised mixer on TUAB and TUEV**, mid on Sleep,
+mixed on TUSZ (auroc competitive, balanced-acc worse than attention). This is
+the first mixer to actually clear the other mixers on any dataset under plain
+supervised training (§13.10a said the class was closed — phase is a partial
+counterexample, on 2/4 completed datasets). **Mechanism ablation is a SPLIT
+verdict, and must be reported honestly:** zeroing the preferred phase entirely
+(`magnitude`) is consistently and sometimes catastrophically damaging (Sleep
+kappa 0.516→0.040; TUEV 0.413→0.178) → the phase geometry is genuinely
+load-bearing, not decorative. BUT `scramble` (randomise per-edge phase) barely
+hurts on TUAB/Sleep (and only moderately on TUEV) — if the *specific measured*
+phase mattered, scramble should hurt as much as magnitude does. Current read:
+the model relies on a phase rotation being *present/structured* more than on its
+exact measured value — a real caveat to any "learns the true PAC phase" claim,
+and the #1 thing to understand before building the paper on this mixer.
+CHB-MIT is untested (timed out — needs >12h wall or fewer epochs).
+
+**(b) `phase_align` objective (`models/pretrain.py:119`, `pretrain_task="phase_align"`).**
+Contrastive BCE discriminating real PAC geometry (positive) from a
+magnitude-matched phase-scramble (negative: permute the complex *unit* phase
+across (electrode,patch) within each sample, keep every |Z| and all tokens).
+Trains the phase mechanism directly, where amplitude-MAE only encouraged it
+indirectly. Requires freq_mixer=phase; pooled pos/neg encodings → `align_head`.
+
+Pretrain results (only tusz/sleep ran; the phase_align attempts 14253097/099/225
+were cancelled, completed ones are 14255746 tusz / 14253226 sleep):
+
+| dataset (key) | phase_align | phase_random (recon-MAE, phase mixer) | crossfreq-MAE §13.10 (attn) |
+|---|---|---|---|
+| TUSZ (auroc) | 0.773 | 0.814 | **0.836** |
+| Sleep-EDF (kappa) | 0.343 | 0.436 | **0.451** |
+
+**phase_align LOSES to both its own phase_random control and to the §13.10
+crossfreq amplitude-MAE.** Diagnosed cause (from the loss curves):
+`align_loss` collapses to ~0.0008 within 4 epochs — the contrastive task is
+**trivially separable** (the phase-scrambled negative is too easy to tell
+apart), so the encoder learns a shortcut discriminator that does not transfer,
+while phase_random's recon_loss converges normally (→0.064 over 15 epochs) and
+transfers better. **The phase_align objective is currently broken (too-easy
+negatives); it needs harder negatives (e.g. small phase perturbations, or
+mixing real geometries across samples) or a non-contrastive formulation before
+it can fairly test the phase-steering hypothesis under SSL.**
+
+**Open gaps in the phase line (none of these done):** (1) CHB-MIT phase
+supervised timed out — rerun with a longer wall or fewer epochs; (2) phase_align
+on TUAB/CHB-MIT/TUEV never submitted; (3) fix the too-easy-negative problem in
+phase_align; (4) understand the scramble-vs-magnitude asymmetry in the mechanism
+ablation; (5) the entire phase line is single-seed. Combined with §13.11's unrun
+coupling+crossfreq flagship cell, the two highest-value TODOs are:
+**resubmit coupling+crossfreq on TUAB/CHB-MIT/TUSZ, and fix+rerun phase_align.**
+
+### 13.13 Full job ledger for the 2026-07-18/19 push (so nothing is lost again)
+
+Every job from this multi-session push, so progress is never under-counted (a
+prior status write missed the phase + coupling families entirely — they were
+submitted by a parallel session/user). Verify with
+`sacct -u zz5070 --starttime 2026-07-18T00:00 -X`.
+
+- **14213997-14214001** — supervised `coherence` (5 ds). COMPLETED. §13.10a.
+- **14214002-14214011** — MAE `{crossfreq,random}` × 5 ds, freq_mixer=attention. COMPLETED. §13.10b.
+- **14246031-14246036** — MAE `{crossfreq,random}_coupling` on tusz/tuab/chbmit. **ALL CANCELLED** (flagship cell lost). §13.11.
+- **14246038-14246041** — MAE `{crossfreq,random}_coupling` on tuev/sleep. COMPLETED. §13.11 table.
+- **14253034-14253038** — supervised `phase` (5 ds), first attempt. **ALL CANCELLED** (superseded).
+- **14253205-14253208** — supervised `phase` tusz/sleep/tuab/tuev. COMPLETED. §13.12a.
+- **14253209** — supervised `phase` chbmit. **TIMEOUT** (no result). §13.12a.
+- **14253097/099, 14253225** — `phase_align` tusz/sleep early attempts. CANCELLED.
+- **14253098, 14253100** — `phase_random` tusz/sleep. COMPLETED. §13.12b.
+- **14253226 (sleep), 14255746 (tusz)** — `phase_align`. COMPLETED. §13.12b.
+
+Checkpoints for all completed pretrain runs: `checkpoints/<wandb_run_name>.pt`.
+New source since §13.10: `FreqPhaseSteered` + `"phase"` in `FREQ_MIXERS`
+(`models/triaxial.py`), `return_pac_vector` (`models/frontend/triaxial.py`),
+`phase_mode` ablation (`models/build.py`, `train.py`), `_phase_alignment_loss`
++ visible-visible coupling leakage control (`models/pretrain.py`), configs
+`configs/{ds}_v2_phase.yaml`, `configs/pretrain_{ds}_{phase_align,phase_random,*_coupling}.yaml`,
+`scripts/test_phase_steered.py`, and the landscape doc at repo root.

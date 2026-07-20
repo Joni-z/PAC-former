@@ -44,7 +44,7 @@ class PACFormer(nn.Module):
         )
         self.head = ClassificationHead(d, cfg["num_classes"])
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, phase_mode: str = "normal") -> torch.Tensor:
         x = self.augment(x)
         token, phase_unit, amplitude = self.frontend(x)
         h = self.encoder(token, phase_unit=phase_unit, amplitude=amplitude)
@@ -57,28 +57,45 @@ class TriAxialPACFormer(nn.Module):
     def __init__(self, cfg: dict):
         super().__init__()
         d = cfg["d_model"]
+        self.freq_mixer = cfg.get("freq_mixer", "coupling")
         self.augment = RandomAugment(cfg.get("augmentations", []))
         self.frontend = TriAxialFrontend(
             n_bands=cfg["n_bands"], hidden_dim=d, sample_rate=cfg["sample_rate"],
             kernel_size=cfg.get("kernel_size", 201), patch_len=cfg.get("patch_len", 200),
+            return_pac_vector=self.freq_mixer == "phase",
         )
         self.band_pe = BandPE(d)
         self.spatial_pe = SpatialPE(cfg["n_channels"], d)
         self.encoder = TriAxialEncoder(
             depth=cfg["depth"], d_model=d,
-            freq_mixer=cfg.get("freq_mixer", "coupling"),
+            freq_mixer=self.freq_mixer,
             n_heads=cfg.get("n_heads", 4), dropout=cfg.get("dropout", 0.1),
         )
         self.head = ClassificationHead(d, cfg["num_classes"])
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, phase_mode: str = "normal") -> torch.Tensor:
         x = self.augment(x)
-        tokens, coupling, band_hz = self.frontend(x)     # (B,C,nb,P,D), (B,C,P,nb,nb)
+        frontend_out = self.frontend(x)
+        if self.freq_mixer == "phase":
+            tokens, coupling, band_hz, pac_vector = frontend_out
+            if phase_mode == "magnitude":
+                # Preserve every PAC edge magnitude but remove preferred phase.
+                pac_vector = torch.complex(pac_vector.abs(), torch.zeros_like(pac_vector.real))
+            elif phase_mode == "scramble":
+                # Preserve magnitude exactly while independently randomising the
+                # measured preferred phase. This is the decisive mechanism test.
+                theta = 2.0 * torch.pi * torch.rand_like(pac_vector.real)
+                pac_vector = pac_vector * torch.complex(theta.cos(), theta.sin())
+            elif phase_mode != "normal":
+                raise ValueError(f"unknown phase_mode={phase_mode!r}")
+        else:
+            tokens, coupling, band_hz = frontend_out
+            pac_vector = None
         B, C, nb, P, D = tokens.shape
         # physics positional encodings: band by center-freq, electrode by position
         tokens = tokens + self.band_pe(band_hz).view(1, 1, nb, 1, D)
         tokens = tokens + self.spatial_pe(C, tokens.device).view(1, C, 1, 1, D)
-        h = self.encoder(tokens, coupling)               # (B,C,nb,P,D)
+        h = self.encoder(tokens, coupling, pac_vector)   # (B,C,nb,P,D)
         return self.head(h.reshape(B, C * nb * P, D))    # head mean-pools dim=1
 
 

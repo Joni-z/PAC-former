@@ -27,12 +27,14 @@ from .analytic import hilbert, phase_amplitude
 NORM_CONST = 100.0
 
 
-def patch_coupling(phase_unit, amplitude, P, normalize=True):
-    """Time-resolved directional MVL coupling, per channel, per patch.
+def patch_pac_vector(phase_unit, amplitude, P, normalize=True):
+    """Complex, time-resolved directional PAC vector per channel and patch.
 
     phase_unit, amplitude: (B, C, n_bands, T), T divisible by P.
-    Returns (B, C, P, n_bands, n_bands) with [.., i, j] = band i (phase)
-    driving band j (amplitude), within that patch.
+    Returns complex ``Z`` with shape (B, C, P, n_bands, n_bands), where
+    ``Z[..., i, j]`` is low-band-i phase driving band-j amplitude.  Keeping Z
+    complex preserves the preferred PAC phase; taking ``abs`` too early was
+    exactly what prevented the old mixer from defining a phase geometry.
     """
     B, C, nb, T = phase_unit.shape
     L = T // P
@@ -41,10 +43,14 @@ def patch_coupling(phase_unit, amplitude, P, normalize=True):
     am = am - am.mean(dim=-1, keepdim=True)                      # dPAC debiasing
     # Z[b,c,p,i,j] = mean_t phase_i * amp_j   (within patch p)
     Z = torch.einsum("bcipl,bcjpl->bcpij", ph, am.to(ph.dtype)) / L
-    coupling = Z.abs()
     if normalize:
-        coupling = coupling / NORM_CONST
-    return coupling
+        Z = Z / NORM_CONST
+    return Z
+
+
+def patch_coupling(phase_unit, amplitude, P, normalize=True):
+    """Backward-compatible MVL magnitude used by the older mixers."""
+    return patch_pac_vector(phase_unit, amplitude, P, normalize).abs()
 
 
 class TriAxialFrontend(nn.Module):
@@ -56,12 +62,14 @@ class TriAxialFrontend(nn.Module):
         kernel_size: int = 201,
         patch_len: int = 200,
         normalize: bool = True,
+        return_pac_vector: bool = False,
         **_,
     ):
         super().__init__()
         self.n_bands = n_bands
         self.patch_len = patch_len
         self.normalize = normalize
+        self.return_pac_vector = return_pac_vector
         self.sinc = SincBandpass(n_bands, sample_rate, kernel_size=kernel_size)
         # per-(channel, band) conv patch tokenizer: one input channel (the
         # filtered signal for that electrode+band), patchify time. Shared across
@@ -89,7 +97,8 @@ class TriAxialFrontend(nn.Module):
         # phase / amplitude -> time-resolved per-channel coupling
         z = hilbert(filtered)                                    # (B, C, nb, T)
         phase_unit, amplitude = phase_amplitude(z)
-        coupling = patch_coupling(phase_unit, amplitude, P, self.normalize)
+        pac_vector = patch_pac_vector(phase_unit, amplitude, P, self.normalize)
+        coupling = pac_vector.abs()
 
         if return_amp_target:
             # Per-token (electrode, band, patch) log mean amplitude -- a fixed,
@@ -101,6 +110,10 @@ class TriAxialFrontend(nn.Module):
             L = T // P
             am = amplitude[..., : P * L].reshape(B, C, self.n_bands, P, L)
             amp_target = torch.log(am.mean(dim=-1) + 1e-6)      # (B, C, nb, P)
+            if self.return_pac_vector:
+                return tokens, coupling, self.band_hz(), amp_target, pac_vector
             return tokens, coupling, self.band_hz(), amp_target
 
+        if self.return_pac_vector:
+            return tokens, coupling, self.band_hz(), pac_vector
         return tokens, coupling, self.band_hz()

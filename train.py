@@ -19,14 +19,14 @@ from eval import compute_metrics
 from models.build import build_model
 
 
-def run_epoch(model, loader, device, criterion, optimizer=None):
+def run_epoch(model, loader, device, criterion, optimizer=None, forward_kwargs=None):
     train = optimizer is not None
     model.train(train)
     losses, all_logits, all_y = [], [], []
     for X, y in tqdm(loader, leave=False):
         X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True).long()
         with torch.set_grad_enabled(train):
-            logits = model(X)
+            logits = model(X, **(forward_kwargs or {}))
             loss = criterion(logits, y)
             if train:
                 optimizer.zero_grad()
@@ -124,6 +124,17 @@ def main():
     test_m = compute_metrics(test_y, test_logits, cfg["num_classes"])
     print("test | " + " ".join(f"{k}={v:.4f}" for k, v in test_m.items()))
     wandb.log({f"test_{k}": v for k, v in test_m.items()})
+    if cfg.get("arch") == "triaxial" and cfg.get("freq_mixer") == "phase":
+        for phase_mode in ("magnitude", "scramble"):
+            _, ab_logits, ab_y = run_epoch(
+                model, test_loader, device, criterion,
+                forward_kwargs={"phase_mode": phase_mode},
+            )
+            ab_m = compute_metrics(ab_y, ab_logits, cfg["num_classes"])
+            print(f"test_{phase_mode} | " + " ".join(
+                f"{k}={v:.4f}" for k, v in ab_m.items()
+            ))
+            wandb.log({f"test_{phase_mode}_{k}": v for k, v in ab_m.items()})
     wandb.finish()
 
 
