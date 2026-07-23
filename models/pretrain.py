@@ -26,6 +26,7 @@ import torch.nn.functional as F
 
 from .frontend.triaxial import TriAxialFrontend
 from .triaxial import TriAxialEncoder, BandPE, SpatialPE
+from .build import _spatial_coords
 
 
 class MAEPretrain(nn.Module):
@@ -34,6 +35,18 @@ class MAEPretrain(nn.Module):
         d = cfg["d_model"]
         self.mask_mode = cfg.get("mask_mode", "random")
         self.mask_ratio = cfg.get("mask_ratio", 0.5)
+        # crossfreq shape knobs (AGENT.md sec. 13.16). Defaults reproduce the
+        # original all-of-the-top-half mask exactly, so existing configs are
+        # unaffected.
+        #   crossfreq_frac    -- fraction of the band axis, counted from the top,
+        #                        that forms the "high" region (0.5 = top half).
+        #   crossfreq_density -- probability a token inside that region is actually
+        #                        hidden (1.0 = hide all of it, the original).
+        #   mixed_p           -- for mask_mode="mixed", per-batch probability of
+        #                        drawing the crossfreq mask instead of random.
+        self.crossfreq_frac = cfg.get("crossfreq_frac", 0.5)
+        self.crossfreq_density = cfg.get("crossfreq_density", 1.0)
+        self.mixed_p = cfg.get("mixed_p", 0.5)
         self.pretrain_task = cfg.get("pretrain_task", "mae")
         self.freq_mixer = cfg.get("freq_mixer", "attention")
         self.needs_pac_vector = (
@@ -45,7 +58,7 @@ class MAEPretrain(nn.Module):
             return_pac_vector=self.needs_pac_vector,
         )
         self.band_pe = BandPE(d)
-        self.spatial_pe = SpatialPE(cfg["n_channels"], d)
+        self.spatial_pe = SpatialPE(cfg["n_channels"], d, coords=_spatial_coords(cfg))
         self.encoder = TriAxialEncoder(
             depth=cfg["depth"], d_model=d,
             freq_mixer=self.freq_mixer,
@@ -57,9 +70,22 @@ class MAEPretrain(nn.Module):
 
     def _mask(self, B, C, nb, P, device):
         """Return a boolean (B, C, nb, P) mask, True = hidden/reconstruct."""
-        if self.mask_mode == "crossfreq":
+        mode = self.mask_mode
+        if mode == "mixed":
+            # Per-batch coin flip between the two objectives: keep crossfreq's
+            # low->high forcing while still getting standard MAE's broad-coverage
+            # signal, which is what the multi-class tasks appear to need (sec. 13.10b).
+            mode = "crossfreq" if torch.rand(1).item() < self.mixed_p else "random"
+        if mode == "crossfreq":
             m = torch.zeros(B, C, nb, P, dtype=torch.bool, device=device)
-            m[:, :, nb // 2:, :] = True                 # hide the high-frequency half
+            n_high = max(1, int(round(nb * self.crossfreq_frac)))
+            m[:, :, nb - n_high:, :] = True             # hide the high-frequency region
+            if self.crossfreq_density < 1.0:
+                # Reveal some of the high region so the pretext is less destructive
+                # while low->high reconstruction is still the only route for what
+                # stays hidden.
+                reveal = torch.rand(B, C, nb, P, device=device) >= self.crossfreq_density
+                m = m & ~reveal
             return m
         # random: independent Bernoulli per token
         return torch.rand(B, C, nb, P, device=device) < self.mask_ratio

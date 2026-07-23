@@ -19,15 +19,23 @@ from eval import compute_metrics
 from models.build import build_model
 
 
-def run_epoch(model, loader, device, criterion, optimizer=None, forward_kwargs=None):
+def run_epoch(model, loader, device, criterion, optimizer=None, forward_kwargs=None,
+              aux_weight=0.0):
     train = optimizer is not None
     model.train(train)
-    losses, all_logits, all_y = [], [], []
+    losses, aux_losses, all_logits, all_y = [], [], [], []
     for X, y in tqdm(loader, leave=False):
         X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True).long()
         with torch.set_grad_enabled(train):
             logits = model(X, **(forward_kwargs or {}))
             loss = criterion(logits, y)
+            if train and aux_weight > 0:
+                # crossfreq-reconstruction auxiliary (build.py sec. 13.15): a second
+                # masked pass through the shared frontend/encoder, added to CE so
+                # the objective forces low->high coupling info to be preserved.
+                aux = model.crossfreq_aux_loss(X)
+                loss = loss + aux_weight * aux
+                aux_losses.append(aux.item())
             if train:
                 optimizer.zero_grad()
                 loss.backward()
@@ -35,7 +43,8 @@ def run_epoch(model, loader, device, criterion, optimizer=None, forward_kwargs=N
         losses.append(loss.item())
         all_logits.append(logits.detach().cpu().numpy())
         all_y.append(y.cpu().numpy())
-    return np.mean(losses), np.concatenate(all_logits), np.concatenate(all_y)
+    mean_aux = float(np.mean(aux_losses)) if aux_losses else 0.0
+    return np.mean(losses), np.concatenate(all_logits), np.concatenate(all_y), mean_aux
 
 
 def main():
@@ -82,9 +91,14 @@ def main():
     patience = cfg.get("patience", 0)      # 0 = no early stopping
     best, best_state, since_best = -1.0, None, 0
     key = "auroc" if cfg["num_classes"] == 2 else "balanced_accuracy"
+    aux_weight = cfg.get("aux_recon_weight", 0.0)
     for epoch in range(cfg.get("epochs", 20)):
-        tr_loss, *_ = run_epoch(model, train_loader, device, criterion, optimizer)
+        tr_loss, _, _, tr_aux = run_epoch(
+            model, train_loader, device, criterion, optimizer, aux_weight=aux_weight
+        )
         log = {"epoch": epoch, "train_loss": tr_loss}
+        if aux_weight > 0:
+            log["train_aux_recon"] = tr_aux
         # MI diagnostic: the coupling mixer's learned pac_scale per layer. In v2
         # (tri-axial) the mixer lives at block.freq; in v1 (flat) at block.mixer.
         # Watching pac_scale is how we see whether the now time-resolved coupling
@@ -102,7 +116,7 @@ def main():
                 log[f"pac_scale/layer{i}"] = mix.pac_scale.item()
 
         if (epoch + 1) % eval_every == 0:
-            _, val_logits, val_y = run_epoch(model, val_loader, device, criterion)
+            _, val_logits, val_y, _ = run_epoch(model, val_loader, device, criterion)
             m = compute_metrics(val_y, val_logits, cfg["num_classes"])
             log.update({f"val_{k}": v for k, v in m.items()})
             print(f"epoch {epoch:3d} | train_loss {tr_loss:.4f} | val " +
@@ -120,13 +134,13 @@ def main():
 
     if best_state is not None:
         model.load_state_dict(best_state)
-    _, test_logits, test_y = run_epoch(model, test_loader, device, criterion)
+    _, test_logits, test_y, _ = run_epoch(model, test_loader, device, criterion)
     test_m = compute_metrics(test_y, test_logits, cfg["num_classes"])
     print("test | " + " ".join(f"{k}={v:.4f}" for k, v in test_m.items()))
     wandb.log({f"test_{k}": v for k, v in test_m.items()})
     if cfg.get("arch") == "triaxial" and cfg.get("freq_mixer") == "phase":
         for phase_mode in ("magnitude", "scramble"):
-            _, ab_logits, ab_y = run_epoch(
+            _, ab_logits, ab_y, _ = run_epoch(
                 model, test_loader, device, criterion,
                 forward_kwargs={"phase_mode": phase_mode},
             )

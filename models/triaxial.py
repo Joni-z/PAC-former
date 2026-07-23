@@ -43,16 +43,35 @@ class BandPE(nn.Module):
 
 
 class SpatialPE(nn.Module):
-    """Per-electrode positional encoding. Learned index embedding for now; the
-    montage-agnostic version (MLP over electrode xyz coords) drops in here
-    without touching callers once datasets ship coordinates (sec. 13.4)."""
+    """Per-electrode positional encoding (sec. 13.4 / 13.23 A).
 
-    def __init__(self, n_channels: int, d_model: int):
+    Two modes, chosen at build time:
+      * xyz coords given -> MLP over electrode coordinates (montage-agnostic:
+        "channel 3" means nothing across datasets, geometry is universal). For a
+        bipolar montage a channel is an electrode *pair*, so coords is (C, 6) =
+        concatenated endpoint xyz (models/montage.py).
+      * coords None -> learned index embedding (original behaviour; kept so every
+        existing config that ships no coordinates is bit-for-bit unchanged).
+    """
+
+    def __init__(self, n_channels: int, d_model: int, coords=None):
         super().__init__()
-        self.emb = nn.Embedding(n_channels, d_model)
+        if coords is None:
+            self.emb = nn.Embedding(n_channels, d_model)
+            self.mlp = None
+        else:
+            coords = torch.as_tensor(coords, dtype=torch.float32)
+            self.register_buffer("coords", coords)              # (C, coord_dim)
+            self.mlp = nn.Sequential(
+                nn.Linear(coords.shape[1], d_model), nn.GELU(),
+                nn.Linear(d_model, d_model)
+            )
+            self.emb = None
 
     def forward(self, C: int, device) -> torch.Tensor:
-        return self.emb(torch.arange(C, device=device))         # (C, D)
+        if self.mlp is None:
+            return self.emb(torch.arange(C, device=device))     # (C, D)
+        return self.mlp(self.coords[:C].to(device))             # (C, D)
 
 
 def rope(x: torch.Tensor) -> torch.Tensor:

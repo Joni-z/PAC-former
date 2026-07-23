@@ -1318,7 +1318,8 @@ coupling operator beats attention *when the objective forces it*" — lives in
 the untested interaction cell of the 2×2 {freq_mixer: attention/coupling} ×
 {objective: random/crossfreq}. Identified while reading the 2026-07-19
 landscape/positioning doc ("Designing a Novel, Publishable EEG Foundation
-Model…", repo root), which makes running this 2×2 its #1 recommendation.
+Model…", since removed from the repo -- see sec. 13.19), which made running this
+2x2 its #1 recommendation.
 
 ### 13.11 The operator×objective 2×2 — leakage control + jobs submitted (2026-07-19)
 
@@ -1373,9 +1374,16 @@ coupling+crossfreq on TUAB/CHB-MIT/TUSZ, the 3 datasets crossfreq won — is
 still UNRUN and must be resubmitted.** This is the single most important open
 cell in the whole project.
 
+> **RESOLVED 2026-07-21 — see §13.14. Verdict: does not hold in general.**
+> The flagship cell ran to completion on all 3 datasets. `coup+crossfreq` beats
+> `attn+crossfreq` only on TUAB; it is a clear **regression** on CHB-MIT (the
+> dataset crossfreq won biggest under attention) and a wash on TUSZ. The
+> operator×objective interaction is real but dataset-dependent, not a general
+> win — do not cite this as a settled positive result.
+
 ### 13.12 Phase-steered mixer + phase-alignment objective (2026-07-19)
 
-Motivated by the same landscape/positioning doc, a **stronger, parameter-free
+Motivated by the same landscape/positioning doc (since removed, sec. 13.19), a **stronger, parameter-free
 realization of the coupling prior** than any mixer tried before. This is now the
 frontier of the project and the strongest novelty candidate.
 
@@ -1485,4 +1493,650 @@ New source since §13.10: `FreqPhaseSteered` + `"phase"` in `FREQ_MIXERS`
 `phase_mode` ablation (`models/build.py`, `train.py`), `_phase_alignment_loss`
 + visible-visible coupling leakage control (`models/pretrain.py`), configs
 `configs/{ds}_v2_phase.yaml`, `configs/pretrain_{ds}_{phase_align,phase_random,*_coupling}.yaml`,
-`scripts/test_phase_steered.py`, and the landscape doc at repo root.
+`scripts/test_phase_steered.py`, and the landscape doc (since removed, sec. 13.19).
+
+### 13.14 The flagship 2×2 cell, finally run — coupling×crossfreq wins on TUAB, loses on CHB-MIT, wash on TUSZ (2026-07-21)
+
+Resubmitted the 6 jobs §13.11 flagged as the single most important unrun cell
+(`configs/pretrain_{tuab,chbmit,tusz}_{crossfreq,random}_coupling.yaml`, same
+configs as the 2026-07-19 CANCELLED batch, unchanged — jobs 14451480-14451486,
+`pretrain.slurm`). Cluster was idle (nothing else queued); all 6 ran to
+completion this time (4h-7h42m each), no NaN, no errors, checkpoints saved.
+Single seed (seed 0), per the dev/tuning convention.
+
+Full 2×2 per dataset (balanced_accuracy / auroc / pr_auc), `attn+*` cells from
+§13.10b:
+
+| dataset | attn+random | attn+crossfreq | coup+random | coup+crossfreq | flagship claim (coup+crossfreq > all 3 others)? |
+|---|---|---|---|---|---|
+| TUAB | 0.743/0.809/0.811 | 0.779/0.857/0.862 | 0.742/0.807/0.812 | **0.793/0.870/0.870** | **HOLDS** — beats all three other cells on every metric |
+| CHB-MIT | 0.500/0.743/0.136 | **0.535/0.878/0.393** | 0.500/0.768/0.195 | 0.611/0.788/0.221 | **FAILS, and regresses** — auroc/pr_auc well below attn+crossfreq (pr_auc 0.393→0.221, near-halved); only bacc improves |
+| TUSZ | 0.558/0.809/0.453 | **0.669/0.836/0.551** | 0.535/0.808/0.458 | 0.633/0.824/0.552 | **WASH** — pr_auc ties (0.552 vs 0.551), bacc/auroc both slightly below attn+crossfreq |
+
+**Reading.** The clean prediction from §13.2/§13.11 — "the directional coupling
+operator beats attention *when the objective forces it*" — holds on exactly
+1/3 datasets (TUAB), and holds cleanly there (every metric, not just one).
+On CHB-MIT — the dataset where crossfreq's win over random was the *largest*
+under attention (§13.10b, pr_auc ~3x) — swapping in the coupling operator
+**hurts**, cutting pr_auc nearly in half. TUSZ is a wash on the primary metric
+(pr_auc) and a small loss on the others. Two secondary observations:
+- `coup+random` ≈ `attn+random` on all three datasets (coupling doesn't help
+  *or* hurt when the objective doesn't demand cross-frequency routing) — this
+  is the expected/boring cell and it behaves as expected.
+- crossfreq > random still holds within each operator on all three datasets
+  (comparing columns 1↔2 and 3↔4) — the §13.10b keystone-objective claim is
+  unaffected by this result, only the *operator* claim on top of it is.
+
+**Verdict: the operator×objective interaction is real (TUAB, CHB-MIT both show
+a large effect) but not uniformly positive — it is dataset-dependent, and on
+the dataset with the strongest crossfreq signal it goes the wrong way.** This
+overturns the optimistic framing in §13.11 ("the flagship result is coup+
+crossfreq > all three others"); the honest claim going forward is narrower:
+*coupling can beat attention under the crossfreq objective, but not reliably,
+and understanding why CHB-MIT regresses is now a prerequisite for using this
+as a paper claim* — not yet investigated (candidates: CHB-MIT's extreme class
+imbalance interacting with the coupling operator's aggregation; the per-
+(channel,patch) coupling leakage-control mask being more aggressive on 16-ch
+CHB-MIT than on TUAB; pure seed noise — single-seed only, not ruled out).
+Do not cite "coupling beats attention under crossfreq" as a general project
+result without this caveat.
+
+Job ledger: 14451480 tuab-crossfreq-coupling, 14451481 tuab-random-coupling,
+14451482 chbmit-crossfreq-coupling, 14451483 chbmit-random-coupling, 14451485
+tusz-crossfreq-coupling, 14451486 tusz-random-coupling. All COMPLETED,
+`sacct -j 14451480,14451481,14451482,14451483,14451485,14451486`.
+
+### 13.15 Supervised + crossfreq auxiliary loss — the objective does NOT stop pac_scale collapsing (2026-07-22)
+
+**Question.** Every previous attempt to make the PAC operator load-bearing changed
+the *mixer* (v4 gate, v5 branch, coherence gate, phase-steered). This one changes
+the *objective* while leaving the mixer alone, and asks the question §9.17 Finding 1
+raised but never tested in a controlled way: **if we give supervised training an
+explicit incentive to preserve low→high coupling information, does `pac_scale`
+stop collapsing?** No previous run answers this — §9.17's collapse-vs-no-collapse
+contrast is confounded with dataset (Sleep kept `pac_scale` alive, CHB-MIT did not).
+
+**Implementation.** `TriAxialPACFormer.crossfreq_aux_loss` (`models/build.py`) plus
+`aux_weight` in `train.py`'s `run_epoch`:
+
+```
+total_loss = CE(label) + aux_recon_weight * crossfreq_recon_loss
+```
+
+The auxiliary is a second masked pass through the *shared* frontend/encoder — hide
+the high-band half, rebuild per-(electrode,band,patch) log amplitude from the
+visible low bands, reusing `MAEPretrain`'s mask-token + PE + visible-visible
+coupling leakage control. Mixer stays `freq_mixer=coupling` (v3-style: free QK +
+learnable `pac_scale`); nothing is bottlenecked or frozen. `aux_recon_weight=0`
+(absent) allocates no recon head and takes no new code path, so every pre-existing
+config is bit-for-bit unaffected. λ=0.5, seed 0, `configs/{ds}_v2_coupling_aux.yaml`,
+jobs 14531110-14531114.
+
+**Result — the auxiliary trains, and `pac_scale` collapses anyway.**
+
+`pac_scale` starts at 1.0 and falls monotonically to ~0 within ~6-7 epochs on all
+four completed datasets (wandb sparkline `█▆▅▃▂▂▁▁▁…` identical across all 6
+layers), final values:
+
+| dataset | final pac_scale range (6 layers, init 1.0) | train_aux_recon (final) |
+|---|---|---|
+| Sleep-EDF | −0.0002 … 0.0037 | 0.144 |
+| TUSZ | −0.0044 … 0.0047 | 0.223 |
+| TUAB | −0.0052 … 0.0039 | 0.191 |
+| TUEV | −0.0006 … 0.0054 | 0.177 |
+
+The auxiliary task itself is genuinely being optimised (recon loss lands at
+0.14-0.22, not stuck at its ~1.0 initial scale), so "the aux term did nothing" is
+ruled out as the explanation.
+
+Downstream vs the §13.10a supervised `coupling` baselines (seed 0):
+
+| dataset | coupling baseline | + crossfreq aux | primary metric |
+|---|---|---|---|
+| TUAB (bacc/auroc/pr_auc) | 0.797/0.872/0.869 | 0.795/0.872/0.864 | auroc tie |
+| Sleep-EDF (bacc/f1/kappa) | 0.626/0.702/0.531 | 0.630/0.691/0.517 | kappa **−0.014** |
+| TUEV (bacc/f1/kappa) | 0.515/0.649/0.370 | 0.550/0.675/0.404 | kappa **+0.034** |
+| TUSZ (bacc/auroc/pr_auc) | 0.654/0.835/0.605 | 0.616/0.803/0.504 | pr_auc **−0.101** |
+
+CHB-MIT (14531111) still RUNNING at 9h at time of writing — it is the dataset with
+the most violent historical collapse (§9.17) and is the missing piece here.
+
+**Reading.** The "force it not to bypass PAC" hypothesis, *in this form*, is
+falsified. The mechanism is straightforward once stated: the frequency-axis mixer's
+free QK path can solve the crossfreq reconstruction on its own, so the optimiser
+has no reason to keep `pac_scale · coupling` alive. This is fully consistent with
+§13.10b, where crossfreq MAE worked well with `freq_mixer="attention"` and the
+coupling matrix zeroed outright — **the objective does not need the operator.**
+Raising λ is not expected to change this: it would buy a better reconstruction
+through the same QK path, not push `pac_scale` up.
+
+The downstream deltas do not look PAC-specific either: the one gain is TUEV
+(+0.034 kappa), which is exactly the dataset flagged as overfitting-prone/unstable
+in the §12 PI notes and the one most likely to benefit from any multi-task
+regulariser, while TUSZ loses 0.101 pr_auc. Inconsistent sign across datasets ⇒
+read this as generic auxiliary-task regularisation, not a PAC mechanism being
+switched on.
+
+**Caveats.** Single seed, λ=0.5 only, CHB-MIT outstanding.
+
+**Cumulative position after this run.** Four independent lines now say the explicit
+PAC coupling term is unnecessary and gets routed around whenever an alternative
+exists: §9.17 (collapsed yet won by +0.09), §13.10a (three mixer redesigns, no
+supervised win), §13.14 (forcing coupling under crossfreq *hurt* CHB-MIT), and
+§13.15 (an actively-training objective-side incentive still doesn't prevent
+collapse). What does keep paying off is the crossfreq **objective**, which works
+with plain attention. See §13.17 for the one confound in this conclusion that is
+still untested.
+
+### 13.16 Crossfreq mask-shape variants — is the multi-class loss a "too destructive pretext" problem? (submitted 2026-07-22)
+
+**Question.** §13.10b's crossfreq/random split is binary-wins / multiclass-loses
+(TUAB, CHB-MIT, TUSZ win; TUEV 6-way and Sleep-EDF 5-way lose), with the causal
+account untested. Leading hypothesis: hiding the *entire* upper half of the band
+axis is so destructive that the pretext teaches a coarse "coupled or not" signal —
+adequate for binary detection, inadequate for fine-grained multi-way
+discrimination. If true, a gentler mask should keep the low→high forcing while
+restoring multi-class performance.
+
+**Implementation.** Three new knobs on `MAEPretrain._mask` (`models/pretrain.py`),
+all defaulting to exactly the original behaviour so existing configs are unchanged:
+- `crossfreq_frac` — fraction of the band axis (from the top) forming the "high"
+  region (0.5 = top half = original).
+- `crossfreq_density` — probability a token inside that region is actually hidden
+  (1.0 = hide all of it = original).
+- `mixed_p` — for `mask_mode="mixed"`, per-batch probability of drawing the
+  crossfreq mask instead of a random one.
+
+Three variants, verified on CPU (per-band hidden fractions and the mixed-mode coin
+flip both confirmed):
+
+| variant | mask | total hidden | isolates |
+|---|---|---|---|
+| `cf_partial` | top half, 50% density | 25% | same high region, half the destruction |
+| `cf_quarter` | top quarter, 100% density | 25% | smaller high region, still fully hidden |
+| `cf_mixed` | per-batch coin flip crossfreq/random | 50% | PAC forcing + standard MAE coverage |
+
+`cf_partial` and `cf_quarter` hide the **same total fraction (25%)** and differ only
+in *shape*, so the pair separates "how much is hidden" from "where it is hidden".
+
+**Datasets.** TUEV + Sleep-EDF (the two crossfreq losers, where the question lives)
++ TUSZ (a binary winner, as a control that the fix does not break the existing win).
+Baselines to compare against are §13.10b: TUEV kappa 0.271 crossfreq / 0.356 random;
+Sleep 0.451 / 0.483; TUSZ auroc 0.836 / 0.809.
+
+**Jobs (seed 0, `configs/pretrain_{ds}_{cf_partial,cf_quarter,cf_mixed}.yaml`):**
+14559953-14559963. Note 14559953/14559954 (tuev cf_partial/cf_quarter) died in
+<1 min with `CUDA error: CUDA-capable device(s) is/are busy or unavailable` — a
+transient node fault, not a code fault (siblings from the same submission ran
+fine); resubmitted as **14567681/14567682**. Results not in yet.
+
+### 13.17 Open confound: the Sleep-EDF v1 lead may have been killed by n_bands 32→8, not by PAC being useless
+
+Flagged 2026-07-22 while auditing whether §13.15's conclusion is safe. It is the
+one hole in the "PAC operator is dead" reading and should be closed before that
+conclusion is treated as final.
+
+**The v1 result being explained.** §9.8: mi v3 beat CoTAR on Sleep-EDF on 3/3 seeds,
+mean kappa 0.5354 vs 0.4996 (**+0.036**). Critically, §9.17's `pac_scale` audit
+shows Sleep-EDF is the one dataset where **`pac_scale` did NOT collapse** (converged
+to 0.17/0.25/0.28), unlike CHB-MIT (5e-05/−9e-05/0.0). So Sleep is the single place
+in the whole project where the PAC term was demonstrably still in use while winning.
+
+Why it survived there is mechanistically coherent: the v1 coupling was averaged over
+all channels and the whole window (§9.17 Finding 2), but Sleep-EDF has only 2
+channels and its PAC (delta-spindle, theta-gamma) is *sustained* across a 30 s
+epoch — so the averaging defect barely bites, whereas CHB-MIT's focal, transient
+seizure coupling is destroyed by it.
+
+**But the +0.036 was never causally attributed**, for two reasons:
+1. It was measured against **CoTAR**, which collapses the band axis to a rank-1
+   core (§9.16), while mi v3 has a full band×band attention matrix. "Full cross-band
+   mixing beats rank-1 pooling" explains the gap without PAC contributing anything.
+   No "v3 with `pac_scale` forced to 0" control was ever run on Sleep-EDF.
+2. **The ordering reversed in v2.** Sleep-EDF v2 (§13.10a): coupling kappa 0.531 vs
+   cotar 0.572 — coupling now *loses* by 0.041, where v1 mi *won* by 0.036. And in
+   §13.15 Sleep's `pac_scale` collapsed, which it never did in v1.
+
+**The untested confound.** Comparing `configs/archive/sleep_mi.yaml` (v1) with
+`configs/sleep_v2_coupling.yaml` (v2): `d_model` (128), `depth` (6), `patch_len`
+(150), `seq_len` (3000) are **identical**; the one large change is
+**`n_bands` 32 → 8**, which shrinks the coupling matrix from 32×32 (1024 entries) to
+8×8 (64). §13.3 justified that cut purely on token-count/memory grounds ("32 was
+only ever chosen to give the mixer leverage and is poor value in a foundation-model
+setting") — it **never tested whether the coupling operator needs that frequency
+resolution** to isolate a specific delta-phase→spindle-amplitude edge.
+
+**Proposed test (not yet run).** v2 `freq_mixer=coupling` with `n_bands=32` on
+Sleep-EDF (watch token count/memory: C·B·P grows 4×; Sleep's C=2 makes this the
+cheapest dataset to try it on).
+- Lead returns ⇒ the v2 redesign destroyed the resolution the operator needed, and
+  §13.15's "the operator is unnecessary" conclusion needs substantial revision.
+- Lead does not return ⇒ the +0.036 was the band×band-vs-rank-1 architecture effect,
+  and the operator conclusion is confirmed.
+
+**Stopping rule agreed 2026-07-22:** if this test does not recover the lead, the
+PAC-operator line is closed for good — no further mixer redesigns. Likewise if
+§13.16 does not bring the multi-class datasets up to the random-mask baseline, the
+honest scope of the crossfreq claim is "binary detection tasks" and it is written
+up that way rather than patched further.
+
+### 13.18 Where the project's contribution actually stands (2026-07-22)
+
+Written down because the headline claim has drifted materially from §0/§13.1 and
+the drift is now evidence-driven rather than a matter of taste.
+
+The original bet was **PAC as an architectural operator** — a differentiable
+coupling mixer that beats attention. Across v1…v6, coherence, phase-steered, the
+operator×objective 2×2, and the auxiliary-loss run, that bet is largely falsified
+(§13.15 "cumulative position"), with §13.17 the one live exception.
+
+What survives is narrower but real: **crossfreq masked pretraining** beats standard
+MAE on 3/5 datasets and rescued CHB-MIT from a collapsed 0.53 supervised baseline to
+0.878 AUROC (§13.10b) — and it does so with `freq_mixer="attention"` and the
+coupling matrix zeroed, i.e. **without the operator at all**.
+
+The generalisable finding the accumulated negative results support is a claim about
+*where a domain prior belongs*, not about PAC specifically:
+
+> A prior encoded as **architecture** gets optimised away whenever a free learnable
+> path exists beside it; a prior encoded as an **objective** survives.
+
+Five of this project's own experiments are evidence for that statement. It is a
+more general and more defensible contribution than "PAC is a good inductive bias
+for EEG", and it is orthogonal to scale — which matters, because competing with
+BIOT/LaBraM/CBraMod/REVE on data or compute is not viable for this group.
+
+**Consequence to face:** if the surviving contribution is the objective, the paper
+is not "PAC-Former: a new operator" but "a physiologically-grounded pretraining
+objective that forces cross-frequency structure", and the framing, title, and
+§13.2 novelty stack all need rewriting. Note this also costs the §13.2 layer-4
+selling point (free interpretability via the operator's comodulogram) — with no
+operator in the loop, that readout goes away. **Not yet discussed with the PI;
+should be, before more months are committed to the operator line.**
+
+### 13.19 Repo housekeeping (2026-07-22)
+
+AGENT.md is now the **single** status document. Three standalone write-ups were
+deleted as redundant — everything substantive in them is already in sec. 13.10-13.13
+in more detail (with job IDs and code locations):
+- `HANDOFF_20260718.md`, `WEEKLY_REPORT_2026-07-19.md` — superseded by sec. 13.10-13.12.
+- `Designing a Novel, Publishable EEG Foundation Model…` (landscape/positioning
+  doc) — its two load-bearing recommendations were the operator×objective 2x2
+  (run, sec. 13.14) and the phase-steering line (run, sec. 13.12). Cited above as
+  historical motivation only.
+
+Stale files moved out of the working set (v1 mixer-line, closed since 2026-07-15):
+- `configs/archive/` — 29 v1 configs: the `{ds}_{attention,cotar,mi}` mixer-swap
+  sweep, the `diag_conv`/`diag_sinc` frontend diagnostics, and `synthetic_*`.
+  Active configs are now only `{ds}_v2_*` (supervised) and `pretrain_*` (SSL).
+- `archive/` — 11 one-shot data-prep/diagnostic slurm scripts (`preprocess_*`,
+  `consolidate_*`, `verify_tuev_fix`). All datasets are already preprocessed and
+  consolidated (sec. 9.12/9.13); root keeps only `train.slurm` and `pretrain.slurm`,
+  the two general runners still in use.
+
+Note sec. 1's repo-layout tree still describes the v1 `models/mixers/` structure and
+predates the tri-axial rewrite; sec. 13 is authoritative for the current architecture.
+
+### 13.20 §13.17 decisive stopping-rule test SUBMITTED — coupling vs cotar at n_bands=32 on Sleep-EDF (2026-07-22)
+
+The §13.17 confound (was the v1 Sleep-EDF +0.036 coupling>cotar lead killed by the
+n_bands 32→8 cut, not by PAC being useless?) is now under test. This is the
+agreed stopping-rule experiment: if the lead does not return at n_bands=32, the
+PAC-operator line is closed for good.
+
+**Setup.** New configs `configs/sleep_v2_{coupling,cotar,attention}_nb32.yaml` —
+identical to their `sleep_v2_*` siblings (§13.10a, seed 0) except `n_bands: 8 → 32`,
+which restores the coupling matrix to 32×32 (1024 entries) matching the v1 mi-v3
+result (§9.8). Sleep-EDF (C=2) is the cheapest dataset to add the 4× band-axis
+token multiplier (tokens C·B·P = 2·32·20 = 1280). cotar_nb32 is the head-to-head
+the "lead returns?" question needs (the v1 lead was coupling-vs-cotar, both at 32
+bands); attention_nb32 is a floor reference.
+
+**Verification before submit (all on CPU, this session):** `scripts/test_mixers.py`,
+`scripts/synth_pac_test.py` (localizes 10→60 Hz coupling), `scripts/test_phase_steered.py`
+all pass; the full tri-axial `train.py` pipeline runs end-to-end on the synthetic
+smoke config; and a direct build+forward+backward of the exact `sleep_v2_coupling_nb32.yaml`
+model (1.68M params) gives finite loss and finite `pac_scale` grad on all 6 layers.
+No hardcoded n_bands assumption breaks at 32 (`nb//2` crossfreq split scales).
+
+**Jobs (seed 0, `train.slurm`):** 14570741 coupling_nb32, 14570742 cotar_nb32,
+14570743 attention_nb32. Submitted PD behind the §13.16 batch (QOSGrpGRES quota).
+
+**Decision rule (from §13.17):**
+- coupling_nb32 ≥ cotar_nb32 (lead returns) ⇒ the v2 redesign destroyed the
+  frequency resolution the operator needed; §13.15's "operator is unnecessary"
+  conclusion needs substantial revision.
+- coupling_nb32 < cotar_nb32 (lead does not return) ⇒ the v1 +0.036 was the
+  band×band-vs-rank-1 architecture effect (§9.16), not PAC; operator line closed.
+
+Reference numbers to beat (Sleep-EDF kappa): v2 n_bands=8 — coupling 0.531,
+cotar 0.572, attention 0.511 (§13.10a); v1 n_bands=32 — mi-v3 0.5354, cotar 0.4996
+(§9.8, mean over 3 seeds).
+
+**OUTCOME (2026-07-22, all 3 jobs COMPLETED, seed 0, ~1.8-2.7h each):**
+
+| mixer @ n_bands=32 | balanced_acc | f1_weighted | test_kappa | vs n_bands=8 (§13.10a) |
+|---|---|---|---|---|
+| coupling | 0.6240 | 0.7150 | **0.5482** | 0.531 → 0.548 (**+0.017**) |
+| cotar | 0.6221 | 0.7135 | 0.5476 | 0.572 → 0.548 (**−0.024**) |
+| attention | 0.6348 | 0.7057 | 0.5378 | 0.511 → 0.538 (+0.027) |
+
+**Verdict: the lead does NOT return — PAC-operator line is CLOSED for good** (per
+the §13.17 stopping rule). At n_bands=32 coupling (0.5482) only *ties* cotar
+(0.5476, +0.0006) and attention (0.5378) — all three within 0.011 kappa. The v1
++0.036 coupling>cotar lead is nowhere in sight; coupling reaches mere parity, not
+a lead. And the mechanism is confirmed dead: **`pac_scale` collapsed monotonically
+to ~0 on all 6 layers** (final ±0.002, sparkline `█▆▄▃▂▁▁…`), whereas v1 Sleep-EDF
+was the ONE place it stayed alive (0.17/0.25/0.28, §13.17). So even with the 32×32
+resolution restored, supervised training routes around the PAC term exactly as in
+§13.15.
+
+What the 8→32 sweep actually shows: **cotar *dropped* 0.024** (more bands = more to
+collapse into its rank-1 core, §9.16) while coupling and attention — both full
+band×band mixers — rose to ≈0.54–0.55. This is direct confirmation that the v1
++0.036 was the **band×band-vs-rank-1 architecture effect, not PAC**: coupling ≈
+attention ≫ nothing-special, and the operator adds nothing over plain attention.
+The §13.17 confound is resolved in favor of §13.15/§13.18: **the PAC operator is
+unnecessary; the surviving contribution is the crossfreq objective (§13.18), which
+works with plain attention.** Single seed (dev convention), but the margin (a
+0.0006 tie vs. the +0.036 that would be needed) makes the conclusion robust to
+seed noise. Jobs 14570741/742/743.
+
+### 13.21 §13.16 mask-shape results — the multi-class loss IS a "too-destructive pretext", and `cf_mixed` fixes it while keeping the binary win (2026-07-22)
+
+All 11 §13.16 jobs completed (14559953/54 died on a transient CUDA fault, resubmitted
+as 14567681/682, both COMPLETED). Linear-probe test metrics vs the §13.10b baselines
+(crossfreq = hide top half @100% density; random = standard MAE):
+
+| dataset (metric) | crossfreq (§13.10b) | random (§13.10b) | **cf_mixed** | cf_partial | cf_quarter |
+|---|---|---|---|---|---|
+| TUEV (κ, 6-way) | 0.271 ✗ | 0.356 | **0.385 ✓** | 0.312 | 0.278 |
+| Sleep-EDF (κ, 5-way) | 0.451 ✗ | 0.483 | 0.474 | **0.497 ✓** | 0.457 |
+| TUSZ (pr_auc, binary) | 0.551 | 0.453 | **0.553** | 0.485 | 0.557 |
+| TUSZ (auroc) | 0.836 | 0.809 | 0.828 | 0.800 | 0.830 |
+
+(cf_partial = top half @50% density; cf_quarter = top quarter @100%; both hide 25%
+total and differ only in *shape*. cf_mixed = per-batch coin-flip crossfreq/random,
+`mixed_p=0.5`, hides 50% on average.)
+
+**Reading — the §13.16 hypothesis is CONFIRMED and the multi-class hole is closed.**
+Hiding the entire upper band-half at full density was too destructive a pretext for
+fine-grained multi-way discrimination (it taught a coarse "coupled-or-not" signal).
+The two knobs separate cause: cf_quarter (smaller hidden region) and cf_partial (same
+region, lower density) both recover multi-class vs the crossfreq baseline, and on
+Sleep-EDF cf_partial (0.497) even beats random MAE (0.483). But the clean universal
+recipe is **`cf_mixed`**: mixing the crossfreq pretext with standard random MAE per
+batch **beats random on the multi-class loser TUEV (0.385 vs 0.356, +0.029 κ)** —
+which the pure crossfreq objective *lost* by 0.085 — **while preserving the binary win
+on TUSZ (pr_auc 0.553 ≈ crossfreq 0.551 ≫ random 0.453).** So a single objective is
+no longer binary-only: it holds the large imbalanced-binary gains AND clears random on
+multi-class. This removes the §13.10b caveat "the crossfreq claim's honest scope is
+binary detection tasks."
+
+**Confirmation launched.** cf_mixed was only tested on TUEV/Sleep/TUSZ (the two losers
++ one binary control). The two *largest* binary winners — TUAB (crossfreq +0.036 bacc,
++0.048 auroc) and CHB-MIT (crossfreq pr_auc ~3× random) — had no cf_mixed run.
+`configs/pretrain_{tuab,chbmit}_cf_mixed.yaml` (mask path proven by the tusz cf_mixed
+run 14559963; data path proven by the tuab/chbmit crossfreq runs §13.10b/§13.14 —
+both independently validated, no new code path), jobs **14619136 (tuab), 14619137
+(chbmit)**, seed 0, `pretrain.slurm`. If cf_mixed holds the big binary wins on these
+two, the recipe is validated on all 5 datasets and becomes the pretraining objective
+of record (§13.22).
+
+**Caveats.** Single seed. cf_mixed on Sleep-EDF (0.474) is slightly below random
+(0.483) — cf_partial is the Sleep winner — so cf_mixed is the best *single* recipe but
+not strictly dominant on every dataset; a per-family choice (mixed for TUEV/binary,
+partial for the sustained-PAC sleep task) is the fallback if a universal recipe is
+required to strictly dominate.
+
+### 13.22 Pre-pretrain scheme of record — the objective-forced cross-frequency foundation model (2026-07-22)
+
+Written at the entry to the pretraining phase to fix what gets scaled up, why it is
+novel/sellable, and what pre-pretrain evidence already de-risks it. This supersedes the
+operator framing of §0/§13.2 (operator closed, §13.20) and is the evidence-driven
+concretisation of §13.18.
+
+**Headline (the sellable claim).** *A physiologically-grounded self-supervised
+objective — cross-frequency masked reconstruction — that forces an EEG foundation model
+to learn phase→amplitude coupling as a pretext, rather than baking coupling into the
+architecture where the optimiser routes around it.* One line: **encode the domain prior
+in the objective, not the operator** (§13.18). No existing EEG FM (BIOT, LaBraM,
+CBraMod, REVE, Uni-NTFM) uses a coupling-forcing pretext; they use time-segment masking
+or VQ. This is the novelty.
+
+**What we pretrain (frozen decisions):**
+- *Backbone:* tri-axial (electrode × band × time) encoder, **plain attention on all
+  three axes** (frequency-axis coupling operator dropped — §13.20). Frequency is an
+  explicit token axis (novel vs time-segment tokenisers), fed analytic phase+amplitude.
+- *Positional encoding:* physics-aware — electrode **xyz coords** (montage-agnostic,
+  REVE-in-spirit; removes hardcoded `n_channels`) + band **centre-frequency**
+  (filterbank swappable). This is what makes cross-dataset pooled pretraining possible
+  and is selling point #2 ("one model, any montage").
+- *Objective:* **`cf_mixed`** — per-batch coin-flip between (i) crossfreq masking (hide
+  upper band-half, reconstruct high-band log-amplitude from visible low-band phase +
+  spatio-temporal context; true coupling zeroed to prevent target leakage) and (ii)
+  standard random MAE. This is the §13.21 de-risked winner: forces the PAC mechanism yet
+  keeps standard-MAE coverage, so it works on binary AND multi-class.
+- *Readout / selling point #3:* the crossfreq reconstruction yields a per-electrode
+  phase→amplitude comodulogram — a neuroscience-native interpretability output — without
+  needing the (dead) operator.
+
+**Pre-pretrain evidence already in hand (single seed, small per-dataset pretrain + linear
+probe — exactly the "make the point before the expensive run" bar):**
+1. crossfreq > random MAE on 3/5 datasets, *large* on the imbalanced binary seizure tasks
+   (CHB-MIT pr_auc 0.393 vs 0.136 ≈ 3×; TUSZ; TUAB +0.048 auroc) — §13.10b.
+2. `cf_mixed` closes the multi-class hole (TUEV κ 0.385 > random 0.356) while holding the
+   binary win (TUSZ pr_auc 0.553 ≈ crossfreq) — §13.21. → one objective, both regimes.
+3. The competing hypothesis (bake coupling into the architecture) is *falsified* by five
+   of our own experiments (§13.15 cumulative + §13.20) — so committing to the objective is
+   evidence-driven, not a hunch. This negative result is itself a contribution (§13.18).
+
+**De-risk steps before committing to the full pooled pretrain (in priority order):**
+- (running) cf_mixed on TUAB + CHB-MIT — confirm the universal recipe keeps the *big*
+  binary wins (jobs 14619136/137).
+- (next) multi-seed (≥3) on cf_mixed across the 5 datasets — everything above is seed 0.
+- (then) the actual foundation-model run: **pooled cross-dataset pretrain** with xyz-PE on
+  all montages at once (the montage-agnostic PE is the enabler and this is the first run
+  that tests the "foundation" claim), then linear-probe + finetune transfer to each task.
+
+**Risks / honest limits.** (a) cf_mixed is the best *single* recipe but not strictly
+dominant (Sleep prefers cf_partial). (b) All evidence is small single-dataset pretrain;
+the pooled-pretrain transfer story is unproven — that is the pretrain phase itself. (c)
+Losing the operator costs the original title/comodulogram-from-operator selling point;
+the interpretability readout now comes from the reconstruction head instead (weaker but
+real). (d) Not competing on scale with BIOT/LaBraM/REVE — the contribution is the
+objective + the "prior belongs in the objective" thesis, which is orthogonal to scale.
+
+### 13.23 The architecture question — if novelty is the objective, what carries the model? (2026-07-22)
+
+Raised by the user at the pretrain gate: *"if the novelty is the training objective, we
+cannot ship the most basic transformer — that's outdated; we need a structure more
+adapted to EEG."* Correct, and it does **not** contradict §13.18. Resolving the apparent
+tension gives the architecture its design rule.
+
+**Why a strong architecture does not contradict "prior belongs in the objective".** §13.18
+falsified one *specific* thing: an **optional additive operator branch sitting beside a
+free learnable path** (`pac_scale · coupling` next to free QK attention) — the optimiser
+zeroes the branch and uses the free path. That says nothing against **structural** priors
+that *define the representation* rather than *compete inside a layer*:
+- what a token **is** (frequency-explicit analytic tokens),
+- which tokens may **attend** to which (the tri-axial factorisation),
+- the **coordinate geometry** each axis lives in (positional encodings).
+None of these has a "free path beside it" to route around — they are the substrate, not an
+optional term. **Design rule going forward: inject every EEG prior as a coordinate system
+/ relative positional encoding on an axis, never as an additive gate beside free
+attention.** RoPE is the proof of concept — it is a coordinate transform, so it is never
+"optimised away" the way `pac_scale` was. This is the lesson of the operator line turned
+into a constructive principle.
+
+**Co-design, not decoration:** the cf_mixed objective is only *expressible* on a
+frequency-explicit architecture — "hide the upper band-half, reconstruct high-band
+amplitude from low-band phase" is undefinable on a generic time-patch transformer
+(BIOT/LaBraM tokens have no band axis). So the architecture is load-bearing *for the
+objective*, which is the tight story: not "a fancy backbone + a separate fancy loss" but a
+backbone whose token geometry is what makes the loss meaningful.
+
+**What the backbone already is (grounded in code, not aspiration):** it is *not* a basic
+transformer.
+1. Learnable **sinc filterbank + differentiable Hilbert** frontend → per-band analytic
+   phase & amplitude (vs BIOT's FFT patches, LaBraM's raw-patch VQ — ours is
+   physiologically parameterised, band edges are learned).
+2. **Tri-axial tokenisation** electrode × band × time. CBraMod's criss-cross is 2 axes
+   (spatial × temporal); **we add the neurophysiological frequency axis** — a strict
+   superset, and the axis no competitor tokenises explicitly.
+3. **Factorised per-axis attention** (time RoPE / space / freq), O(axis²) not O(N²).
+4. **BandPE by centre-frequency** (implemented, `models/triaxial.py:30`) — filterbank
+   swappable across datasets.
+
+**The gap between the §13.22 claim and the code (be honest):** `SpatialPE`
+(`models/triaxial.py:45`) is currently a **learned index embedding, not xyz coordinates**
+— the montage-agnostic claim is *aspirational*, not implemented. The code comment marks it
+as a drop-in. This is the #1 architecture work item.
+
+**Concrete architecture upgrades to make it genuinely EEG-native (all follow the coordinate
+rule):**
+- (A) **xyz SpatialPE** — replace the index embedding with an MLP over electrode
+  coordinates. Montage is **bipolar** (§13.24: FP1-F7, …), so each "channel" is an
+  electrode *pair*; encode it by the two 10-20 endpoint xyz (or midpoint + direction).
+  Delivers montage-agnosticism → the pooled cross-dataset pretrain and the "one model, any
+  montage" selling point. **Load-bearing; do first.**
+- (B) **Electrode-geometry relative PE on the space axis** — bias inter-electrode attention
+  by 3-D distance as a *relative positional encoding* (à la RoPE on time), NOT an additive
+  gate — so it is thesis-consistent and cannot be zeroed. Encodes the real prior "nearby
+  electrodes couple".
+- (C) **Centre-freq relative PE on the frequency axis** — encode band pairs by frequency
+  ratio (harmonic / coupling structure) as relative PE, the coordinate-transform way to
+  keep a *frequency* prior after dropping the operator.
+
+(A) is required for the foundation-model claim; (B)/(C) are the "more adapted than
+CBraMod" differentiators and each is a clean ablation cell. This is the architecture story:
+**a tri-axial analytic-signal transformer with a physical coordinate encoding on every axis
+(electrode geometry / centre-frequency / time)** — strictly beyond criss-cross, and
+co-designed with the objective.
+
+### 13.24 Baseline set + protocol alignment — the real opponents are BIOT/CBraMod/LaBraM, not our own attention (2026-07-22)
+
+User directive: pre-pretrain validation must stop benchmarking against our own
+`freq_mixer=attention` internal control (an outdated bar) and compare to real foundation
+models. Two-tier evaluation (from the prior turn, now made concrete):
+
+**Tier A — attribution (controlled, apples-to-apples).** Fixed backbone/data/compute, swap
+only the objective. Proves cf_mixed is the *cause*. Necessary, insufficient alone.
+
+**Tier B — competitiveness (vs published SOTA).** Only valid if protocol matches. Findings
+from auditing `reference/`:
+
+| opponent | what we have locally | comparability status |
+|---|---|---|
+| **BIOT** | full repo + **runnable 16-ch checkpoints** (`reference/BIOT/pretrained-models/EEG-PREST-16-channels.ckpt`, …) + `datasets/*/process.py` | **strongest** — can run BIOT *in our pipeline* = zero-confound head-to-head |
+| **CoTAR / TeCh** | full repo (`reference/TeCh`, ICLR26 Oral "Decentralized Attention Fails…") — already our `cotar` mixer | recent, strong architecture opponent; code in hand |
+| **CBraMod / LaBraM** | none locally | published numbers on standard TUAB/TUEV; pull released code later for a run |
+
+**Alignment status (audited this session):**
+- **TUAB preprocessing + split = BIOT-identical.** `scripts/preprocess_tuab.py` is a
+  byte-for-byte copy of BIOT's `datasets/TUAB/process.py`: same 16 **bipolar** channels
+  (FP1-F7, F7-T3, …), 200 Hz resample, 10 s / 2000-sample windows, official train→80/20
+  subject split + official **eval as test**. Our test set = BIOT's test set. Test numbers
+  are directly comparable to BIOT's published TUAB row, modulo the model. Metrics already
+  match BIOT (§6: bacc+AUROC).
+- **The ONE thing making our current numbers non-comparable is evaluation mode:** we
+  linear-probe a 1.7M model; BIOT/CBraMod/LaBraM report **full finetune** of a pretrained
+  FM. Fix = finetune protocol + adequate model capacity, *not* preprocessing.
+- **To verify (same diff, not yet done):** TUEV, TUSZ, CHB-MIT preprocessing/splits vs
+  `reference/BIOT/datasets/{TUEV,CHB-MIT}/process.py` and the corpus-native splits. TUAB is
+  the confirmed anchor; the others are "BIOT-style" but unaudited line-by-line.
+
+**Validation phase, rewritten (the deliverable of this directive):** before the pooled
+pretrain, the comparison table is NOT "cf_mixed vs attention/random-MAE". It is, on
+BIOT-aligned TUAB/TUEV with **full finetune** and the §6 metrics:
+1. **BIOT** (its own pretrained checkpoint, finetuned in our pipeline) — the real FM bar.
+2. **CoTAR/TeCh** backbone — recent architecture bar.
+3. **Random-MAE / standard masking** on *our* backbone — the objective-attribution control
+   (Tier A), now clearly labelled as internal, not the headline.
+4. **Ours** = cf_mixed pretrain on the §13.23 architecture (xyz-PE at minimum).
+
+"We won" = **ours ≥ BIOT/CoTAR at matched protocol** (Tier B competitiveness) **AND**
+cf_mixed > random-MAE at matched backbone/budget (Tier A attribution). Absolute-number
+comparison against BIOT's *paper* row is a sanity check only — scale is not matched, so a
+loss there does not sink the matched-budget claim, and a win is a bonus.
+
+**Prep checklist before pretrain (complete-readiness, this directive's scope):**
+1. [arch] ✅ **DONE** — xyz `SpatialPE` implemented + verified (§13.25).
+2. [baseline] stand up a BIOT-checkpoint finetune run *in our pipeline* on TUAB → get the
+   real SOTA number on our exact test set. **(next; §13.27 has the integration scoping.)**
+3. [baseline] ✅ **DONE** — full-finetune Phase-2 path added to `pretrain.py` + verified
+   (§13.27); `configs/pretrain_{tuab,tuev}_cf_mixed_ft.yaml` ready to run.
+4. [align] ✅ **DONE** — TUEV/TUSZ/CHB-MIT preprocessing audited vs BIOT (§13.26).
+5. [confirm] cf_mixed TUAB/CHB-MIT (running, 14619136/137) + multi-seed.
+
+### 13.27 Full-finetune eval path + finetune configs (2026-07-22, DONE)
+
+Published EEG-FM numbers (BIOT/CBraMod/LaBraM) are **full finetune**; our Phase-2 was
+linear-probe only, so our numbers sat in a different regime and could not be put on the same
+table (§13.24). Added a finetune mode to `pretrain.py` Phase 2:
+- `Probe(mae, num_classes, finetune=False)`: `finetune=False` keeps the frozen-encoder linear
+  probe (grad gated off inside `forward` via `set_grad_enabled(finetune and is_grad_enabled)`);
+  `finetune=True` lets gradients flow into the encoder and trains all params end-to-end.
+- `probe_epoch` only forces `mae.eval()` in linear-probe mode.
+- `main` reads `cfg["probe_mode"]` (default `"linear"` → **existing runs bit-for-bit
+  unchanged**); `"finetune"` optimises `probe.parameters()` at `finetune_lr` (default 1e-4).
+- Verified (`scratchpad/smoke_finetune.py`, CPU, all green): linear probe leaks **0** grad into
+  the encoder while `fc` trains; finetune propagates grad into the encoder (grad-sum 3874);
+  eval pass finite.
+- Configs `configs/pretrain_{tuab,tuev}_cf_mixed_ft.yaml` = cf_mixed pretrain + `probe_mode:
+  finetune` + `spatial_pe: xyz` (the §13.23 architecture of record) on the two BIOT-aligned
+  anchors (§13.26). These produce our headline Tier-B numbers.
+
+**Remaining for a complete Tier-B table (item 2):** run BIOT's own `EEG-PREST-16-channels.ckpt`
+through *our* TUAB/TUEV dataloaders + finetune, so "ours vs BIOT" is measured on one identical
+pipeline. BIOT's model + loader live in `reference/BIOT/` (`model/`, `run_binary_supervised.py`);
+the integration is an adapter from our pickle dataset to BIOT's expected input, not new science.
+
+### 13.25 xyz SpatialPE implemented — montage-agnostic spatial PE (2026-07-22, DONE)
+
+Closes the §13.23-A gap (SpatialPE was a learned index embedding, not coordinates).
+- `models/montage.py` (new): 10-20 coordinates for every montage in the project, extracted
+  once from `mne standard_1020` (TUH legacy T3/T4/T5/T6 → modern T7/T8/P7/P8), normalised by
+  a ~0.1 m head radius, hardcoded so runtime needs no mne. A **bipolar** channel is an
+  electrode *pair*, encoded as **concatenated endpoint xyz = 6-D**. `coords_for(dataset)`
+  returns (n_ch, 6) for tuab/tuev/tusz/chbmit/tuep (shared 16-ch bipolar) and sleepedf
+  (2-ch), else None.
+- `SpatialPE` (`models/triaxial.py:45`) now takes optional `coords`: given → MLP(6→d→d) over
+  coordinates; None → the original learned embedding (so **every existing config without a
+  `spatial_pe` key is bit-for-bit unchanged**).
+- Wiring: `build.py:_spatial_coords(cfg)` returns coords only when `cfg["spatial_pe"]=="xyz"`
+  (opt-in; default `index` preserves all current runs), with an (n_ch)-mismatch guard.
+  `TriAxialPACFormer` and `MAEPretrain` both use it.
+- Verified (`scratchpad/smoke_xyz_pe.py`, CPU, all green): backward-compat index path;
+  xyz path active with correct (2,6)/(16,6) coords; supervised fwd/bwd with finite grad into
+  the coordinate MLP; MAEPretrain xyz + cf_mixed fwd/bwd; channel-mismatch guard fires.
+
+This makes the "one model, any montage" claim real and is the enabler for the pooled
+cross-dataset pretrain (different montages now land in one coordinate space). Not yet run at
+scale — no config sets `spatial_pe: xyz` yet; flip it on for the pooled-pretrain configs.
+
+### 13.26 Preprocessing alignment audit vs BIOT (2026-07-22, DONE)
+
+Line-by-line diff of `scripts/preprocess_*.py` against `reference/BIOT/datasets/*/process.py`
+(TUAB anchor from the prior turn):
+
+| dataset | montage | sample rate | vs BIOT | comparable to BIOT's published row? |
+|---|---|---|---|---|
+| TUAB | 16-ch bipolar (identical order) | 200 Hz | **byte-identical copy** | ✅ yes — same test = official eval |
+| TUEV | 16-ch bipolar (identical order) | **250 Hz** (fs=250, matches BIOT) | header "ported verbatim"; same event-windowing `offset±2·fs`, same processed_train/eval | ✅ yes |
+| TUSZ | reuses TUAB 16-ch bipolar | 200 Hz | **BIOT has no TUSZ processor** | ⚠️ n/a for BIOT; comparable only to other TUSZ reporters, TUAB-style montage |
+| CHB-MIT | 16-ch bipolar (native, no differencing) | **200 Hz (resampled)** | **DIVERGES** — BIOT keeps native **256 Hz** (`start=int(l[-2])*256`) | ❌ NOT directly comparable to BIOT's CHB-MIT row |
+
+**Findings that matter for baseline claims:**
+- TUAB + TUEV are cleanly BIOT-aligned (montage + rate + split + §6 metrics) → these two are
+  the datasets to make the headline BIOT head-to-head on.
+- **CHB-MIT is not BIOT-comparable** (200 vs 256 Hz). Either re-run CHB-MIT at 256 Hz to
+  match BIOT, or drop CHB-MIT from the "vs BIOT" table and keep it only for the internal
+  crossfreq-objective story (where our own random-MAE control is the matched baseline, so the
+  rate choice is not a confound). Recommend the latter unless a BIOT CHB-MIT number is needed.
+- TUSZ has no BIOT reference at all — position it against LaBraM/CBraMod (which report TUSZ)
+  or keep internal-only.
+
+Net: the two anchors for a credible external BIOT comparison are **TUAB and TUEV**, both
+confirmed aligned. That is where checklist items 2-3 (BIOT-checkpoint finetune + full-finetune
+eval path) should land first.

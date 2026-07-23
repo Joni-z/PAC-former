@@ -43,15 +43,21 @@ def pretrain_epoch(model, loader, device, opt):
 
 
 class Probe(nn.Module):
-    """Frozen encoder + a single trainable linear layer on mean-pooled tokens."""
+    """Head on mean-pooled encoder tokens. Two eval protocols (AGENT.md sec 13.24):
+      * finetune=False (linear probe): encoder frozen, only `fc` trains -- the
+        cheap representation-quality readout used during dev.
+      * finetune=True (full finetune): encoder trains end-to-end with the head --
+        the protocol BIOT/CBraMod/LaBraM report, needed for a fair Tier-B number.
+    """
 
-    def __init__(self, mae, num_classes):
+    def __init__(self, mae, num_classes, finetune=False):
         super().__init__()
         self.mae = mae
+        self.finetune = finetune
         self.fc = nn.Linear(mae.recon[0].in_features, num_classes)
 
     def forward(self, x):
-        with torch.no_grad():
+        with torch.set_grad_enabled(self.finetune and torch.is_grad_enabled()):
             h = self.mae.encode(x)                    # (B, C, nb, P, D)
         h = h.mean(dim=(1, 2, 3))                     # (B, D)
         return self.fc(h)
@@ -59,7 +65,9 @@ class Probe(nn.Module):
 
 def probe_epoch(model, loader, device, criterion, opt=None):
     train = opt is not None
-    model.train(train); model.mae.eval()             # keep encoder in eval always
+    model.train(train)
+    if not model.finetune:
+        model.mae.eval()                             # linear probe: encoder frozen in eval
     losses, logits_all, y_all = [], [], []
     for X, y in tqdm(loader, leave=False):
         X, y = X.to(device, non_blocking=True), y.to(device).long()
@@ -105,9 +113,17 @@ def main():
     torch.save(mae.state_dict(), ckpt)
     print(f"saved encoder -> {ckpt}")
 
-    # ---- Phase 2: linear probe on the labels ----
-    probe = Probe(mae, cfg["num_classes"]).to(device)
-    opt = torch.optim.Adam(probe.fc.parameters(), lr=cfg.get("probe_lr", 1e-3))
+    # ---- Phase 2: linear probe (default) or full finetune (probe_mode: finetune) ----
+    finetune = cfg.get("probe_mode", "linear") == "finetune"
+    probe = Probe(mae, cfg["num_classes"], finetune=finetune).to(device)
+    if finetune:
+        params = probe.parameters()
+        lr = cfg.get("finetune_lr", 1e-4)
+    else:
+        params = probe.fc.parameters()
+        lr = cfg.get("probe_lr", 1e-3)
+    print(f"[phase2] mode={'finetune' if finetune else 'linear-probe'} lr={lr}")
+    opt = torch.optim.Adam(params, lr=lr)
     criterion = nn.CrossEntropyLoss(
         weight=class_weights.to(device) if class_weights is not None else None)
     key = "auroc" if cfg["num_classes"] == 2 else "balanced_accuracy"
