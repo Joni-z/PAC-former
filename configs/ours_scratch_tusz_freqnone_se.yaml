@@ -1,0 +1,29 @@
+mixer: attention
+arch: triaxial
+freq_mixer: none
+spatial_pe: xyz
+dataset: tusz
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed
+n_channels: 16
+seq_len: 2000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+n_heads: 4
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+epochs: 10             # TUSZ from-scratch; step-eval + best-ckpt catches the peak wherever it is
+eval_every_steps: 1500 # 7,202 steps/epoch at bs32 -> ~5 validations/epoch (13.36)
+patience: 0
+lr: 0.0001
+weight_decay: 0.00001
+augmentations: []
+wandb_run_name: ours-scratch-tusz-freqnone

@@ -15,16 +15,26 @@ import yaml
 from tqdm import tqdm
 
 from data import build_dataloaders
-from eval import compute_metrics
+from eval import compute_metrics, select_key
 from models.build import build_model
 
 
 def run_epoch(model, loader, device, criterion, optimizer=None, forward_kwargs=None,
-              aux_weight=0.0):
+              aux_weight=0.0, eval_hook=None, eval_every_steps=0):
+    """``eval_hook(step)`` fires every ``eval_every_steps`` optimiser steps.
+
+    Why this exists (AGENT.md 13.36): on TUAB, 298k train windows at batch 32 is
+    ~9,325 steps per epoch, and every model tested -- ours and BIOT alike -- peaks
+    on validation inside epoch 0-1 and declines after. Validating once per epoch
+    samples that curve at +-1 epoch resolution, so best-checkpoint selection cannot
+    land near the true optimum and model comparisons pick up an epoch-boundary
+    artefact that has nothing to do with the models. This changes no training
+    dynamics whatsoever -- it only samples the validation curve more finely.
+    """
     train = optimizer is not None
     model.train(train)
     losses, aux_losses, all_logits, all_y = [], [], [], []
-    for X, y in tqdm(loader, leave=False):
+    for step, (X, y) in enumerate(tqdm(loader, leave=False)):
         X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True).long()
         with torch.set_grad_enabled(train):
             logits = model(X, **(forward_kwargs or {}))
@@ -43,6 +53,9 @@ def run_epoch(model, loader, device, criterion, optimizer=None, forward_kwargs=N
         losses.append(loss.item())
         all_logits.append(logits.detach().cpu().numpy())
         all_y.append(y.cpu().numpy())
+        if train and eval_every_steps and (step + 1) % eval_every_steps == 0:
+            eval_hook(step + 1)
+            model.train(True)          # the hook validates, which flips to eval
     mean_aux = float(np.mean(aux_losses)) if aux_losses else 0.0
     return np.mean(losses), np.concatenate(all_logits), np.concatenate(all_y), mean_aux
 
@@ -90,11 +103,27 @@ def main():
     eval_every = cfg.get("eval_every", 1)  # run val every N epochs
     patience = cfg.get("patience", 0)      # 0 = no early stopping
     best, best_state, since_best = -1.0, None, 0
-    key = "auroc" if cfg["num_classes"] == 2 else "balanced_accuracy"
+    key = select_key(cfg["num_classes"], cfg)
     aux_weight = cfg.get("aux_recon_weight", 0.0)
+    # Mid-epoch validation (13.36). 0 = off => byte-identical to the old behaviour.
+    eval_every_steps = cfg.get("eval_every_steps", 0)
+
+    def mid_epoch_eval(step):
+        nonlocal best, best_state, since_best
+        _, vl, vy, _ = run_epoch(model, val_loader, device, criterion)
+        m = compute_metrics(vy, vl, cfg["num_classes"])
+        print(f"epoch {epoch:3d} step {step:6d} | val " +
+              " ".join(f"{k}={v:.4f}" for k, v in m.items()), flush=True)
+        wandb.log({"epoch_frac": epoch + step / max(len(train_loader), 1),
+                   **{f"val_{k}": v for k, v in m.items()}})
+        if m[key] > best:
+            best, since_best = m[key], 0
+            best_state = {k: v.cpu() for k, v in model.state_dict().items()}
+
     for epoch in range(cfg.get("epochs", 20)):
         tr_loss, _, _, tr_aux = run_epoch(
-            model, train_loader, device, criterion, optimizer, aux_weight=aux_weight
+            model, train_loader, device, criterion, optimizer, aux_weight=aux_weight,
+            eval_hook=mid_epoch_eval, eval_every_steps=eval_every_steps,
         )
         log = {"epoch": epoch, "train_loss": tr_loss}
         if aux_weight > 0:

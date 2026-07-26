@@ -1,0 +1,18 @@
+# CBraMod backbone + our spectral objective, single-dataset pretrain on CHB-MIT.
+data_root: /scratch/zz5070/PAC-former/chb_mit/processed
+native_rate: 200
+duration_s: 10
+n_channels: 16
+num_classes: 2
+label_shift: 0
+batch_size: 64
+num_workers: 8
+seed: 0
+device: cuda
+pretrain_epochs: 15
+pretrain_lr: 0.0001
+probe_epochs: 10
+finetune_lr: 0.0001
+weight_decay: 0.00001
+eval_every_steps: 1500
+dropout: 0.1

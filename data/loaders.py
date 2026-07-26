@@ -262,6 +262,102 @@ def _tuev_sets(root, rate):
     return sets, class_weights
 
 
+# --------------------------------------------------------------------------- #
+# Pooled multi-dataset corpus for foundation-model pretraining (AGENT.md 13.29)
+# --------------------------------------------------------------------------- #
+class PooledPretrainDataset(Dataset):
+    """Several datasets' TRAIN splits concatenated into one unlabelled corpus.
+
+    This is the corpus the foundation-model pretrain (state 3) runs on. Labels are
+    dropped -- the second return value is the member index, kept only so a run can
+    report how its batches were composed.
+
+    Two hard constraints decide membership, and they are why this class refuses
+    rather than silently coerces:
+
+      * **one montage.** Every member must expose the same 16-channel bipolar
+        montage, because SpatialPE's xyz coordinates are looked up per dataset
+        (models/montage.py) and a pooled batch has one coordinate table. Sleep-EDF
+        (2 channels, a different montage) therefore cannot join this pool -- which
+        is consistent with the measured result that crossfreq masking *hurts* on
+        Sleep-EDF (sec. 13.28 Link 1), so nothing is lost by excluding it.
+      * **one sample rate.** Members are pulled at 200 Hz via each loader's own
+        `sampling_rate` argument, so the sinc filterbank's band edges mean the same
+        thing in every batch.
+
+    Windows differ in length (TUAB/TUSZ/CHB-MIT 10 s, TUEV 5 s), so every sample is
+    **random-cropped** to a common `crop_len`. On the 10 s members the random offset
+    doubles as augmentation; on a member already at `crop_len` it is a no-op. A
+    member shorter than `crop_len` is an error, not a pad -- padding would inject
+    silence the reconstruction target would then have to explain.
+    """
+
+    def __init__(self, members, crop_len, seed=0):
+        # members: list of (name, torch Dataset yielding (X (C,T), y))
+        if not members:
+            raise ValueError("pooled corpus is empty")
+        self.names = [n for n, _ in members]
+        self.sets = [d for _, d in members]
+        self.crop_len = int(crop_len)
+        self.sizes = [len(d) for d in self.sets]
+        self.offsets = np.cumsum([0] + self.sizes)
+        self.rng = np.random.default_rng(seed)
+
+    def __len__(self):
+        return int(self.offsets[-1])
+
+    def composition(self):
+        total = len(self)
+        return {n: (s, s / total) for n, s in zip(self.names, self.sizes)}
+
+    def __getitem__(self, index):
+        m = int(np.searchsorted(self.offsets, index, side="right") - 1)
+        X, _ = self.sets[m][index - self.offsets[m]]
+        T = X.shape[-1]
+        if T < self.crop_len:
+            raise ValueError(
+                f"pooled member '{self.names[m]}' yields T={T} < crop_len="
+                f"{self.crop_len}; lower pool_crop_len or drop that member"
+            )
+        if T > self.crop_len:
+            off = int(self.rng.integers(0, T - self.crop_len + 1))
+            X = X[..., off:off + self.crop_len]
+        return X, m
+
+
+def build_pretrain_pool(cfg: dict):
+    """DataLoader over the pooled corpus described by ``cfg['pretrain_pool']``.
+
+        pretrain_pool:
+          - {name: tuab,   data_root: .../v3.0.1/edf/processed}
+          - {name: tuev,   data_root: .../v2.0.1/edf}
+          - {name: tusz,   data_root: .../v2.0.6/edf/processed}
+          - {name: chbmit, data_root: .../chb_mit/processed}
+        pool_crop_len: 1000        # 5 s at 200 Hz -- the shortest member's window
+    """
+    rate = cfg.get("pool_sample_rate", 200)
+    crop = cfg.get("pool_crop_len", 1000)
+    members = []
+    for spec in cfg["pretrain_pool"]:
+        name, root = spec["name"], spec["data_root"]
+        if name == "tuev":
+            sets, _ = _tuev_sets(root, rate)
+        elif name in ("tuab", "tuep", "tusz", "chbmit"):
+            sets = _tuab_sets(root, rate)
+        else:
+            raise KeyError(f"dataset '{name}' cannot join the pooled corpus "
+                           f"(needs the shared 16-ch bipolar montage at {rate} Hz)")
+        members.append((name, sets[0]))          # TRAIN split only
+    ds = PooledPretrainDataset(members, crop, seed=cfg.get("seed", 0))
+    nw = cfg.get("num_workers", 4)
+    loader = DataLoader(
+        ds, batch_size=cfg.get("batch_size", 32), shuffle=True, drop_last=True,
+        num_workers=nw, pin_memory=True,
+        persistent_workers=nw > 0, prefetch_factor=4 if nw > 0 else None,
+    )
+    return loader, ds
+
+
 def build_dataloaders(cfg: dict):
     """Return (train, val, test, class_weights) for the dataset named in ``cfg``.
 

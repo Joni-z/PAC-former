@@ -1,0 +1,16 @@
+# CBraMod baseline on OUR splits+eval. CBraMod-native normalization (µV/100).
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+native_rate: 200
+duration_s: 10          # 10s @200Hz -> 10 patches of 200
+n_channels: 16
+num_classes: 2
+label_shift: 0
+batch_size: 64
+num_workers: 8
+seed: 0
+device: cuda
+epochs: 5               # CBraMod finetune converges fast; step-eval catches the peak
+eval_every_steps: 1500  # TUAB ~4660 steps/epoch @bs64
+lr: 0.0001
+weight_decay: 0.00001
+dropout: 0.1

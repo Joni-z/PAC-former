@@ -82,7 +82,7 @@ class TriAxialPACFormer(nn.Module):
             kernel_size=cfg.get("kernel_size", 201), patch_len=cfg.get("patch_len", 200),
             return_pac_vector=self.freq_mixer == "phase",
         )
-        self.band_pe = BandPE(d)
+        self.band_pe = BandPE(d, n_bands=cfg["n_bands"], mode=cfg.get("band_pe", "hz"))
         self.spatial_pe = SpatialPE(cfg["n_channels"], d, coords=_spatial_coords(cfg))
         self.encoder = TriAxialEncoder(
             depth=cfg["depth"], d_model=d,

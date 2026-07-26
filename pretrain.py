@@ -20,7 +20,7 @@ import yaml
 from tqdm import tqdm
 
 from data import build_dataloaders
-from eval import compute_metrics
+from eval import compute_metrics, select_key
 from models.pretrain import MAEPretrain
 
 
@@ -63,13 +63,22 @@ class Probe(nn.Module):
         return self.fc(h)
 
 
-def probe_epoch(model, loader, device, criterion, opt=None):
+def probe_epoch(model, loader, device, criterion, opt=None,
+                eval_hook=None, eval_every_steps=0):
+    """``eval_hook(step)`` fires every ``eval_every_steps`` optimiser steps.
+
+    Same rationale and contract as train.py's version (AGENT.md 13.36): on the
+    large datasets one epoch is ~9k updates, every model peaks on validation
+    inside the first epoch, and per-epoch validation cannot resolve that. Kept
+    here as well as in train.py/baseline_biot.py so the finetune protocol does not
+    silently differ from the supervised one. Default 0 = off = unchanged.
+    """
     train = opt is not None
     model.train(train)
     if not model.finetune:
         model.mae.eval()                             # linear probe: encoder frozen in eval
     losses, logits_all, y_all = [], [], []
-    for X, y in tqdm(loader, leave=False):
+    for step, (X, y) in enumerate(tqdm(loader, leave=False)):
         X, y = X.to(device, non_blocking=True), y.to(device).long()
         with torch.set_grad_enabled(train):
             logits = model(X)
@@ -78,6 +87,11 @@ def probe_epoch(model, loader, device, criterion, opt=None):
                 opt.zero_grad(); loss.backward(); opt.step()
         losses.append(loss.item())
         logits_all.append(logits.detach().cpu().numpy()); y_all.append(y.cpu().numpy())
+        if train and eval_every_steps and (step + 1) % eval_every_steps == 0:
+            eval_hook(step + 1)
+            model.train(True)                        # the hook validates -> eval mode
+            if not model.finetune:
+                model.mae.eval()                     # keep the frozen encoder frozen
     return float(np.mean(losses)), np.concatenate(logits_all), np.concatenate(y_all)
 
 
@@ -100,18 +114,51 @@ def main():
     wandb.summary["n_params"] = n_params
 
     # ---- Phase 1: masked-reconstruction pretraining ----
-    opt = torch.optim.AdamW(mae.parameters(), lr=cfg.get("lr", 3e-4),
-                            weight_decay=cfg.get("weight_decay", 1e-4))
-    for epoch in range(cfg.get("pretrain_epochs", 30)):
-        loss = pretrain_epoch(mae, train_loader, device, opt)
-        loss_name = "align_loss" if task == "phase_align" else "recon_loss"
-        print(f"[pretrain] epoch {epoch:3d} | {loss_name} {loss:.5f}")
-        wandb.log({"pretrain_epoch": epoch, loss_name: loss})
-
+    # Three mutually exclusive sources for the pretrained weights:
+    #   init_from        -- skip phase 1, load an existing checkpoint. A pooled
+    #                       pretrain is expensive; this is how ONE such run gets
+    #                       finetuned onto many downstream datasets.
+    #   pretrain_pool    -- pretrain on the pooled multi-dataset corpus (state 3,
+    #                       the foundation model). Phase 2 still finetunes on
+    #                       cfg['dataset'], so the two phases can differ.
+    #   (neither)        -- pretrain on cfg['dataset'] itself (state 2). Default,
+    #                       so every existing config behaves exactly as before.
+    import os
+    os.makedirs("checkpoints", exist_ok=True)
     ckpt = f"checkpoints/{cfg.get('wandb_run_name', 'pretrain')}.pt"
-    import os; os.makedirs("checkpoints", exist_ok=True)
-    torch.save(mae.state_dict(), ckpt)
-    print(f"saved encoder -> {ckpt}")
+    init_from = cfg.get("init_from")
+
+    if init_from:
+        if cfg.get("pretrain_pool"):
+            raise ValueError("set init_from OR pretrain_pool, not both")
+        state = torch.load(init_from, map_location=device)
+        missing, unexpected = mae.load_state_dict(state, strict=False)
+        if missing or unexpected:
+            raise ValueError(f"init_from={init_from} does not match this config: "
+                             f"missing={list(missing)[:5]} unexpected={list(unexpected)[:5]}")
+        print(f"[phase1] SKIPPED -- loaded encoder from {init_from}")
+    else:
+        if cfg.get("pretrain_pool"):
+            from data import build_pretrain_pool
+            pt_loader, pool_ds = build_pretrain_pool(cfg)
+            comp = ", ".join(f"{n}={c} ({f:.1%})" for n, (c, f) in pool_ds.composition().items())
+            print(f"[phase1] POOLED corpus: {len(pool_ds)} windows | {comp}")
+            wandb.summary["pool_size"] = len(pool_ds)
+            wandb.summary["pool_composition"] = comp
+        else:
+            pt_loader = train_loader
+        opt = torch.optim.AdamW(mae.parameters(), lr=cfg.get("lr", 3e-4),
+                                weight_decay=cfg.get("weight_decay", 1e-4))
+        for epoch in range(cfg.get("pretrain_epochs", 30)):
+            loss = pretrain_epoch(mae, pt_loader, device, opt)
+            loss_name = "align_loss" if task == "phase_align" else "recon_loss"
+            print(f"[pretrain] epoch {epoch:3d} | {loss_name} {loss:.5f}", flush=True)
+            wandb.log({"pretrain_epoch": epoch, loss_name: loss})
+            # Pooled runs are long; checkpoint every epoch so a node fault costs
+            # one epoch instead of the whole run.
+            torch.save(mae.state_dict(), ckpt)
+        torch.save(mae.state_dict(), ckpt)
+        print(f"saved encoder -> {ckpt}")
 
     # ---- Phase 2: linear probe (default) or full finetune (probe_mode: finetune) ----
     finetune = cfg.get("probe_mode", "linear") == "finetune"
@@ -126,10 +173,26 @@ def main():
     opt = torch.optim.Adam(params, lr=lr)
     criterion = nn.CrossEntropyLoss(
         weight=class_weights.to(device) if class_weights is not None else None)
-    key = "auroc" if cfg["num_classes"] == 2 else "balanced_accuracy"
+    key = select_key(cfg["num_classes"], cfg)
     best, best_state = -1.0, None
+    eval_every_steps = cfg.get("eval_every_steps", 0)      # 0 = off (13.36)
+
+    def mid_epoch_eval(step):
+        nonlocal best, best_state
+        _, vl_, vy_ = probe_epoch(probe, val_loader, device, criterion)
+        m_ = compute_metrics(vy_, vl_, cfg["num_classes"])
+        print(f"[probe] epoch {epoch:3d} step {step:6d} | " +
+              " ".join(f"val_{k}={v:.4f}" for k, v in m_.items()), flush=True)
+        wandb.log({"probe_epoch_frac": epoch + step / max(len(train_loader), 1),
+                   **{f"probe_val_{k}": v for k, v in m_.items()}})
+        if m_[key] > best:
+            best = m_[key]
+            best_state = {k: v.cpu() for k, v in probe.state_dict().items()}
+
     for epoch in range(cfg.get("probe_epochs", 30)):
-        tr, *_ = probe_epoch(probe, train_loader, device, criterion, opt)
+        tr, *_ = probe_epoch(probe, train_loader, device, criterion, opt,
+                             eval_hook=mid_epoch_eval,
+                             eval_every_steps=eval_every_steps)
         _, vl, vy = probe_epoch(probe, val_loader, device, criterion)
         m = compute_metrics(vy, vl, cfg["num_classes"])
         print(f"[probe] epoch {epoch:3d} | loss {tr:.4f} | " +

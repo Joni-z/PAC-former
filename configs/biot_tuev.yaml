@@ -1,0 +1,18 @@
+# BIOT baseline on OUR pipeline (baseline_biot.py). Data/eval identical to
+# pretrain_tuev_*.yaml; only the model differs.
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 6
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+token_size: 200        # BIOT default t
+hop_length: 100        # BIOT default t-p
+epochs: 20             # matches our probe_epochs
+lr: 0.0001             # matches our finetune_lr
+weight_decay: 0.00001  # BIOT default

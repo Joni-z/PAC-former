@@ -1,0 +1,17 @@
+# CBraMod baseline on OUR splits+eval. TUEV npy is 250Hz -> resampled to 200Hz.
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+native_rate: 250
+duration_s: 5           # 5s @200Hz -> 5 patches of 200
+n_channels: 16
+num_classes: 6
+label_shift: 1          # TUEV labels 1..6 -> 0..5
+class_weights: true
+batch_size: 64
+num_workers: 8
+seed: 0
+device: cuda
+epochs: 15              # TUEV smaller; per-epoch fine, but keep step-eval on
+eval_every_steps: 600
+lr: 0.0001
+weight_decay: 0.00001
+dropout: 0.1

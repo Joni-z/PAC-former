@@ -1932,8 +1932,13 @@ probe — exactly the "make the point before the expensive run" bar):**
    evidence-driven, not a hunch. This negative result is itself a contribution (§13.18).
 
 **De-risk steps before committing to the full pooled pretrain (in priority order):**
-- (running) cf_mixed on TUAB + CHB-MIT — confirm the universal recipe keeps the *big*
-  binary wins (jobs 14619136/137).
+- ✅ **DONE** — cf_mixed on TUAB + CHB-MIT confirms the universal recipe keeps the *big*
+  binary wins (jobs 14619136/137 COMPLETED, ~4.7h, linear probe, seed 0). vs §13.10b:
+  TUAB pr_auc 0.844 (crossfreq 0.862, random 0.811) / auroc 0.845 (0.857/0.809) — holds;
+  CHB-MIT pr_auc **0.438 > crossfreq 0.393** ≫ random 0.136 / auroc 0.866 (0.878/0.743) —
+  holds and slightly *improves* pr_auc. **So cf_mixed is now validated on all 5 datasets:**
+  holds the three imbalanced-binary wins (TUAB/CHB-MIT/TUSZ) AND beats random on multi-class
+  TUEV (§13.21); only Sleep prefers cf_partial. The universal-recipe claim is de-risked.
 - (next) multi-seed (≥3) on cf_mixed across the 5 datasets — everything above is seed 0.
 - (then) the actual foundation-model run: **pooled cross-dataset pretrain** with xyz-PE on
   all montages at once (the montage-agnostic PE is the enabler and this is the first run
@@ -2085,7 +2090,27 @@ table (§13.24). Added a finetune mode to `pretrain.py` Phase 2:
   eval pass finite.
 - Configs `configs/pretrain_{tuab,tuev}_cf_mixed_ft.yaml` = cf_mixed pretrain + `probe_mode:
   finetune` + `spatial_pe: xyz` (the §13.23 architecture of record) on the two BIOT-aligned
-  anchors (§13.26). These produce our headline Tier-B numbers.
+  anchors (§13.26).
+
+**CORRECTION (2026-07-23): these `_ft` runs are NOT a BIOT comparison and must not be labelled
+Tier-B.** They are **single-dataset in-domain** pretrain (30-epoch MAE on ONE dataset) →
+finetune on the *same* dataset. That is not a foundation model. Three distinct "our model"
+states must be kept separate:
+  1. from-scratch supervised (no pretrain);
+  2. single-dataset in-domain pretrain → finetune  ← what the `_ft` configs do;
+  3. **pooled multi-dataset foundation pretrain → finetune  ← NOT DONE.**
+BIOT's published numbers are state B (pretrained on thousands of hours). Comparing our state-2
+1.7M model to BIOT's state-B foundation is apples-to-oranges. **The foundation-vs-foundation
+claim (our state 3 vs BIOT state B) is GATED on doing our pooled pretrain and cannot be made
+before it.** What the `_ft` runs legitimately give: (a) GPU end-to-end sanity of the xyz
+tri-axial architecture; (b) the finetune harness working for when state 3 exists; (c) a
+state-2 internal baseline for our own objective ablation. Nothing here is "vs BIOT".
+
+**Two BIOT comparisons that ARE valid before the pooled pretrain:**
+- **Backbone-vs-backbone, no pretrain (state 1 vs BIOT-from-scratch vs CoTAR)** on aligned
+  TUAB/TUEV — tests the *architecture* the PI asked about, needs no pretraining.
+- **Establish BIOT's reference number** by running its checkpoint through our pipeline (prep,
+  the target score on our exact test set — not a claim until we have state 3 to put beside it).
 
 **Remaining for a complete Tier-B table (item 2):** run BIOT's own `EEG-PREST-16-channels.ckpt`
 through *our* TUAB/TUEV dataloaders + finetune, so "ours vs BIOT" is measured on one identical
@@ -2140,3 +2165,852 @@ Line-by-line diff of `scripts/preprocess_*.py` against `reference/BIOT/datasets/
 Net: the two anchors for a credible external BIOT comparison are **TUAB and TUEV**, both
 confirmed aligned. That is where checklist items 2-3 (BIOT-checkpoint finetune + full-finetune
 eval path) should land first.
+
+### 13.28 Pre-pretrain evidence ledger (2026-07-23)
+
+Goal for this phase: **every link in the scheme must be backed by a number, not by a
+claim.** The pooled pretrain is expensive and near-irreversible, so nothing goes into it
+on the strength of an argument alone. This section is the ledger; regenerate its numbers
+with `python scripts/collect_results.py`.
+
+#### Link 1 — the objective (cf_mixed > standard random MAE). PARTIALLY EVIDENCED, with a real counterexample.
+
+Seed 0, matched backbone/data/compute, linear probe (§13.16/13.21 runs):
+
+| dataset | headline metric | cf_mixed | random MAE | verdict |
+|---|---|---|---|---|
+| TUAB    | pr_auc          | 0.8438 | 0.8107 | win |
+| TUEV    | bal-acc / kappa | 0.4939 / 0.3853 | 0.4718 / 0.3562 | win |
+| TUSZ    | pr_auc          | 0.5529 | 0.4531 | win |
+| CHB-MIT | pr_auc          | 0.4383 | 0.1356 | large win |
+| **Sleep-EDF** | bal-acc / kappa | **0.5755 / 0.4741** | **0.5864 / 0.4829** | **LOSS** |
+
+**Correction to earlier text in this file: cf_mixed is NOT "validated on all 5 datasets".**
+It is 4 wins / 1 loss. Sleep-EDF is the counterexample and must be reported as one.
+**The obvious explanation was tested and is FALSE.** The hypothesis was: Sleep-EDF's label
+lives in the slow rhythms and spindles, so hiding the top half of the spectrum asks the model
+to reconstruct something label-irrelevant. `scripts/band_locality.py` (CPU job 14655505)
+measures this model-free — logistic regression on log band-power, LOW half vs HIGH half vs
+all, using the sinc bank's own band edges, 4000 train / 4000 test windows:
+
+| dataset | chance | low-half | high-half | all | cf_mixed vs random |
+|---|---|---|---|---|---|
+| Sleep-EDF | 0.200 | 0.5804 | **0.5554** | 0.5695 | **LOSS** |
+| TUAB      | 0.500 | 0.6663 | **0.4881** | 0.6408 | win |
+| TUEV      | 0.167 | 0.5773 | 0.3282 | 0.5570 | win |
+| TUSZ      | 0.500 | 0.6856 | **0.4582** | 0.6374 | win |
+| CHB-MIT   | 0.500 | 0.7783 | **0.8172** | 0.8638 | large win |
+(bal-acc; AUROC where binary: TUAB low .7278 / high .4982, TUSZ .7517 / .4454, CHB-MIT .8439 / .9100)
+
+The prediction was "Sleep-EDF's high half carries nothing". **It carries plenty** — 0.5554
+against a 0.200 chance level, and the smallest low-vs-high gap of any dataset. Meanwhile
+TUAB and TUSZ, where cf_mixed wins comfortably, have high halves sitting **at or below
+chance**. The relationship is not weak, it runs the wrong way. The hypothesis is dead and
+the scope claim it was going to support ("helps when the label lives in fast-band
+structure") cannot be made.
+
+**Two things follow, and both matter before committing to the pooled pretrain:**
+1. **The Sleep-EDF loss is unexplained.** Remaining uncontrolled differences: 2 channels vs
+   16 (essentially no spatial axis), 100 Hz vs 200 Hz, 30 s windows, staging vs pathology.
+   None of these is tested. Until one is, we do not know the scope of the contribution, and
+   any paper sentence of the form "crossfreq masking helps on EEG" is unsupported at its
+   edges.
+2. **A separate fact worth keeping**: on TUAB and TUSZ the 50-98 Hz half is at chance for
+   linear band-power discrimination, yet those are exactly where cf_mixed wins. So the
+   benefit is *not* "the high bands are directly predictive". Whatever cf_mixed buys, it is
+   not linearly-decodable high-band power — which is at least consistent with the intended
+   story (it forces *coupling structure*, not band energy), though this diagnostic cannot
+   confirm that. The `freq_mixer: none` arm (Link 3) is the test that can.
+
+Caveat on CHB-MIT: bal-acc ~0.50 for *both* arms (the 0.5-threshold classifier is degenerate
+at ~2% positives); pr_auc is the only meaningful metric there. Also CHB-MIT is 200 Hz vs
+BIOT's native 256 Hz (§13.26) so it stays internal-only.
+
+Seed status: **all of the above is seed 0, and stays that way for now.** Multi-seed runs were
+queued and then cancelled by explicit instruction (2026-07-23) — the project convention is
+seed 0 for development and tuning, multi-seed only for final reported results. Configs
+`pretrain_tu{ab,ev}_{cf_mixed,random}_ft_s{1,2}.yaml` are written and ready, so this is a
+resubmit, not a rebuild, when the paper table is being produced. Job 14651217 (TUEV
+random+ft, seed 0) is kept: it is the missing seed-0 cell of the Link 3 contrast, not a
+seed replicate.
+
+**Consequence to keep in view when writing anything up:** every effect size in this ledger is
+n=1. They are strong enough to *choose a design* (which is what this phase is for) and not
+strong enough to *report as a result*.
+
+#### Link 2 — xyz SpatialPE (the montage-agnostic physical PE). NO EVIDENCE YET; running.
+
+The §13.27 `_ft` runs changed **three** things at once (probe_mode -> finetune, finetune_lr,
+spatial_pe -> xyz), so their +3pt gain attributes to none of them individually; almost all of
+it is plausibly the linear-probe -> full-finetune switch. Isolation control queued:
+`pretrain_{tuab,tuev}_cf_mixed_ft_idxpe` = identical except `spatial_pe: index`
+(jobs 14650731 / 14650732). Until those land, **xyz PE is a claim, not a result.**
+
+#### Link 3 — the tri-axial backbone / the frequency axis. NO EVIDENCE YET; running.
+
+Added `freq_mixer: none` (`models/triaxial.py:FreqNone`): returns zeros, so the block's
+`x = x + freq(...)` is a no-op and band tokens **never** exchange information. This is the
+honest 2-axis (space+time) control, i.e. the CBraMod-style criss-cross backbone our design
+claims to improve on. Verified by `scratchpad/smoke_freqnone.py` (all green): gradient from
+band 3's output into bands 0-2 is **exactly 0.0** with `none`, vs 2.29e+01 with `attention`.
+Deliberately not parameter-matched — the axis must beat the free option of not existing.
+
+It doubles as a **mechanism probe for Link 1**: with no cross-band path, crossfreq
+reconstruction is unsolvable by construction, so if cf_mixed's margin over random MAE
+survives `freq_mixer: none`, that margin was never about cross-frequency coupling.
+TUAB 2x2 queued — {cf_mixed, random} x {attention, none}, all ft+xyz:
+14629742 (done, mixed/attention), 14651004 (mixed/none), 14651005 (random/attention),
+14651006 (random/none); TUEV architecture cell 14651007.
+
+#### Link 4 — competitiveness vs BIOT. NO EVIDENCE YET; running.
+
+`baseline_biot.py` (new) runs BIOT's own model through **our** dataloaders, splits and
+`eval.compute_metrics`, so the model is the only variable. Verified: the released
+`EEG-PREST-16-channels.ckpt` loads `strict=True` and forwards on both our shapes
+(TUAB 16x2000, TUEV 16x1000), 3.19M params vs our 1.65M. Model selection uses
+`select_key()`, which is pinned to be identical to `pretrain.py`'s — selecting BIOT on a
+different validation metric would silently bias the very comparison the script exists to
+make fair.
+
+Two modes, answering different questions, and they must never be merged:
+- `--init pretrained` = BIOT **state B**, a real foundation model. This is the **target
+  number** our pooled pretrain must beat. Jobs 14651139 (TUAB) / 14651141 (TUEV).
+- `--init scratch` = **state 1**, architecture only. Paired with `ours_scratch_{tuab,tuev}`
+  (jobs 14651186/87), matched cell-for-cell (epochs 20, lr 1e-4, no augmentation, same
+  splits/eval), this is a **fair backbone-vs-backbone test that is valid before any
+  pretraining** — it is the direct answer to "is the tri-axial model actually better".
+  Jobs 14651140 (TUAB) / 14651142 (TUEV).
+
+Deviation stated for the record: BIOT's binary script uses `n_classes=1` + BCE; we use
+`n_classes=2` + CrossEntropy so the loss/metric path matches our own runs exactly.
+
+#### Already closed, no action needed
+
+- **Model selection**: `pretrain.py:138` and `train.py:124` both already select the best
+  epoch on validation and test that checkpoint once. The `[probe] test` numbers are
+  best-epoch, not last-epoch. (An earlier verbal claim that TUEV reported last-epoch was
+  wrong.) TUEV's val 0.5994 -> test 0.5233 is therefore a genuine generalisation gap.
+- **Preprocessing alignment**: §13.26. TUAB/TUEV BIOT-aligned; CHB-MIT is not.
+
+#### What still has NO experiment attached
+
+- **Sleep-EDF loss**: the mechanism hypothesis above is untested. A band-budget control
+  (crossfreq mask on the top quarter only, or on 4-channel data) would test it.
+- **Pooled multi-dataset pretrain (state 3)** — the actual foundation model. Gated on the
+  four links above; nothing should be pooled until Links 2 and 3 return.
+
+### 13.29 Pooled multi-dataset pretrain path — BUILT and smoke-tested (2026-07-23)
+
+**The gap this closes was not an evidence gap, it was a "cannot run at all" gap.** Before
+today there was **no pooled dataloader anywhere in the repo** — `grep` for pooling in
+`data/loaders.py`, `pretrain.py`, `models/pretrain.py` returned only mean-pooling in the
+head. State 3 (§13.27), the foundation-model run this whole phase exists to set up, had
+zero implementation. Every "our foundation model vs BIOT" sentence written before this was
+describing a run that could not have been launched.
+
+**`data/loaders.py:PooledPretrainDataset` + `build_pretrain_pool(cfg)`** (new). Corpus =
+the **TRAIN splits only** of the four datasets sharing the 16-channel bipolar montage at
+200 Hz. No test leakage by construction.
+
+| member | train windows |
+|---|---|
+| TUAB | 298,396 |
+| TUEV | 75,768 |
+| TUSZ | 230,477 |
+| CHB-MIT | 307,628 |
+| **pooled** | **912,269** |
+
+Two membership rules, enforced by raising rather than coercing:
+- **one montage** — SpatialPE looks xyz coordinates up per dataset, and a pooled batch has
+  one coordinate table. **Sleep-EDF is therefore excluded, and independently deserves to be:
+  crossfreq masking measurably HURTS there (§13.28 Link 1).** Excluded on evidence, not
+  convenience.
+- **one sample rate** — members are pulled at 200 Hz through each loader's own
+  `sampling_rate`, so the sinc band edges mean the same thing in every batch.
+
+Windows differ (TUAB/TUSZ/CHB-MIT 10 s, TUEV 5 s), so samples are **random-cropped** to
+`pool_crop_len` (1000 = 5 s). On the 10 s members the random offset doubles as
+augmentation. A too-short member raises — padding would inject silence that the
+reconstruction target would then have to explain.
+
+**`pretrain.py` phase 1 now has three mutually exclusive weight sources**, and the default
+path is byte-for-byte the old behaviour:
+- `init_from: <ckpt>` — skip phase 1 entirely, load an existing encoder (strict match
+  enforced). This is how **one** expensive pooled pretrain gets finetuned onto many
+  downstream datasets instead of being repeated per target.
+- `pretrain_pool: [...]` — phase 1 on the pooled corpus, phase 2 still on `cfg['dataset']`.
+- neither — single-dataset pretrain (state 2), unchanged.
+Pooled runs also checkpoint **every epoch**, so a node fault costs one epoch, not the run
+(the transient CUDA-busy faults of §13.27 hit three separate jobs).
+
+**Verified on CPU, `scratchpad/smoke_pooled.py`, ALL GREEN.** The load-bearing check:
+
+> the pooled corpus is 5 s but downstream finetuning is TUAB's 10 s — **the same weights
+> must accept both, or the whole pooled design is void.**
+
+Confirmed: one `MAEPretrain` returns a finite loss at T=1000 and T=2000, and `encode()`
+yields `(2,16,8,5,32)` and `(2,16,8,10,32)` respectively — the tri-axial grid simply grows
+along the patch axis, which RoPE handles. Also confirmed: crop always emits `crop_len`,
+member indices are correct, a short member raises, `init_from` round-trips with
+`missing=[] unexpected=[]` and reproduces embeddings exactly, and a config carrying neither
+new key still builds and runs.
+
+**Configs written, deliberately NOT submitted**: `pretrain_pooled_ft_{tuab,tuev}.yaml`.
+TUEV reuses TUAB's pooled checkpoint via `init_from`. They are gated on §13.28 Links 2 and
+3 returning — if the xyz PE or the frequency axis turn out to buy nothing, launching this
+would bake the wrong design into the expensive run.
+
+**Cost / operational warning**: pooled epoch ≈ 3x the windows of a single TUAB epoch at
+half the crop length ≈ **1.5x TUAB epoch cost**. A TUAB pretrain+finetune run took 6:25
+(job 14629742), so 15 pooled epochs + 20 finetune epochs is plausibly **8-10 h**, against
+`pretrain.slurm`'s `--time=12:00:00`. Submit the pooled run with an explicit
+`sbatch --time=24:00:00` override; the GPU partitions have no hard time limit.
+
+**`baseline_biot.py` verified end-to-end** (CPU job 14655506, 35 s): pretrained checkpoint
+loads, trains, best-epoch selection fires, and both `test@last` and `test@best` print. The
+four queued BIOT GPU jobs will not fail on plumbing.
+
+**New tooling** (both used to produce §13.28 and re-runnable):
+- `scripts/collect_results.py` — scrapes every finished run's test line out of the
+  tqdm-polluted logs into one table. The §13.16 mask-shape results sat undiscovered for
+  weeks precisely because reading these logs by hand is error-prone; this is the fix.
+- `scripts/band_locality.py` — model-free per-band label discriminability (low half vs high
+  half vs all, same band edges as the sinc bank), to test *by measurement* the Sleep-EDF
+  explanation rather than asserting it. CPU job 14655505.
+- `cpu.slurm` — CPU-only wrapper, no `--gres=gpu`, so diagnostics do not consume the GPU
+  QOS budget the evidence jobs are queued against.
+
+#### Link 5 — BandPE by centre-frequency (the other "physics-aware PE" claim). NO EVIDENCE YET; running.
+
+Found while auditing Links 2-3: `BandPE` was never ablated either, so the figure's
+"physics-aware positional encoding" selling point rests on **two** unevidenced claims, not
+one. `models/triaxial.py:BandPE` now takes `mode`:
+- `hz` (default, unchanged) — MLP over (centre freq, bandwidth). Ours.
+- `index` — learned per-band embedding. The non-physical control: same parameter order,
+  but it *cannot transfer across filter banks*, which is exactly the property `hz` claims.
+- `none` — no band PE at all; tests whether band identity is needed.
+
+Verified (`scratchpad/smoke_bandpe.py`, ALL GREEN): all three modes build/forward/backprop
+in both the supervised and MAE paths; `hz` output changes when the filter bank's Hz change
+while `index`/`none` do not; `none` is exactly zero; and **a config with no `band_pe` key
+produces a state dict bit-identical to `band_pe: hz`**, so nothing already queued is
+perturbed. Ablation queued on TUEV (cheapest member, ~1 h/run): jobs 14655609 (`index`)
+and 14655610 (`none`), against 14629684 as the `hz` arm.
+
+### 13.30 TUEV evidence returned — every architecture claim FAILED (2026-07-23)
+
+> **RETRACTED SAME DAY — DO NOT CITE THE NUMBERS BELOW.** Every TUEV row in this section
+> was selected on the wrong validation metric. See §13.31; all cells re-running (jobs
+> 14686664-72). The section is kept only so the error and its correction stay on the
+> record. **The TUAB analysis is unaffected** — TUAB selects on AUROC, which already
+> matched BIOT.
+
+
+All 11 TUEV cells are in. Regenerate with `python scripts/collect_results.py tuev`.
+Single seed 0 (multi-seed cancelled by instruction — see §13.28 seed note), best-epoch
+selection on validation, identical data/splits/eval across every row.
+
+#### A. The three "physics-aware architecture" claims: 0 for 3.
+
+| variant | bal-acc | F1-w | kappa |
+|---|---|---|---|
+| full tri-axial (xyz PE + hz BandPE + freq axis) | 0.5233 | 0.6813 | 0.4016 |
+| **freq axis REMOVED** (`freq_mixer: none`, the 2-axis/CBraMod-style control) | 0.5261 | 0.7001 | **0.4324** |
+| SpatialPE -> learned index (xyz removed) | 0.5180 | 0.6911 | 0.4176 |
+| BandPE -> learned index (Hz removed) | 0.5231 | 0.6740 | 0.4082 |
+| BandPE -> none | 0.5096 | 0.6836 | 0.4043 |
+
+**Every ablated/simplified variant matches or beats the full model on kappa, and the
+best of them is the one with no frequency axis at all.** Not one of the three selling
+points — the third (frequency) axis, xyz SpatialPE, centre-frequency BandPE — produced a
+positive effect. The differences are small (0.004-0.031 kappa) and single-seed, so no
+individual row is decisive; **but five out of five point away from the claims, and that
+joint pattern is not what noise looks like.**
+
+Note especially: `freq_mixer: none` carries FEWER parameters and has provably zero
+cross-band gradient flow (§13.28 Link 3), yet scores highest. The frequency axis is
+currently paying for itself with nothing.
+
+#### B. The objective does not survive full finetuning.
+
+| phase-2 mode | cf_mixed kappa | random-MAE kappa | winner |
+|---|---|---|---|
+| linear probe (§13.21) | 0.3853 | 0.3562 | cf_mixed |
+| **full finetune** | **0.4016** | **0.4234** | **random MAE** |
+
+cf_mixed's TUEV advantage exists **only when the encoder is frozen**. Once gradients reach
+the backbone, plain random masking is better. This is a serious qualification on Link 1:
+what §13.21 measured was the quality of a *frozen* representation, and the finetuned
+regime — the one BIOT and every published baseline report in — reverses it.
+
+#### C. Backbone vs backbone, both from scratch: we LOSE to BIOT.
+
+Same dataloaders, same splits, same `eval.compute_metrics`, same selection metric,
+20 epochs, lr 1e-4 (`baseline_biot.py` vs `ours_scratch_tuev.yaml`):
+
+| model | params | bal-acc | F1-w | kappa |
+|---|---|---|---|---|
+| BIOT, pretrained (`EEG-PREST-16-channels.ckpt`, state B) | 3.19M | 0.5309 | 0.7193 | **0.4669** |
+| BIOT, random init (state 1) | 3.19M | 0.5269 | 0.7011 | 0.4389 |
+| **ours, random init (state 1)** | 1.65M | 0.5326 | 0.6170 | **0.3439** |
+
+**Architecture against architecture, no pretraining on either side, we are 0.095 kappa
+behind BIOT.** That gap is an order of magnitude larger than the ablation differences
+above, so it is not a noise story. (Our bal-acc is nominally higher, but bal-acc was the
+selection metric and our F1/kappa are far worse — the model is trading balanced accuracy
+for a much poorer confusion structure.) This is the direct, valid, pre-pretrain answer to
+the question "is the tri-axial model actually better": **on TUEV, no.**
+
+Also worth recording: BIOT's pretraining is worth +0.028 kappa here (0.4389 -> 0.4669).
+That is the size of the prize a successful pooled pretrain would be competing for, and it
+is smaller than the 0.095 architecture deficit we would first have to erase.
+
+#### D. Status and what this does NOT yet establish
+
+TUAB is still running (14650731 at 10.5 h; 14657771-76 queued/running). TUAB is binary,
+far larger, and much less noisy than TUEV, so it is the more trustworthy arbiter, and
+**no line should be closed on TUEV alone.** But the decision rule should be fixed now,
+before the numbers arrive, so it cannot be fitted to them:
+
+- If TUAB reproduces the pattern (ablations >= full model, BIOT-scratch > ours-scratch),
+  then **the tri-axial architecture and the physics-PE story are dead**, the pooled
+  pretrain must NOT be launched on the current design, and the honest remaining
+  contribution is the crossfreq objective in the frozen/linear-probe regime only.
+- If TUAB contradicts it, we have a dataset-dependent effect and neither dataset alone
+  can carry the claim.
+
+The pooled-pretrain configs (§13.29) stay unsubmitted either way.
+
+### 13.31 Model-selection metric was wrong for TUEV — §13.30 retracted (2026-07-23)
+
+**The error.** `pretrain.py`, `train.py` and `baseline_biot.py` all picked the best epoch
+with `"auroc" if num_classes == 2 else "balanced_accuracy"`. BIOT's own scripts use:
+
+| task | BIOT | ours (before) | ours (now) |
+|---|---|---|---|
+| binary (TUAB) | `run_binary_supervised.py:348` `EarlyStopping(monitor="val_auroc")` | `auroc` | `auroc` — **was already right** |
+| multiclass (TUEV) | `run_multiclass_supervised.py:288` `EarlyStopping(monitor="val_cohen")` | `balanced_accuracy` | `cohen_kappa` — **fixed** |
+
+**Why it is not a harmless deviation.** It is not metric-neutral, and it happened to
+penalise our model specifically. On TUEV our model's validation bal-acc and kappa move
+*against* each other across epochs, while BIOT's move together:
+
+- ours (`ours_scratch_tuev`, job 14651187): best val bal-acc at **epoch 4** (0.5783) had
+  kappa 0.4134 — but **epoch 13** reached val kappa **0.4825**. Bal-acc selection threw
+  away the best-kappa checkpoint and reported test kappa 0.3439.
+- BIOT scratch (job 14651142): best val bal-acc at epoch 2 (0.5459) also had a good kappa
+  (0.4500), so bal-acc selection cost BIOT almost nothing.
+
+So the headline "we lose to BIOT by 0.095 kappa from scratch" was measured under a rule
+that systematically discards our model's good checkpoints. **How much of that gap is real
+is unknown until the re-runs land.** Both models were confirmed *not* undertrained — train
+loss reached ~0.05 for both by epoch 19, i.e. both were overfitting, so the 20-epoch budget
+was fair and is not the confound.
+
+**The fix.** `eval.select_key(num_classes, cfg)` is now the single definition, imported by
+all three runners (previously `baseline_biot.py` carried its own copy — exactly the kind of
+duplication that lets two halves of a comparison drift apart). Default matches BIOT;
+`cfg['select_metric']` overrides for a run that deliberately optimises something else.
+
+**Scope of the damage**: every TUEV number in this file predating this entry — that is all
+of §13.30 and the TUEV rows of §13.28/§13.21 — was selected on `balanced_accuracy`. TUAB,
+TUSZ and CHB-MIT are binary and selected on AUROC, so **they are unaffected**, including
+the six TUAB jobs running right now. Sleep-EDF is 5-class and *is* affected; its numbers
+carry the same caveat and its re-run is not yet queued.
+
+Re-running all 11 TUEV cells with the corrected key, `--nice=100` so they yield to the
+in-flight TUAB evidence jobs: jobs 14686664-72 (9 cells) **plus 14686867/68**. The first
+batch covered only 9 of the 11 — the two **linear-probe** cells
+(`pretrain_tuev_{cf_mixed,random}`) were missed because the requeue was built from the
+finetune ablation table, not from the full result listing. They are multiclass and
+therefore just as stale, and they are exactly the TUEV row of the §13.28 Link-1
+"4 wins / 1 loss" table — i.e. the objective claim's TUEV evidence. Caught by counting
+queued jobs against the 11 rows `collect_results.py tuev` had listed.
+
+**Sleep-EDF is 5-class and therefore also affected — and this matters more than it looks.**
+The Sleep-EDF row is the single COUNTEREXAMPLE the whole Link-1 scope discussion rests on
+(§13.28: cf_mixed 4 wins / 1 loss; the loss drove the falsified band-locality hypothesis and
+the decision to exclude Sleep-EDF from the pooled corpus, §13.29). **That counterexample was
+itself measured under the wrong selection rule, so it may not exist.** Re-running both arms
+(jobs 14686723 `cf_mixed`, 14686724 `random`, ~40 min each, `--nice=200`). Until they land:
+- "cf_mixed is 4/5" is unverified in both directions;
+- the Sleep-EDF exclusion from the pooled corpus still stands on the *montage* rule (2-ch
+  vs 16-ch), which is independent of any metric and unaffected.
+
+**Process lesson worth keeping**: this was found only because the val curve was read
+epoch-by-epoch after a surprising result, rather than the test number being taken at face
+value. A result that goes against a strong prior deserves an audit of the measurement
+before it is written up as a finding — in this case the "finding" was an artefact.
+
+### 13.32 Protocol audit of the from-scratch BIOT comparison + a wall-clock rescue (2026-07-23)
+
+**Recipe check (done before the TUAB control burned 13 GPU-hours on a mis-specified run).**
+`reference/BIOT/utils.py` loaders do nothing but resample + 95th-percentile normalise —
+**BIOT trains with NO augmentation**. So `augmentations: []` in `ours_scratch_{tuab,tuev}`
+is the matched choice, not a handicap. Documented deviation: BIOT defaults to
+`--epochs 100` with `EarlyStopping(patience=5)`; we give **both** models 20 epochs. Fair
+because it is symmetric, and evidenced as sufficient: on TUEV both models had train loss
+~0.05 and declining validation by epoch 19, i.e. both were already overfitting.
+
+**Wall-clock rescue.** Job 14650731 (TUAB, `spatial_pe: index` — the Link-2 control) was
+submitted before the `--time=24:00:00` habit and hit 10:50 of a 12:00 limit with only 10 of
+20 probe epochs done; ~11 min/probe-epoch meant it would have died at the wall and lost the
+whole run. Node speed is the cause: the same work took 6:25 on a gh-node (14629742) vs
+>12 h on ga015.
+
+Recovered with the §13.29 `init_from` path rather than re-running: phase 1's encoder was
+already checkpointed, so `pretrain_tuab_cf_mixed_ft_idxpe_p2.yaml` loads it and runs phase 2
+only — **saving ~9 h of redundant pretraining** (job 14686742, `--time=24:00:00`). Noted for
+exactness: phase 2 in the rescue starts from a fresh RNG state rather than the state phase 1
+would have left, so the probe head init and shuffling differ slightly from the original run.
+It measures the same encoder; it is not bit-identical to an uninterrupted run.
+
+**Guardrail against repeating §13.31.** `logs/` now holds both pre-fix and post-fix TUEV/
+Sleep results, and nothing in a log file says which selection metric produced it — precisely
+the condition that let the original error through. `scripts/collect_results.py` now derives
+the job id from the filename and **hides multiclass runs launched before job 14686664**
+(`--all` to see them, flagged `[STALE]`). Binary runs are never hidden: they always selected
+on AUROC. Verified: `collect_results.py tuev` now reports 28 hidden results and no stale
+rows; `collect_results.py tuab` is unchanged.
+
+### 13.33 Scope change: pretraining moves off this cluster — the deliverable here is the ARCHITECTURE decision (2026-07-23)
+
+**Instruction (user, 2026-07-23):** "我不需要你做合并预训练 我不需要你做预训练的工作 我们做预训练会
+放到一个更大的集群上面跑更多的数据集 你现在在排队等卡再做预训练太浪费时间了" — pretraining moves
+to a larger cluster with more datasets; queuing for GPUs here to pretrain is a waste.
+
+**Acted on immediately.** Cancelled 13 queued/running pretraining jobs (~45 GPU-hours):
+14657771/72/73 (TUAB pretrain+finetune, the long poles at ~10 h each), 14686664-669 (TUEV
+re-runs), 14686723/24 (Sleep re-runs), 14686867/68 (TUEV linear-probe re-runs). Kept the 7
+jobs that do **no** pretraining of ours: `ours_scratch_{tuab,tuev}` (14657774, 14686670),
+`biot_{tuab,tuev}` × {pretrained, scratch} (14657775/76, 14686671/72), and 14686742 (the
+§13.32 rescue — `init_from`, phase 2 only, salvaging 9 h of already-spent compute).
+
+**What this changes about the plan, stated plainly.** The pooled-pretrain machinery of
+§13.29 is built and smoke-tested but will not be *run* here; it stands as a reference
+implementation for the larger cluster. More importantly, **the objective ablation
+(cf_mixed vs random MAE, Link 1 — our core novelty) is itself a pretraining question and
+therefore also moves off this cluster.** No cf_mixed evidence will be produced here. The
+§13.31 TUEV/Sleep re-runs are cancelled, so **every multiclass number in §13.21/13.28/13.30
+stays retracted and unreplaced** — TUEV and Sleep-EDF currently have *no* valid objective
+result at all. That is the honest state; it is not a gap this cluster will close.
+
+**The question this cluster CAN answer, and the one the big run actually needs first:
+which architecture should be pretrained?** That needs no pretraining — from-scratch
+supervised training isolates the backbone. Queued (`augmentations: []`, 20 epochs, matched
+to BIOT per §13.32; AUROC selection on TUAB, kappa on TUEV per §13.31):
+
+| cell | asks |
+|---|---|
+| `ours_scratch_{tuab,tuev}` | full tri-axial: xyz PE + hz BandPE + freq axis |
+| `..._freqnone` (14686986/89) | **is the 3rd (frequency) axis worth anything?** — the CBraMod-style 2-axis control |
+| `..._idxpe` (14686987/90) | **is xyz SpatialPE worth anything?** vs a learned index embedding |
+| `..._bandidx` (14686988/91) | **is centre-frequency BandPE worth anything?** vs a learned band embedding |
+| `biot_{tuab,tuev} --init scratch` | same protocol, BIOT's backbone — architecture vs architecture |
+| `biot_{tuab,tuev} --init pretrained` | BIOT state B — the target the big-cluster run must beat |
+
+That is 8 of our cells + 4 BIOT cells on one identical pipeline, all without a single
+pretraining epoch. **It is exactly the input the larger cluster needs**: it says which
+backbone to spend the expensive pretraining on, and it fixes the BIOT reference number the
+result will be judged against.
+
+**Reading to keep in view (§13.18):** xyz coordinates, centre-frequency band encoding and a
+dedicated frequency axis are all *priors encoded as architecture*. If these ablations show
+they buy nothing, that is not a setback — it is the §13.18 thesis holding a second time, and
+it argues for pretraining a **simpler** backbone on the big cluster, which is cheaper and
+more consistent with the paper's actual claim.
+
+### 13.34 `mixed_p` — do NOT tune it here; it belongs on the big cluster as a dose-response curve (2026-07-23)
+
+Question raised: `cf_mixed` uses `mixed_p = 0.5`; should 0.25 / 0.75 be swept?
+
+**The sweep's endpoints already exist.** `mixed_p = 0` *is* the `random` row and `mixed_p = 1`
+*is* the `crossfreq` row, so three points of the curve are already measured (binary datasets,
+AUROC-selected, unaffected by the §13.31 bug):
+
+| PR-AUC | p=0 (pure random) | p=0.5 (cf_mixed) | p=1 (pure crossfreq) |
+|---|---|---|---|
+| TUAB | 0.8107 | 0.8438 | **0.8615** |
+| TUSZ | 0.4531 | **0.5529** | 0.5514 |
+| CHB-MIT | 0.1356 | **0.4383** | 0.3929 |
+
+Reading: **0 → 0.5 rises on all three** (+0.033 / +0.100 / +0.303) — that segment is solid.
+**0.5 → 1 disagrees across datasets** (TUAB up, TUSZ flat, CHB-MIT down). So *adding* a
+crossfreq component is robustly good; *how much* is dataset-dependent with no common optimum.
+
+Worth recording: the two mask modes have **equal masking budget** — crossfreq hides the top
+4 of 8 bands (50% of tokens) and random uses `mask_ratio = 0.5`. So `mixed_p` interpolates
+between two equal-cost objectives and is not confounded with "how much is hidden".
+
+**Decision (user, 2026-07-23): not run here.** Two reasons, and the second is the real one:
+1. It is a pretraining experiment, and pretraining moved off this cluster (§13.33).
+2. **As tuning it is close to worthless.** An optimum found under single-dataset / 30-epoch /
+   linear-probe conditions will not transfer to pooled, large-scale, finetuned pretraining —
+   TUSZ and CHB-MIT already disagree at n=3 datasets. Shipping a tuned `mixed_p` to the big
+   cluster would be a number with no evidential standing.
+
+**But it IS worth running there, framed differently.** As a **dose-response curve**
+(`mixed_p ∈ {0, 0.25, 0.5, 0.75, 1}`, everything else fixed) it tests *mechanism*, not
+hyperparameters: monotonic improvement with crossfreq dose is strong causal evidence that the
+crossfreq component is what does the work; a flat curve says it is not. That is evidence for
+**why** it works, which the paper needs and does not have. Marginal cost there is small —
+`p=0` (standard MAE) has to be run anyway as the control.
+
+**Added to the big-cluster experiment list (§13.33), as mechanism, not tuning.**
+
+### 13.35 The first BIOT number was measured under a mis-specified recipe — retracted (2026-07-23)
+
+Job 14657775 (BIOT + `EEG-PREST-16-channels.ckpt`, TUAB) returned
+`test@best bal_acc=0.7894 auroc=0.8702 pr_auc=0.8658`, which sits **below** our
+`pretrain_tuab_cf_mixed_ft` (0.8079 / 0.8799 / 0.8840) at half the parameters (1.65M vs
+3.19M). **That comparison does not hold and must not be quoted.**
+
+**What the validation curve shows.** Best epoch was **epoch 0**, then monotone decline while
+train loss collapsed:
+
+| epoch | train loss | val AUROC |
+|---|---|---|
+| 0 | 0.3679 | **0.8745** |
+| 5 | 0.1084 | 0.8499 |
+| 19 | 0.0268 | 0.8471 |
+
+Textbook overfitting from the first epoch — BIOT never had a good checkpoint to select.
+
+**Cause: our config gave BIOT the wrong hyperparameters.** `configs/biot_tuab.yaml` set
+`lr: 1e-4` "to match our finetune_lr" and `batch_size: 32` to match ours. BIOT's own
+defaults (`run_binary_supervised.py:379,382`) are **`lr = 1e-3`, `batch_size = 512`**. TUAB
+train is ~298k windows, so bs=32 is **9,325 steps/epoch against the 583 BIOT is designed
+for — 16x the intended updates per epoch.** Matching our numbers was the wrong instinct: it
+made the protocol *symmetric* but not *fair*, because symmetric-at-our-operating-point is
+BIOT's operating point only by coincidence.
+
+**Fix: separate the two purposes, which were conflated.**
+
+| purpose | correct protocol |
+|---|---|
+| **BIOT as the target number** (what the big-cluster run must beat) | BIOT's **own** recipe — we want its true capability, not its behaviour under our settings. `biot_{tuab,tuev}_native.yaml`: lr 1e-3, bs 512, 50 epochs, best-epoch selection. Jobs 14688032/33. |
+| **architecture vs architecture** (`--init scratch` vs `ours_scratch`) | **symmetric** — same lr/bs/epochs/augmentation for both, because the backbone is the variable. Unchanged (14657776, 14686672). |
+
+**Process note, same shape as §13.31:** both errors were "a number came out surprising, so
+read the per-epoch curve instead of the final metric." §13.31 caught a selection metric,
+this caught a learning rate. The final test number never reveals either. **Any baseline
+whose val curve peaks at epoch 0 is mis-configured until proven otherwise** — that check
+costs nothing and should run on every baseline before its number is used.
+
+### 13.36 Systematic audit — the validation curve was being sampled too coarsely on TUAB (2026-07-24)
+
+Run after §13.31 (wrong selection metric) and §13.35 (wrong BIOT learning rate), because two
+protocol errors in two days meant ad-hoc checking was not enough.
+
+**Clean (verified, no action needed):**
+
+| check | method | result |
+|---|---|---|
+| generated configs differ only in the intended key | diff every variant vs its base | 8/8 clean — no silent `sed` no-ops |
+| architecture comparison is symmetric | 12 shared hyperparameters, `ours_scratch` vs `biot` | all identical |
+| TUEV class weights applied to both sides | read both runners | identical |
+| `select_key` shared, no local copies | grep all three runners | all import from `eval.py` |
+
+**The finding: `best_epoch = 0` is not a BIOT problem, it is a TUAB problem, and it hits us
+too.** Applying §13.35's own new check to *every* finished run:
+
+| run | best epoch |
+|---|---|
+| `pretrain_tuab_cf_mixed_ft` (**our headline TUAB number**) | **0** |
+| `ours_scratch_tuab` | **1** |
+| `biot_tuab-pretrained` | **0** |
+
+Cause is step count, not any hyperparameter: TUAB train is **298,396 windows = 9,324
+optimiser steps per epoch at batch 32**, and validation ran **once per epoch**. The true
+optimum lies *inside* epoch 0-1 and is sampled at ±9,324-step resolution.
+
+Two consequences, the second worse than the first:
+1. every TUAB number we hold (ours and BIOT's) is read off a checkpoint already past its peak;
+2. **model comparisons on TUAB absorb an epoch-boundary artefact unrelated to the models** —
+   whichever variant happens to sit better at a boundary wins. The four queued TUAB
+   architecture ablations would have produced differences smaller than that artefact, i.e.
+   **the architecture decision could not have been made from them.**
+
+TUEV is unaffected: 75,768 windows = 2,368 steps/epoch, and its best epochs land at 11/14/17/18.
+So this is a per-dataset protocol property; the fix is applied per dataset, and every model on
+a given dataset gets the same treatment.
+
+**Fix: `eval_every_steps` in all three runners** (`train.py`, `pretrain.py`,
+`baseline_biot.py`). It fires validation mid-epoch and feeds best-checkpoint selection.
+**It changes no training dynamics at all — it only samples the validation curve more finely.**
+Default `0` = off, so nothing already recorded shifts. All three had to change together: if
+only one side of a comparison can find its best checkpoint mid-epoch, the comparison measures
+validation resolution instead of models.
+
+Verified `scratchpad/smoke_stepeval.py`, ALL GREEN, 5 checks — including the one that matters
+for safety: **the hook validates (switching to eval mode) and the model is restored to train
+mode afterwards**, and for the linear probe the frozen encoder is put back in `eval()`. That
+is the only way this change could corrupt training rather than merely measure it.
+
+**Re-run design — better resolution AND ~3x cheaper.** Since every model peaks in epoch 0-1,
+running 20 epochs spends 90% of the compute past the peak:
+
+| | before | after |
+|---|---|---|
+| epochs | 20 | **5** |
+| validation | 1 / epoch | **every 1,500 steps (~6 / epoch)** |
+| evaluation points | 20, 18 of them in the useless region | **31, all in the region containing the peak** |
+| training batches | 186,480 | **46,620** |
+
+Resubmitted with `_se` configs: 14688397 (`ours_scratch_tuab`), 14688398 (`_freqnone`),
+14688399 (`_idxpe`), 14688400 (`_bandidx`), 14688401 (`biot_tuab` `--init scratch`).
+Left alone: all TUEV cells (resolution already adequate) and `biot_tuab_native` (bs 512 →
+583 steps/epoch, so per-epoch validation is already fine-grained in step terms).
+Cancelled 14686742 (the §13.32 rescue): it would have produced a coarse-resolution number in
+a regime we no longer measure here, and the from-scratch `_idxpe` cell answers the same
+architecture question at proper resolution.
+
+**Generalised lesson (third of this kind):** §13.31 was the wrong selection *metric*, §13.35
+the wrong *learning rate*, this the wrong *sampling rate of the validation curve*. All three
+were invisible in the final test number and visible immediately in the per-epoch trace. The
+standing rule is now: **before any number is used, look at its validation curve — and before
+any comparison is used, confirm both sides could have found their best checkpoint.**
+
+### 13.37 Architecture-decision results — TUAB complete, the call for the big-cluster backbone (2026-07-24)
+
+From-scratch supervised, no pretraining (isolates the backbone), step-level validation
+(§13.36), single seed. TUAB table complete; TUEV baseline (14686670) still running so TUEV
+rows are partial.
+
+**TUAB (AUROC / PR-AUC), full tri-axial = baseline:**
+
+| variant | removed | AUROC | PR-AUC |
+|---|---|---|---|
+| full tri-axial | — | 0.8738 | 0.8718 |
+| freqnone | frequency axis | 0.8603 | 0.8619 |
+| idxpe | xyz SpatialPE | 0.8737 | 0.8739 |
+| **bandidx** | hz BandPE | **0.8775** | **0.8809** |
+
+**Architecture vs architecture, one identical pipeline:**
+
+| model | AUROC | PR-AUC |
+|---|---|---|
+| ours full (scratch) | 0.8738 | 0.8718 |
+| ours bandidx (scratch) | 0.8775 | 0.8809 |
+| BIOT backbone (scratch, symmetric protocol) | 0.8780 | 0.8773 |
+
+**Three component calls, with BOTH datasets' baselines now in (TUEV baseline 14686670 =
+kappa 0.4544; earlier partial-TUEV readings that lacked this baseline were misread as
+"neutral" — CORRECTED here):**
+
+TUEV kappa: full 0.4544 | freqnone 0.3761 | idxpe 0.3743 | bandidx 0.4679
+
+1. **Frequency axis — KEEP (strong, both datasets).** Removing it costs 0.0135 AUROC on TUAB
+   and **0.078 kappa on TUEV**. Not neutral on TUEV — a large drop. The single firmest
+   positive architecture result today.
+2. **xyz SpatialPE — KEEP.** TUAB: idxpe 0.8737 vs full 0.8738 (no effect). TUEV: idxpe 0.3743
+   vs full 0.4544 (**-0.08, a real drop**). Useful on TUEV, harmless on TUAB → keep. (This
+   REVERSES the earlier "drop it" call, which rested on an isolated TUEV number with no
+   baseline to compare against.)
+3. **hz BandPE — DROP, it hurts (both datasets).** bandidx is best on TUAB (0.8775/0.8809) and
+   beats full on TUEV (0.4679 vs 0.4544, +0.014). Encoding bands by centre frequency is a
+   burden on both — a §13.18 instance.
+   **⚠ OVERTURNED as a universal call — see §13.40-C and §13.39.** This "drop" holds only on
+   TUAB/TUEV supervised-from-scratch. On TUSZ (§13.40-C) hz-BandPE HELPS (bandidx −0.018). And
+   under pretraining (§13.39) it is regime-dependent: with random MAE it helps hugely, with
+   cf_mixed it is redundant. Read call #3 as "drop it *when the frequency prior arrives from
+   elsewhere*", not "drop it always."
+
+**On BIOT:** ours-best-scratch (bandidx) ties BIOT-scratch — TUAB AUROC 0.8775 vs 0.8780,
+PR-AUC we lead 0.8809 vs 0.8773. Backbone-for-backbone from scratch, level with BIOT.
+
+**Corrected recommendation for the big-cluster backbone:** frequency axis IN, xyz SpatialPE
+IN, hz BandPE replaced by a learned index embedding. Only ONE component of the current "full
+tri-axial" should change.
+
+**Process note — I got this wrong once first.** An interim version of this section (written
+before 14686670 finished) called xyz PE and the frequency axis "neutral on TUEV" from
+isolated TUEV ablation numbers that had no baseline yet. With the baseline in, TUEV penalises
+removing either. This is the §13.31/13.35/13.36 lesson applying to my own analysis: an
+isolated number cannot be read; wait for the control. Corrected above.
+
+**Caveats:** single seed; TUAB gaps of 0.001-0.006 are within plausible seed noise (only
+freqnone -0.0135 and bandidx +0.006-0.009 individually notable), while every TUEV gap is
+0.014-0.08 and clearer. Multi-seed confirmation belongs to the reported-results stage, not
+this decision stage.
+
+### 13.38 Pre-pretrain validation matrix COMPLETE (2026-07-24)
+
+All 13 architecture-decision jobs + BIOT native/step-eval reruns terminal. This closes the
+pretrain-before validation phase (pretraining itself moved to the larger cluster, §13.33).
+
+**BIOT reference numbers (its own recipe, lr1e-3/bs512, step-eval so no epoch-0 artefact):**
+- native TUAB: epoch-0-peak version AUROC 0.8811 / PR-AUC 0.8809; step-eval version (peak
+  epoch 1) 0.8743 / 0.8628. Finer sampling did NOT raise it → take the BIOT-favourable 0.8811.
+- native TUEV: kappa 0.4125 (step-eval, peak epoch 6).
+
+**Architecture-vs-architecture, one identical pipeline, scratch vs scratch:**
+
+| | TUAB AUROC | TUAB PR-AUC | TUEV kappa |
+|---|---|---|---|
+| ours full tri-axial | 0.8738 | 0.8718 | 0.4544 |
+| ours best variant (bandidx) | 0.8775 | 0.8809 | 0.4679 |
+| BIOT backbone (scratch, symmetric) | 0.8780 | 0.8773 | 0.4449 |
+
+Scratch-vs-scratch: level on TUAB (we lead PR-AUC), we lead TUEV by 0.023. Our best scratch
+PR-AUC (0.8809) even equals BIOT's fully-pretrained native PR-AUC (0.8809).
+
+**The three deliverables this phase owed are all answered with evidence:**
+1. which backbone to pretrain → tri-axial with hz-BandPE swapped to index (freq axis + xyz PE
+   kept). Both datasets support each call (§13.37). **[hz-BandPE→index part later made regime-
+   dependent, not universal — see §13.40-C (TUSZ keeps it) and §13.39 (cf_mixed makes it
+   redundant). Net for the actual cf_mixed pretrain: index is still correct, because the
+   objective carries the frequency prior. freq axis + xyz PE calls unchanged and now have
+   three-dataset support.]**
+2. BIOT's reference number → TUAB 0.8811 AUROC, TUEV 0.4125 kappa.
+3. is the backbone competitive at all → yes, level with BIOT from scratch.
+
+**What did NOT get validated here, by design:** the cf_mixed objective under finetuning /
+multi-dataset / pooled-pretrain regimes — all pretraining questions, all moved to the big
+cluster. On this cluster cf_mixed is evidenced only as: binary + linear-probe + single-dataset
+pretrain, 3/3 datasets beating standard MAE (TUAB/TUSZ/CHB-MIT PR-AUC). The multiclass
+(TUEV/Sleep) objective numbers remain retracted (§13.31) and were not re-run.
+
+**Standing caveat: everything above is single seed.** Decision-grade, not report-grade. TUAB
+gaps of 0.001-0.006 sit in seed noise; only freqnone (-0.014) and bandidx (+0.006/+0.009) are
+individually solid there, TUEV gaps (0.014-0.08) are clearer. Multi-seed is the
+reported-results stage.
+
+**Big-cluster handoff list:**
+- backbone: tri-axial, `band_pe: index`, `spatial_pe: xyz`, freq axis on.
+- objective: cf_mixed vs standard-MAE control, **under finetuning not just linear probe**, on
+  the pooled corpus (`data.build_pretrain_pool`, smoke-tested §13.29).
+- mechanism (optional but valuable): `mixed_p ∈ {0,0.25,0.5,0.75,1}` dose-response (§13.34),
+  and the `freq_mixer: none` cut of the cross-band path to confirm cf_mixed works *through*
+  cross-frequency routing.
+- protocol guards baked in: `eval.select_key` (metric per BIOT), `eval_every_steps` (step-level
+  validation on large datasets), best-epoch selection. Any baseline whose val curve peaks at
+  epoch 0 is mis-configured until proven otherwise (§13.35/36).
+
+### 13.39 Q2 COMPLETE — does the architecture fit cf_mixed? (CHB-MIT, finetune, 2026-07-25)
+
+Single-dataset small pretrain (15 epochs) -> finetune on CHB-MIT (1% positive; PR-AUC is the
+metric), 5 cells. Answers "does our architecture fit the cf_mixed objective" AND fills the
+standing gap "cf_mixed only ever validated under linear probe, never finetune".
+
+| config | PR-AUC | AUROC |
+|---|---|---|
+| random MAE + BandPE index (neither prior) | 0.1575 | 0.7176 |
+| **cf_mixed + BandPE index (freq axis on)** | **0.5472** | 0.9150 |
+| random MAE + BandPE hz | 0.5466 | 0.9007 |
+| cf_mixed + BandPE hz | 0.4081 | 0.8727 |
+| cf_mixed + BandPE index + freqnone (no freq axis) | 0.4162 | 0.8506 |
+
+**Finding 1 — cf_mixed works under FINETUNE, strongly.** On the index architecture, cf_mixed
+lifts PR-AUC 0.158 -> 0.547 (3.5x) vs standard random MAE. This closes the §13.38 gap: the
+objective's benefit was previously only shown under linear probe; it holds under full finetune.
+
+**Finding 2 — cf_mixed and hz-BandPE are SUBSTITUTES, not additive.** Either prior alone
+reaches ~0.55 (cfm+index 0.5472; rand+hz 0.5466); neither gives 0.158; BOTH gives 0.408 —
+worse than either alone. Both inject "frequency awareness": cf_mixed through the objective
+(forced cross-band reconstruction), hz-BandPE through the architecture (bands labelled by
+physical frequency). Doubling up interferes.
+
+**Consequence — the architecture that fits cf_mixed is BandPE INDEX, not hz.** When the
+objective already injects frequency structure, the PE should be neutral (index) and leave that
+job to the objective; the two then divide labour instead of fighting. `cfm+index` (0.547) is
+the best cell. Conversely, WITHOUT cf_mixed (plain random MAE), the architecture must supply
+frequency awareness via hz-BandPE (rand+hz 0.547 vs rand+index 0.158).
+
+**Finding 3 — this REVISES §13.37's "drop hz-BandPE".** That call came from supervised-from-
+scratch (TUAB/TUEV), where hz-BandPE hurt. Under PRETRAINING it is regime-dependent: with
+random MAE hz-BandPE helps enormously (0.158->0.547); with cf_mixed it is redundant/harmful.
+So "hz vs index BandPE" is not a fixed decision — it is coupled to the objective. For the
+cf_mixed foundation model: index. (Also TUSZ supervised, §13.40, has bandidx WORSE than full,
+another sign the BandPE call is dataset/regime-dependent, not universal.)
+
+**Finding 4 — mechanism: cf_mixed routes PARTLY, not wholly, through the frequency axis.**
+Prediction was that removing the freq axis (freqnone) would collapse cf_mixed toward the
+neither-prior baseline (0.16). It did not: cfm+freqnone = 0.416, still far above 0.16, down
+0.13 from cfm+index 0.547. So the freq axis contributes to cf_mixed (supports keeping it), but
+the objective also shapes the shared frontend/time/space representation independent of the
+encoder's cross-band path (and mixed includes a random-mask half). cf_mixed is not a thin
+wrapper around one architectural component.
+
+**Caveats:** single seed; CHB-MIT 1% positives -> PR-AUC noisy, but AUROC agrees with every
+ordering and the headline gap is 3.5x, beyond noise. One dataset — the substitution pattern
+should be checked on a second before it is stated as general.
+
+### 13.40 Candidate-structure decision + CBraMod baseline + clean mechanism (2026-07-25)
+
+All single seed. Completes the 2026-07-24 goal (Q1/Q2 + CBraMod + candidate search).
+
+**A. Candidate structures (TUEV kappa) — the simple current structure wins, decisively.**
+
+| structure | kappa |
+|---|---|
+| **bandidx (current: tri-axial, attn freq, index BandPE, xyz PE, d128/depth6/8-band)** | **0.4679** |
+| full tri-axial (hz BandPE) | 0.4544 |
+| n_bands=16 | 0.4435 |
+| d_model=192 (wide) | 0.4181 |
+| freq_mixer=coupling (explicit PAC operator) | 0.4175 |
+| depth=8 (deep) | 0.3632 |
+
+No candidate beats the base. coupling < attention again (§13.18/13.20 reconfirmed); deep
+overfits small TUEV; wider/more-bands don't help. **Decided backbone: the current simple
+bandidx config.**
+
+**B. CBraMod baseline (its own µV/100 norm, our splits+eval, strict-loaded 4.88M weights).**
+
+| | TUAB PR-AUC | TUEV kappa |
+|---|---|---|
+| ours bandidx (scratch) | 0.8809 | 0.4679 |
+| BIOT scratch | 0.8773 | 0.4449 |
+| BIOT pretrained (native) | 0.8809 | 0.4125 |
+| CBraMod scratch | 0.8635 | **0.5017** |
+| CBraMod pretrained | 0.8815 | 0.4436 |
+
+Honest: **on TUEV, CBraMod-scratch (0.5017) is the single best number, above ours (0.4679).**
+Its criss-cross backbone is strong on TUEV. TUAB separates no one (confirmed non-discriminating).
+Note both CBraMod and BIOT do WORSE pretrained-vs-scratch on TUEV — the released foundation
+weights transfer poorly through our TUEV pipeline (250→200 resample shift); single seed.
+
+**C. Q1 TUSZ complete (PR-AUC, 9% positive) — cross-dataset INCONSISTENCY on hz-BandPE.**
+
+| variant | PR-AUC |
+|---|---|
+| full tri-axial | **0.6049** |
+| freqnone | 0.5947 |
+| bandidx | 0.5871 |
+| idxpe | 0.5658 |
+
+On TUSZ, full is best; removing anything hurts. hz-BandPE HELPS here (bandidx -0.018), opposite
+to TUAB/TUEV where it hurt. **So §13.37's clean "drop hz-BandPE" is NOT robust across datasets.**
+freq axis (keep) and xyz PE (keep, idxpe is worst here -0.039) remain consistent across all three.
+
+Compact three-dataset component picture (Δ metric when that component is REMOVED):
+
+| component | TUAB (AUROC) | TUEV (kappa) | TUSZ (PR-AUC) | call |
+|---|---|---|---|---|
+| frequency axis | −0.014 | −0.078 | −0.010 | **KEEP** (hurts to remove everywhere) |
+| xyz SpatialPE | ~0 | −0.080 | −0.039 | **KEEP** (helps TUEV/TUSZ, neutral TUAB) |
+| hz-BandPE | +0.006 | +0.014 | −0.018 | **CONTESTED** — dataset- AND objective-dependent |
+The hz-BandPE inconsistency is resolved by §13.39: hz-BandPE substitutes for an objective-borne
+frequency prior, so whether it helps depends on where the prior otherwise comes from.
+
+**D. Clean mechanism test (pure crossfreq, not mixed; CHB-MIT PR-AUC) — challenges the
+"forces PAC coupling" narrative.**
+
+| | PR-AUC | final pretrain recon |
+|---|---|---|
+| crossfreq × freq axis ON | 0.3457 | 0.063 (task solved) |
+| crossfreq × freq axis OFF | 0.3723 | 0.855 (task UNsolvable) |
+
+Removing the freq axis makes cross-band reconstruction impossible (recon 0.855 vs 0.063) yet
+downstream is NOT worse (0.372 vs 0.346). **So crossfreq's downstream benefit does not come from
+actually reconstructing high bands from low — i.e. not from learned low→high PAC routing.** The
+benefit is from the masking DISTRIBUTION (hide high bands → encode low bands well), not the
+cross-frequency prediction we designed it around. This does not weaken cf_mixed's effectiveness
+(§13.39) but it undercuts the mechanistic story that has justified it. Needs multi-seed, but it
+is a direct challenge to the headline explanation and must be carried forward as such.
+
+**Net decision for the big-cluster pretrain:** backbone = current bandidx config (index BandPE,
+since the run uses cf_mixed and the objective carries the frequency prior, §13.39); freq axis +
+xyz PE kept (consistent across datasets); no capacity/operator variant is worth it. Open
+scientific question now flagged: WHY cf_mixed works (mechanism §13.40-D contradicts the design
+rationale) — resolve with multi-seed pure-crossfreq×freqnone before writing the mechanism claim.

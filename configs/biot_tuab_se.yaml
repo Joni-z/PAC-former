@@ -1,0 +1,19 @@
+# BIOT baseline on OUR pipeline (baseline_biot.py). Data/eval identical to
+# pretrain_tuab_*.yaml; only the model differs.
+dataset: tuab
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+n_channels: 16
+seq_len: 2000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+token_size: 200        # BIOT default t
+hop_length: 100        # BIOT default t-p
+epochs: 5              # every model peaks in epoch 0-1 on TUAB (13.36); 5 covers well past it
+eval_every_steps: 1500   # 9,324 steps/epoch at bs32 -> ~6 validations per epoch (13.36)
+lr: 0.0001             # matches our finetune_lr
+weight_decay: 0.00001  # BIOT default

@@ -1,0 +1,19 @@
+# BIOT at its OWN hyperparameters (lr 1e-3, bs 512) on OUR data/splits/eval.
+# pretrain_tuev_*.yaml; only the model differs.
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 6
+batch_size: 512       # BIOT official default
+num_workers: 8
+seed: 0
+device: cuda
+token_size: 200        # BIOT default t
+hop_length: 100        # BIOT default t-p
+epochs: 50             # BIOT uses 100 + EarlyStopping(patience=5); best-epoch selection makes 50 ample at bs=512
+eval_every_steps: 100    # bs512 -> 583 steps/epoch; resolve the epoch-0 peak (13.36)
+lr: 0.001              # BIOT official default (run_binary_supervised.py:379)
+weight_decay: 0.00001  # BIOT default

@@ -29,15 +29,38 @@ import torch.nn.functional as F
 # --------------------------------------------------------------------------- #
 class BandPE(nn.Module):
     """Encode each band by its (center_freq, bandwidth) in Hz, NOT its index --
-    so a different filter bank at finetune time still lands in the same space."""
+    so a different filter bank at finetune time still lands in the same space.
 
-    def __init__(self, d_model: int):
+    `mode` exists so this claim can be ablated (sec. 13.28 Link 5); "hz" is the
+    default, so every config that does not mention band_pe is unchanged.
+      hz    : MLP over (centre freq, bandwidth) -- ours, the physics-aware version
+      index : learned per-band embedding -- the non-physical control. Same
+              parameter budget order, but it cannot transfer across filter banks,
+              which is exactly the property "hz" claims to buy.
+      none  : no band PE at all -- tests whether ANY band identity is needed.
+    """
+
+    def __init__(self, d_model: int, n_bands: int | None = None, mode: str = "hz"):
         super().__init__()
-        self.mlp = nn.Sequential(
-            nn.Linear(2, d_model), nn.GELU(), nn.Linear(d_model, d_model)
-        )
+        if mode not in ("hz", "index", "none"):
+            raise ValueError(f"band_pe mode must be hz/index/none, got {mode!r}")
+        self.mode = mode
+        self.d_model = d_model
+        if mode == "hz":
+            self.mlp = nn.Sequential(
+                nn.Linear(2, d_model), nn.GELU(), nn.Linear(d_model, d_model)
+            )
+        elif mode == "index":
+            if n_bands is None:
+                raise ValueError("band_pe: index needs n_bands")
+            self.emb = nn.Embedding(n_bands, d_model)
 
     def forward(self, band_hz: torch.Tensor) -> torch.Tensor:
+        if self.mode == "none":
+            return band_hz.new_zeros(band_hz.shape[0], self.d_model)
+        if self.mode == "index":
+            return self.emb(torch.arange(self.emb.num_embeddings,
+                                         device=band_hz.device))   # (n_bands, D)
         # normalise Hz to ~O(1) so the MLP sees a stable scale across sample rates
         return self.mlp(band_hz / 100.0)                        # (n_bands, D)
 
@@ -277,7 +300,34 @@ class FreqPhaseSteered(nn.Module):
         return torch.view_as_real(out).reshape(M, nb, D)
 
 
+class FreqNone(nn.Module):
+    """Ablation baseline: NO frequency axis -- band tokens never communicate.
+
+    This is the honest 2-axis control (space + time only), i.e. the CBraMod-style
+    criss-cross backbone our tri-axial design claims to improve on (AGENT.md
+    sec. 13.23). It returns exactly zero so the block's `x = x + freq(...)`
+    residual is a no-op; the band dimension survives as a batch dimension only.
+
+    It doubles as a MECHANISM probe for the cf_mixed objective: with no cross-band
+    path, a masked HIGH band can never see the visible LOW bands, so crossfreq
+    reconstruction is unsolvable by construction. If cf_mixed's advantage over
+    random MAE disappears here, that advantage is *caused* by cross-frequency
+    communication rather than by the mask happening to be harder.
+
+    Carries no parameters, so the comparison is not parameter-matched -- that is
+    deliberate: the question is whether the axis buys anything, and it must beat
+    the free option of not existing.
+    """
+
+    def __init__(self, d_model: int, **_):
+        super().__init__()
+
+    def forward(self, x, coupling=None, pac_vector=None):
+        return torch.zeros_like(x)
+
+
 FREQ_MIXERS = {
+    "none": FreqNone,
     "coupling": FreqCoupling,
     "attention": FreqAttention,
     "cotar": FreqCoTAR,

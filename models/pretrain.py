@@ -57,7 +57,7 @@ class MAEPretrain(nn.Module):
             kernel_size=cfg.get("kernel_size", 201), patch_len=cfg.get("patch_len", 200),
             return_pac_vector=self.needs_pac_vector,
         )
-        self.band_pe = BandPE(d)
+        self.band_pe = BandPE(d, n_bands=cfg["n_bands"], mode=cfg.get("band_pe", "hz"))
         self.spatial_pe = SpatialPE(cfg["n_channels"], d, coords=_spatial_coords(cfg))
         self.encoder = TriAxialEncoder(
             depth=cfg["depth"], d_model=d,
@@ -76,14 +76,21 @@ class MAEPretrain(nn.Module):
             # low->high forcing while still getting standard MAE's broad-coverage
             # signal, which is what the multi-class tasks appear to need (sec. 13.10b).
             mode = "crossfreq" if torch.rand(1).item() < self.mixed_p else "random"
-        if mode == "crossfreq":
+        n_hide = max(1, int(round(nb * self.crossfreq_frac)))
+        # Mechanism controls (AGENT.md 13.40-D / 13.41): all hide the SAME NUMBER of
+        # whole bands as crossfreq, differing only in WHICH bands, to isolate whether
+        # the benefit is about the high bands specifically ("PAC / low->high routing")
+        # or merely about hiding entire bands.
+        if mode in ("crossfreq", "lowfreq", "bandrand"):
             m = torch.zeros(B, C, nb, P, dtype=torch.bool, device=device)
-            n_high = max(1, int(round(nb * self.crossfreq_frac)))
-            m[:, :, nb - n_high:, :] = True             # hide the high-frequency region
-            if self.crossfreq_density < 1.0:
-                # Reveal some of the high region so the pretext is less destructive
-                # while low->high reconstruction is still the only route for what
-                # stays hidden.
+            if mode == "crossfreq":
+                idx = torch.arange(nb - n_hide, nb, device=device)   # top n_hide bands
+            elif mode == "lowfreq":
+                idx = torch.arange(0, n_hide, device=device)         # bottom n_hide bands
+            else:  # bandrand: n_hide random whole bands (shared across B,C,P this batch)
+                idx = torch.randperm(nb, device=device)[:n_hide]
+            m[:, :, idx, :] = True
+            if mode == "crossfreq" and self.crossfreq_density < 1.0:
                 reveal = torch.rand(B, C, nb, P, device=device) >= self.crossfreq_density
                 m = m & ~reveal
             return m

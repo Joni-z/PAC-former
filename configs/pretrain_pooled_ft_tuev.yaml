@@ -1,0 +1,49 @@
+# STATE 3 -- the actual foundation-model run (AGENT.md sec. 13.29).
+# Phase 1 pretrains on the POOLED 16-ch bipolar @200 Hz corpus (912k windows,
+# TRAIN splits only -- no test leakage). Phase 2 finetunes on TUAB alone.
+#
+# NOT TO BE SUBMITTED until sec. 13.28 Links 2 and 3 return: if the xyz PE or the
+# frequency axis turn out to buy nothing, this run would bake in the wrong design.
+# Sleep-EDF is deliberately absent: different montage (2 ch) AND crossfreq masking
+# measurably HURTS there (sec. 13.28 Link 1). Excluded on evidence, not convenience.
+
+# ---- downstream target (phase 2) ----
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 6
+
+# ---- architecture of record (sec. 13.23/13.25) ----
+arch: triaxial
+freq_mixer: attention
+spatial_pe: xyz
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+n_heads: 4
+
+# ---- objective of record (sec. 13.21) ----
+mask_mode: mixed
+mixed_p: 0.5
+mask_ratio: 0.5
+
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+pretrain_epochs: 15      # ~3x the data per epoch vs a single-dataset run, so 15
+                         # pooled epochs is MORE gradient steps than the 30 used
+                         # in sec. 13.27. Raise only with a time-limit bump.
+probe_epochs: 20
+lr: 0.0001
+weight_decay: 0.0001
+probe_mode: finetune
+finetune_lr: 0.0001
+init_from: checkpoints/pretrain-pooled-ft-tuab.pt
+wandb_run_name: pretrain-pooled-ft-tuev
