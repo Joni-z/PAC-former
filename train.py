@@ -82,6 +82,7 @@ def main():
         project=cfg.get("wandb_project", "pac-former"),
         name=cfg.get("wandb_run_name", f"{cfg['dataset']}-{cfg['mixer']}"),
         config=cfg,
+        mode="disabled",
     )
 
     train_loader, val_loader, test_loader, class_weights = build_dataloaders(cfg)

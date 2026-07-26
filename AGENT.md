@@ -3014,3 +3014,97 @@ since the run uses cf_mixed and the objective carries the frequency prior, §13.
 xyz PE kept (consistent across datasets); no capacity/operator variant is worth it. Open
 scientific question now flagged: WHY cf_mixed works (mechanism §13.40-D contradicts the design
 rationale) — resolve with multi-seed pure-crossfreq×freqnone before writing the mechanism claim.
+
+### 13.41 Literature collision + mechanism verdict → the PAC framing is dead, a better one is exposed (2026-07-25)
+
+**Collisions found by the PI (all real, all must be conceded):**
+- Phase-swap (Lemkhenter & Favaro 2020, arXiv:2009.07664) — PAC *as an SSL objective*, explicitly. Direct precedent for our post-§13.18 claim.
+- **MFM (ICLR 2023, arXiv:2206.07706)** — low-/high-pass spectral masking + predict missing frequencies. **crossfreq is an instance of MFM**, and MFM already reported our §13.40-D finding (both high-band structure and low-band statistics help).
+- SpecMoE (2026-03), TFM-Tokenizer (ICLR 2026, arXiv:2502.16060; freq-band × temporal masking = cf_mixed), band rejection/prediction (Jayalath 2024), BandVQ (2026-05, per-band VQ tokenizers = "band as first-class token").
+
+Net: **both the objective novelty (spectral masking) and the architecture novelty (bands as tokens) are taken.** The PAC-as-objective line cannot carry a paper.
+
+**Mechanism verdict (CHB-MIT PR-AUC, pure objectives, identical architecture, matched mask budget):**
+
+| objective | PR-AUC | final pretrain recon |
+|---|---|---|
+| lowfreq (hide bottom half) | **0.3669** | 0.106 |
+| crossfreq (hide top half) | 0.3457 | 0.063 |
+| bandrand (hide same NUMBER of scattered whole bands) | **0.1641** | 0.038 |
+| random MAE (baseline) | 0.158 | — |
+
+Two conclusions:
+1. **Direction is irrelevant** — hiding the LOW half works as well as (slightly better than) hiding the high half. The "low phase → high amplitude PAC routing" story is empirically dead, independent of the prior art. Consistent with MFM.
+2. **Contiguity is the active ingredient** — bandrand hides the same number of whole bands but scattered, and collapses to the random-MAE baseline. A contiguous spectral gap forces *extrapolation*; scattered bands permit *interpolation from neighbours* (easiest pretext, recon 0.038, worst transfer). **Caveat: recon losses across different pretexts are not on a common scale, so this is evidence that bandrand is easier — NOT a general "recon loss inversely predicts transfer" law.** (The ECG systematic study arXiv:2605.12241 reports the opposite, positive, correlation *within* an objective.)
+
+**Objective transfers across backbones (CHB-MIT, CBraMod's own backbone, its native masking vs ours):**
+
+| | PR-AUC | AUROC |
+|---|---|---|
+| CBraMod backbone + our spectral objective | **0.6087** | 0.9412 |
+| CBraMod backbone + its native random token masking | 0.5585 | 0.9282 |
+
++0.05 PR-AUC on someone else's SOTA backbone; and 0.6087 > our own backbone's 0.5472, i.e. **their backbone is better AND our objective still improves it.** This is the one result that is backbone-agnostic.
+
+**The field's own state (2026), which reframes everything:**
+- Liu et al., *EEG Foundation Models: Progresses, Benchmarking, and Open Problems* (arXiv:2601.17883) — 12 models × 13 datasets: **specialist models trained from scratch remain competitive and sometimes outperform EEG FMs**; larger FMs do not generalise better; linear probing is insufficient — and **they explicitly did not investigate the root cause.**
+- NeuroAtlas (arXiv:2605.14698) — **EEG-specific FMs do not consistently outperform generic time-series FMs** that have no EEG architecture and no EEG pretraining; "current models do not yet deliver on the promise of an out-of-the-box unified EEG model." Also no root-cause analysis.
+- We independently reproduced this: BIOT pretrained 0.8811 vs scratch 0.8780 on TUAB (no gain); on TUEV **both** BIOT (0.4125 vs 0.4449) and CBraMod (0.4436 vs 0.5017) are WORSE pretrained than from scratch.
+
+**Unclaimed niche, and it is what our own data is about: WHY EEG-specific priors fail to pay off.** §13.39's substitution 2×2 (frequency prior injectable from objective OR architecture; both together interfere: 0.547 / 0.547 / 0.408 / 0.158) is a mechanism for exactly NeuroAtlas's finding — EEG-specific models stack redundant priors. Nearest prior art is architecture/objective *alignment* in audio SSL (arXiv:2607.00387); the *interference/substitution* claim is unclaimed, and absent in EEG.
+
+**Direction of record (see next entry).** Not "another prior"; the paper that explains why priors don't add up, and builds the model that spends the prior budget once.
+
+### 13.42 DIRECTION OF RECORD — "Priors Don't Stack" (2026-07-25)
+
+Replaces the PAC/crossfreq framing, which §13.41 retired on two independent grounds (prior
+art: MFM/TFM-Tokenizer/BandVQ/Phase-swap; and our own data: masking direction is irrelevant).
+
+**The field's open problem, stated by the field itself.** Two 2026 benchmarks — Liu et al.
+(arXiv:2601.17883, 12 models × 13 datasets) and NeuroAtlas (arXiv:2605.14698) — report that
+EEG foundation models do NOT reliably beat from-scratch specialists, and that **EEG-specific
+FMs do not beat generic time-series FMs with no EEG architecture and no EEG pretraining**.
+Both explicitly decline to analyse the root cause. We reproduced the effect independently
+(§13.38/13.40: BIOT and CBraMod both *worse* pretrained than from scratch on TUEV).
+
+**Our claim (the unclaimed niche).** A domain prior is a **substitute good, not an additive
+one**. §13.39's 2×2 on CHB-MIT: the frequency prior injected from the objective (cf_mixed +
+index BandPE, 0.547) or from the architecture (random MAE + hz BandPE, 0.547) each recovers
+the full benefit; neither → collapse (0.158); **both → interference (0.408)**. That is a
+mechanism for exactly NeuroAtlas's finding: EEG-specific models stack redundant encodings of
+the same prior and pay for it, while generic models inject it once or not at all.
+
+**Constructive consequence.** If the prior can be spent only once, spend it in the
+**objective**, because the objective is backbone-portable and the architecture prior is not:
+our spectral objective improves **CBraMod's own backbone** over its native masking
+(0.6087 vs 0.5585 PR-AUC, §13.41), and that backbone is stronger than ours (0.6087 > 0.5472).
+Target model = strong generic backbone + exactly one prior, carried by the objective.
+
+**Positioning vs the colliding work.** MFM, TFM-Tokenizer, BandVQ, SpecMoE, band-rejection
+are all "here is one more prior". This is the paper arguing that adding them together is the
+problem. Nearest neighbour is architecture/objective *alignment* in audio SSL
+(arXiv:2607.00387); *interference/substitution* is unclaimed, and absent in EEG.
+
+**Load-bearing risk, and the gate.** The entire direction rests on a 2x2 measured on ONE
+dataset (CHB-MIT) at seed 0, where PR-AUC on 1% positives is noisy and the two "prior present"
+cells landing at 0.547/0.547 could be partly coincidence. **Nothing further is built until it
+replicates.**
+
+**Replication design — cross-dataset, NOT multi-seed (PI instruction 2026-07-25, consistent
+with the standing seed convention: seed 0 for development, multi-seed reserved for final
+reported results).** Configs generated by `scripts/gen_substitution_matrix.py`, verified
+line-identical to the seed-0 CHB-MIT cells apart from seed/name, so numbers are directly
+comparable. Queued: **TUEV 2x2 + TUSZ 2x2, seed 0** (8 jobs); the 16 multi-seed jobs were
+cancelled.
+
+What this buys and what it does not: three *independent datasets* agreeing is arguably
+stronger evidence of a real effect than three seeds on one dataset, since it rules out
+dataset-specific artefacts rather than only run-to-run variance. What it cannot do is
+**quantify within-dataset noise**, so no per-cell error bar exists and small gaps (< ~0.03
+PR-AUC) remain uninterpretable. If the pattern replicates here, multi-seed error bars become
+a requirement for the write-up, not for the decision.
+
+Read as: substitution holds if, per dataset, {objective-only} ~ {architecture-only} >> {neither}
+and {both} < max(either). If instead the four cells are within noise of each other, or the
+"both" cell is not depressed, the substitution claim fails and the direction must change again
+before any model is built.

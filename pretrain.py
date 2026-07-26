@@ -104,7 +104,8 @@ def main():
 
     wandb.init(project=cfg.get("wandb_project", "pac-former"),
                name=cfg.get("wandb_run_name", f"pretrain-{cfg['dataset']}-{cfg.get('mask_mode')}"),
-               config=cfg)
+               config=cfg,
+               mode="disabled")
 
     train_loader, val_loader, test_loader, class_weights = build_dataloaders(cfg)
     mae = MAEPretrain(cfg).to(device)
