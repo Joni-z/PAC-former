@@ -38,6 +38,10 @@
   fl/.style    ={-{Stealth[length=2.4mm]}, thick},
   shp/.style   ={font=\scriptsize\ttfamily, midway, fill=white, inner sep=1pt},
   note/.style  ={font=\scriptsize, align=left},
+  removed/.style={box, fill=red!5, draw=red!45, dashed, text=red!55!black},
+  swap/.style  ={box, fill=violet!10, draw=violet!55, text=violet!45!black},
+  delta/.style ={font=\scriptsize\ttfamily, align=left, fill=yellow!8,
+                 draw=black!30, rounded corners=1pt, inner sep=2pt},
 }
 \newcommand{\nb}{n_b}
 
@@ -198,6 +202,90 @@
          what lets it survive optimisation (sec.~13.18). \textbf{cf\_mixed}
          (coin-flip crossfreq/random) keeps the imbalanced-binary win AND clears
          standard MAE on multi-class (sec.~13.21).};
+\end{tikzpicture}
+
+% ======================================================================
+% FIGURE 3 -- the four architecture-ablation variants, side by side
+% (sec. 13.33 defines the cells; sec. 13.37/13.39/13.40 carry the numbers)
+%
+% Each column is the SAME tri-axial model with exactly ONE component
+% changed from the full baseline (column A). This is the from-scratch
+% SUPERVISED ablation (no pretraining) used to decide which components
+% earn their place before committing to the expensive pooled pretrain.
+% ======================================================================
+\begin{tikzpicture}[node distance=6mm]
+  \node[font=\small\bfseries] (f3title)
+        {Fig.~3 --- Four architecture variants (sec.~13.33): change ONE component vs the full baseline};
+
+  % ---------------- column A: full tri-axial (baseline) -----------------
+  \node[font=\footnotesize\bfseries, below=6mm of f3title, xshift=-66mm] (A-t) {A. full tri-axial\\(baseline)};
+  \node[io,   below=of A-t]  (A-grid) {token grid\\$(C,\nb,P,D)$};
+  \node[pe,   below=of A-grid] (A-band) {BandPE$(f_c,\mathrm{bw})$};
+  \node[pe,   below=of A-band] (A-spat) {SpatialPE(xyz)};
+  \node[op,   below=of A-spat] (A-axes) {time $+$ space $+$ freq\\attn (3 axes)};
+  \node[learn,below=of A-axes] (A-ffn) {FFN};
+  \node[learn,below=of A-ffn]  (A-head) {mean-pool $+$ head};
+  \node[io,   below=of A-head] (A-out) {logits};
+  \node[delta, below=3mm of A-out, text width=32mm] (A-delta)
+        {TUAB AUROC 0.8738\\TUEV $\kappa$ 0.4544\\TUSZ PR-AUC 0.6049\\(reference row)};
+
+  % ------------------- column B: freqnone -------------------------------
+  \node[font=\footnotesize\bfseries, below=6mm of f3title, xshift=-22mm] (B-t) {B. freqnone\\(freq axis removed)};
+  \node[io,   below=of B-t]  (B-grid) {token grid\\$(C,\nb,P,D)$};
+  \node[pe,   below=of B-grid] (B-band) {BandPE$(f_c,\mathrm{bw})$\\\scriptsize(unchanged)};
+  \node[pe,   below=of B-band] (B-spat) {SpatialPE(xyz)\\\scriptsize(unchanged)};
+  \node[removed, below=of B-spat, text width=30mm]  (B-axes)
+        {time $+$ space attn (2 axes)\\\texttt{freq: FreqNone} $\to \mathbf{0}$\\\scriptsize(CBraMod-style, no 3rd axis)};
+  \node[learn,below=of B-axes] (B-ffn) {FFN};
+  \node[learn,below=of B-ffn]  (B-head) {mean-pool $+$ head};
+  \node[io,   below=of B-head] (B-out) {logits};
+  \node[delta, below=3mm of B-out, text width=32mm] (B-delta)
+        {vs A: AUROC $-0.014$\\TUEV $\kappa$ $-0.078$\\TUSZ PR-AUC $-0.010$\\\textbf{KEEP} (hurts everywhere)};
+
+  % -------------------- column C: idxpe ----------------------------------
+  \node[font=\footnotesize\bfseries, below=6mm of f3title, xshift=22mm] (C-t) {C. idxpe\\(SpatialPE $\to$ index)};
+  \node[io,   below=of C-t]  (C-grid) {token grid\\$(C,\nb,P,D)$};
+  \node[pe,   below=of C-grid] (C-band) {BandPE$(f_c,\mathrm{bw})$\\\scriptsize(unchanged)};
+  \node[swap, below=of C-band] (C-spat) {SpatialPE $\to$\\learned index emb.\\\scriptsize(xyz removed)};
+  \node[op,   below=of C-spat] (C-axes) {time $+$ space $+$ freq\\attn (3 axes)};
+  \node[learn,below=of C-axes] (C-ffn) {FFN};
+  \node[learn,below=of C-ffn]  (C-head) {mean-pool $+$ head};
+  \node[io,   below=of C-head] (C-out) {logits};
+  \node[delta, below=3mm of C-out, text width=32mm] (C-delta)
+        {vs A: AUROC $\approx 0$\\TUEV $\kappa$ $-0.080$\\TUSZ PR-AUC $-0.039$\\\textbf{KEEP} (helps TUEV/TUSZ)};
+
+  % -------------------- column D: bandidx --------------------------------
+  \node[font=\footnotesize\bfseries, below=6mm of f3title, xshift=66mm] (D-t) {D. bandidx\\(BandPE $\to$ index)};
+  \node[io,   below=of D-t]  (D-grid) {token grid\\$(C,\nb,P,D)$};
+  \node[swap, below=of D-grid] (D-band) {BandPE $\to$\\learned index emb.\\\scriptsize(Hz removed)};
+  \node[pe,   below=of D-band] (D-spat) {SpatialPE(xyz)\\\scriptsize(unchanged)};
+  \node[op,   below=of D-spat] (D-axes) {time $+$ space $+$ freq\\attn (3 axes)};
+  \node[learn,below=of D-axes] (D-ffn) {FFN};
+  \node[learn,below=of D-ffn]  (D-head) {mean-pool $+$ head};
+  \node[io,   below=of D-head] (D-out) {logits};
+  \node[delta, below=3mm of D-out, text width=32mm] (D-delta)
+        {vs A: AUROC $+0.006$\\TUEV $\kappa$ $+0.014$\\TUSZ PR-AUC $-0.018$\\\textbf{CONTESTED}\\(dataset/objective-dep.,\\sec.~13.39)};
+
+  % ---- arrows within each column ----
+  \foreach \col in {A,B,C,D} {
+    \draw[fl](\col-grid)--(\col-band);
+    \draw[fl](\col-band)--(\col-spat);
+    \draw[fl](\col-spat)--(\col-axes);
+  }
+  \draw[fl](A-axes)--(A-ffn); \draw[fl](A-ffn)--(A-head); \draw[fl](A-head)--(A-out);
+  \draw[fl](B-axes)--(B-ffn); \draw[fl](B-ffn)--(B-head); \draw[fl](B-head)--(B-out);
+  \draw[fl](C-axes)--(C-ffn); \draw[fl](C-ffn)--(C-head); \draw[fl](C-head)--(C-out);
+  \draw[fl](D-axes)--(D-ffn); \draw[fl](D-ffn)--(D-head); \draw[fl](D-head)--(D-out);
+
+  \node[note, below=4mm of A-delta, text width=182mm, align=left]
+        {\textbf{All four are from-scratch SUPERVISED runs (no pretraining) -- this isolates
+         the backbone from the objective, sec.~13.33.} B/C/D each change exactly ONE component
+         vs A; deltas are (removed/swapped component's metric) $-$ (column A's metric), same
+         seed/splits/protocol. \textbf{Column D's call is NOT universal}: under the cf\_mixed
+         pretraining objective (sec.~13.39, CHB-MIT) hz-BandPE and cf\_mixed substitute for the
+         same frequency prior -- index is right \emph{because} cf\_mixed already supplies it,
+         not because hz-BandPE is bad in general (plain random-MAE pretraining needs it,
+         sec.~13.39 rand+hz $=0.547$ vs rand+idx $=0.158$).};
 \end{tikzpicture}
 
 \end{document}
