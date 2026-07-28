@@ -144,6 +144,17 @@ def main():
                 log[f"gate/layer{i}"] = mix.last_gate
             if hasattr(mix, "pac_scale"):
                 log[f"pac_scale/layer{i}"] = mix.pac_scale.item()
+            # The MI mixers have no learnable prior strength by design, so there is
+            # no pac_scale/gate to watch collapse. What must be watched instead is
+            # that the modulation is ACTIVE: mi_spread is 0 iff the coupling row is
+            # flat (mixer == plain attention), and kept_frac must stay at mi_k/nb.
+            # FreqCoherenceGate ran on five datasets with its gate pinned at the
+            # 0.5 no-op value and nobody noticed until the logs were read months
+            # later (AGENT.md 13.10a); these two lines are that lesson.
+            if hasattr(mix, "last_mi_spread"):
+                log[f"mi_spread/layer{i}"] = mix.last_mi_spread
+            if hasattr(mix, "last_kept_frac"):
+                log[f"mi_kept_frac/layer{i}"] = mix.last_kept_frac
 
         if (epoch + 1) % eval_every == 0:
             _, val_logits, val_y, _ = run_epoch(model, val_loader, device, criterion)

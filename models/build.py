@@ -88,6 +88,9 @@ class TriAxialPACFormer(nn.Module):
             depth=cfg["depth"], d_model=d,
             freq_mixer=self.freq_mixer,
             n_heads=cfg.get("n_heads", 4), dropout=cfg.get("dropout", 0.1),
+            # Only FreqMITopology reads this; every other mixer swallows it via **_,
+            # so passing it unconditionally leaves existing configs bit-identical.
+            mi_k=cfg.get("mi_k", 3),
         )
         self.head = ClassificationHead(d, cfg["num_classes"])
 

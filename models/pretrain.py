@@ -63,6 +63,7 @@ class MAEPretrain(nn.Module):
             depth=cfg["depth"], d_model=d,
             freq_mixer=self.freq_mixer,
             n_heads=cfg.get("n_heads", 4), dropout=cfg.get("dropout", 0.1),
+            mi_k=cfg.get("mi_k", 3),   # see build.py: inert for every other mixer
         )
         self.mask_token = nn.Parameter(torch.zeros(d))
         self.recon = nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Linear(d, 1))
@@ -77,7 +78,7 @@ class MAEPretrain(nn.Module):
             # signal, which is what the multi-class tasks appear to need (sec. 13.10b).
             mode = "crossfreq" if torch.rand(1).item() < self.mixed_p else "random"
         n_hide = max(1, int(round(nb * self.crossfreq_frac)))
-        # Mechanism controls (AGENT.md 13.40-D / 13.41): all hide the SAME NUMBER of
+        # Mechanism controls (AGENT.md 13.40-D): all hide the SAME NUMBER of
         # whole bands as crossfreq, differing only in WHICH bands, to isolate whether
         # the benefit is about the high bands specifically ("PAC / low->high routing")
         # or merely about hiding entire bands.

@@ -18,6 +18,7 @@ contract now means "swap only the frequency-axis mixer" (sec. 13.8).
 """
 
 import math
+from functools import partial
 
 import torch
 import torch.nn as nn
@@ -300,6 +301,163 @@ class FreqPhaseSteered(nn.Module):
         return torch.view_as_real(out).reshape(M, nb, D)
 
 
+def _mi_prepare(coupling: torch.Tensor, shuffle: bool) -> torch.Tensor:
+    """(M, nb, nb) [i drives j] -> (M, nb, nb) [target j, source i], non-negative.
+
+    `coupling` is |MVL| (frontend/triaxial.py::patch_coupling takes `.abs()`), so it
+    is >= 0 by construction -- which is what makes a multiplicative / top-k use of it
+    well defined. Do NOT use it as an additive logit bias here; that is FreqCoupling,
+    and its `pac_scale` collapsed to 0 (AGENT.md sec. 13.20).
+
+    `shuffle` is the CONTROL arm. It randomly permutes the entries WITHIN each
+    matrix, preserving the exact multiset of values (so sparsity and spread are
+    matched cell-for-cell) while destroying which band pair carries which value. If
+    a mixer's win survives this, the win is about the *shape* of the modulation, not
+    about phase-amplitude coupling -- which is exactly what the phase-steered
+    `scramble` control found (sec. 13.12), so it is measured from day one, not after.
+
+    A FRESH permutation every forward is deliberate: a permutation fixed for the run
+    is invertible, so the model could learn to undo it and recover the true pairing,
+    which would silently turn the control into a second copy of the treatment.
+    """
+    c = coupling.transpose(1, 2)                                   # [target j, source i]
+    if shuffle:
+        M, L, _ = c.shape
+        perm = torch.rand(M, L * L, device=c.device).argsort(dim=-1)
+        c = c.reshape(M, L * L).gather(-1, perm).reshape(M, L, L)
+    return c
+
+
+class FreqMIProduct(nn.Module):
+    """OURS: MI coupling modulates attention MULTIPLICATIVELY, with NO learnable knob.
+
+    ``w = softmax(QK) * mi ; w /= w.sum()`` -- a product of experts over the band
+    axis: an edge is strong only if the task-learned similarity AND the measured
+    coupling both support it. Either one can veto.
+
+    Why multiplicative and why on the PROBABILITIES, not the logits: QK logits are
+    signed, and multiplying a *negative* logit by a large coupling makes that pair
+    *less* attended -- i.e. strong coupling would suppress the very edge it should
+    promote. Post-softmax weights are non-negative, so the product is monotone in
+    coupling, which is the intended semantics.
+
+    Why no learnable scale -- this is the whole point of the design. Every previous
+    attempt put the prior next to a free QK path behind a learnable knob, and the
+    optimiser turned the knob off: FreqCoupling's `pac_scale` decayed monotonically
+    to 0 (sec. 13.20), and FreqCoherenceGate's `gate_w` never left its 0 init at all
+    (mean gate = 0.5000 on every layer of every dataset -> a uniform gate, which
+    cancels under renormalisation, so those five runs were plain attention wearing a
+    coupling costume). Here the prior's strength is fixed by construction: the row is
+    normalised to mean 1, so the modulation is invariant to coupling's absolute scale
+    and there is no parameter that can flatten it.
+
+    Degenerate rows (a flat/dead electrode gives an all-zero coupling row) fall back
+    to a uniform row = plain attention, rather than propagating 0/0. Dead channels in
+    16-channel clinical montages are the exact failure that produced NaN across a
+    whole batch in sec. 9.10; this is that lesson applied to the new normalisation.
+    """
+
+    def __init__(self, d_model: int, n_heads: int = 4, mi_shuffle: bool = False, **_):
+        super().__init__()
+        self.h = n_heads
+        self.scale = (d_model // n_heads) ** -0.5
+        self.qkv = nn.Linear(d_model, d_model * 3)
+        self.out = nn.Linear(d_model, d_model)
+        self.mi_shuffle = mi_shuffle
+        # Diagnostic, logged by train.py. This is the number whose being pinned at a
+        # constant is what exposed the FreqCoherenceGate no-op: if the modulation is
+        # doing nothing, mi_spread sits at 0.
+        self.last_mi_spread = 0.0
+
+    def forward(self, x: torch.Tensor, coupling: torch.Tensor | None = None,
+                pac_vector: torch.Tensor | None = None) -> torch.Tensor:
+        if coupling is None:
+            raise ValueError("FreqMIProduct requires the coupling matrix")
+        M, L, D = x.shape
+        hd = D // self.h
+        qkv = self.qkv(x).reshape(M, L, 3, self.h, hd).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]
+        w = F.softmax((q @ k.transpose(-2, -1)) * self.scale, dim=-1)   # (M, h, L, L)
+
+        c = _mi_prepare(coupling, self.mi_shuffle)                      # (M, L, L) >= 0
+        m = c.mean(dim=-1, keepdim=True)
+        # mean-1 rows: scale-invariant in coupling, so no temperature hyper-parameter.
+        c = torch.where(m > 1e-8, c / m.clamp_min(1e-8), torch.ones_like(c))
+        self.last_mi_spread = float((c.std(dim=-1).mean()).item())
+
+        w = w * c.unsqueeze(1)
+        w = w / w.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+        o = (w @ v).transpose(1, 2).reshape(M, L, D)
+        return self.out(o)
+
+
+class FreqMITopology(nn.Module):
+    """OURS: MI coupling decides the attention TOPOLOGY, not a weight on it.
+
+    For each target band j, only the `mi_k` source bands with the strongest measured
+    coupling into j may be attended at all; every other logit is -inf, so softmax
+    gives them exactly zero. QK still learns freely -- but only inside the set the
+    physics allows.
+
+    This is the strictly harder version of FreqMIProduct, and the difference is a
+    real one: a *multiplicative* prior can be overridden by a sufficiently confident
+    QK (a near-one-hot softmax times anything, renormalised, is still that one-hot),
+    whereas -inf cannot be out-voted by confidence. Running both answers whether the
+    escape hatch matters.
+
+    It also lands in the one category sec. 13.23 identified as safe from being
+    optimised away -- "which tokens may attend to which" is structure, not an
+    optional term beside a free path, so there is no knob to turn off. The closest
+    thing already tried, FreqPhaseSteered, also uses a hard non-learnable mask
+    (strict lower triangular) and is the only mixer in the project that beat every
+    other on TUAB and TUEV under plain supervised training (sec. 13.12). The
+    difference here: that mask is fixed for every sample, this one is recomputed per
+    (electrode, patch) from that segment's own coupling.
+
+    No self-edge is forced. topk always returns `mi_k` distinct sources, so no row can
+    be fully masked (which would make softmax NaN), and the token's own content
+    already survives through the block's `x = x + freq(...)` residual.
+
+    Deliberate limitation: topk is discrete, so no gradient reaches `coupling` or the
+    sinc cutoffs through this path. The frontend still gets gradient via the token
+    path. Recorded here because it is a property of the design, not an oversight.
+    """
+
+    def __init__(self, d_model: int, n_heads: int = 4, mi_k: int = 3,
+                 mi_shuffle: bool = False, **_):
+        super().__init__()
+        if mi_k < 1:
+            raise ValueError(f"mi_k must be >= 1, got {mi_k}")
+        self.h = n_heads
+        self.scale = (d_model // n_heads) ** -0.5
+        self.qkv = nn.Linear(d_model, d_model * 3)
+        self.out = nn.Linear(d_model, d_model)
+        self.mi_k = mi_k
+        self.mi_shuffle = mi_shuffle
+        self.last_kept_frac = 0.0
+
+    def forward(self, x: torch.Tensor, coupling: torch.Tensor | None = None,
+                pac_vector: torch.Tensor | None = None) -> torch.Tensor:
+        if coupling is None:
+            raise ValueError("FreqMITopology requires the coupling matrix")
+        M, L, D = x.shape
+        hd = D // self.h
+        qkv = self.qkv(x).reshape(M, L, 3, self.h, hd).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]
+        logits = (q @ k.transpose(-2, -1)) * self.scale                 # (M, h, L, L)
+
+        c = _mi_prepare(coupling, self.mi_shuffle)                      # (M, L, L)
+        kk = min(self.mi_k, L)
+        idx = c.topk(kk, dim=-1).indices                                # (M, L, kk)
+        keep = torch.zeros_like(c, dtype=torch.bool).scatter_(-1, idx, True)
+        self.last_kept_frac = float(keep.float().mean().item())
+
+        logits = logits.masked_fill(~keep.unsqueeze(1), float("-inf"))
+        w = F.softmax(logits, dim=-1)
+        o = (w @ v).transpose(1, 2).reshape(M, L, D)
+        return self.out(o)
+
+
 class FreqNone(nn.Module):
     """Ablation baseline: NO frequency axis -- band tokens never communicate.
 
@@ -333,6 +491,13 @@ FREQ_MIXERS = {
     "cotar": FreqCoTAR,
     "coherence": FreqCoherenceGate,
     "phase": FreqPhaseSteered,
+    # MI-guided mixers + their matched shuffle controls. The control is the SAME
+    # class with one flag flipped, so the two arms cannot drift apart in any other
+    # respect -- the failure mode that makes a control useless.
+    "mi_product": FreqMIProduct,
+    "mi_product_shuffle": partial(FreqMIProduct, mi_shuffle=True),
+    "mi_topk": FreqMITopology,
+    "mi_topk_shuffle": partial(FreqMITopology, mi_shuffle=True),
 }
 
 

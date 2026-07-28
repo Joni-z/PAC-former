@@ -1,0 +1,13 @@
+/scratch/zz5070/miniconda3/envs/pacformer/lib/python3.11/site-packages/torch/utils/data/dataloader.py:666: UserWarning: 'pin_memory' argument is set as true but no accelerator is found, then device pinned memory won't be used.
+  warnings.warn(warn_msg)
+real TUEV batch: x=(2, 16, 1000)  y=[5, 5]
+
+variant                   params    loss  grad_norm  diagnostic
+attention              1,635,734  1.7193     19.122  -                        OK
+mi_product             1,635,734  1.6776     19.061  mi_spread=0.9987         OK
+mi_product_shuffle     1,635,734  1.7106     18.957  mi_spread=1.2069         OK
+mi_topk                1,635,734  1.6343     18.995  kept_frac=0.3750         OK
+mi_topk_shuffle        1,635,734  1.7005     18.884  kept_frac=0.3750         OK
+
+==============================================================
+PASS: all 4 MI variants train end-to-end on real TUEV data

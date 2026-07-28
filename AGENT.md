@@ -1082,9 +1082,16 @@ through which bands exchange information — no attention fallback path.
    (electrode × band × time-patch), with explicit analytic-signal phase and
    amplitude carried alongside. Frequency is a *prior*, not a posterior.
 2. **Time-resolved, channel-specific directional coupling** as the frequency
-   axis mixer. Unlike QK attention (symmetric learned *similarity*), coupling
-   is asymmetric and *mechanistic*: "does band i's phase drive band j's
+   axis mixer. Coupling is *mechanistic*: "does band i's phase drive band j's
    amplitude". Direction is physically real (slow gates fast).
+   **CORRECTION (2026-07-28):** this bullet used to read "Unlike QK attention
+   (symmetric learned *similarity*), coupling is asymmetric…". That is false and
+   was never true in this repo. `q_proj` and `k_proj` are separate matrices, so
+   `logits[j,i] ≠ logits[i,j]` — QK attention is already asymmetric. **Asymmetry
+   is NOT a differentiator vs attention; only the *mechanistic* content is.**
+   The claim mattered because it was the stated reason a coupling operator could
+   express something attention cannot; with it removed, layer 2 rests entirely on
+   "the prior is the right one", which §13.41 then tested directly and rejected.
 3. **Phase-conditioned amplitude reconstruction (SSL) — the keystone.** See
    13.6. This is what turns layers 1-2 from decorative into load-bearing.
 4. **Interpretability, for free.** The operator emits a time-resolved,
@@ -1259,6 +1266,46 @@ coherence multiplicative gate) failing to clear this bar under supervised
 training — treat "architecture-side PAC layer, supervised loss" as a closed
 question, not worth another redesign attempt. Reinforces §13.2's framing: the
 prior only pays off if the *objective* forces it.
+
+> **RETRACTED 2026-07-28 — (a) tested nothing. The gate never opened.**
+> Reading the raw logs (`logs/14213997.log`, `…99`, `…14000`) at the end of
+> training:
+>
+> ```
+> gate/layer0 0.49999   gate/layer1 0.5      gate/layer2 0.50001
+> gate/layer3 0.5       gate/layer4 0.49998  gate/layer5 0.5
+> ```
+>
+> `sigmoid(0) = 0.5`, and `coupling` is **non-negative**, so any meaningfully
+> nonzero `gate_w` would drag the mean off 0.5. It did not move — 5th decimal
+> place, on all six layers, on every dataset. **`FreqCoherenceGate` ran as
+> literally plain attention on all five datasets.** The multiplicative form was
+> never evaluated; the table above is five re-runs of `attention` with extra
+> parameters. **Do not cite (a) as evidence against multiplicative PAC gating.**
+> The `attention`-vs-`coupling` columns are unaffected — they came from other jobs.
+>
+> Why it went unnoticed for months: the wandb sparkline *looked* like it was
+> moving, because wandb autoscales each panel to that series' own min/max. A
+> flat line varying in the 5th decimal renders identically to a real trend.
+> **Never read a sparkline for "is this alive"; read the number.**
+>
+> Root cause is the graceful-degradation design itself: init-at-no-op means the
+> failure mode "never left init" is visually indistinguishable from the intended
+> mode "correctly chose not to gate". A no-op init needs a paired check that the
+> parameter *moved*, or it is untestable by construction.
+>
+> Corrected failure ledger for architecture-side PAC (this replaces "three
+> redesigns in a row"):
+>
+> | attempt | actually tested? | result |
+> |---|---|---|
+> | `FreqCoupling` (additive) | yes | `pac_scale`→0, genuine failure |
+> | `FreqCoherenceGate` (multiplicative) | **no** — gate never opened | void |
+> | `FreqPhaseSteered` (hard topology) | yes | **won** TUAB/TUEV (§13.12) |
+> | mi v1-v3 (v1 flat arch) | partly — coupling was averaged into mush (§9.17 F2) | wash |
+>
+> So as of this retraction the count was 1 real failure, 1 real win, 1 void, and
+> multiplicative gating was **untested**. §13.41 is what actually tests it.
 
 **(b) MAE pretrain sweep — the §13.7 keystone objective, first real run.**
 `models/pretrain.py` (`MAEPretrain`): frontend + tri-axial encoder
@@ -3015,96 +3062,98 @@ xyz PE kept (consistent across datasets); no capacity/operator variant is worth 
 scientific question now flagged: WHY cf_mixed works (mechanism §13.40-D contradicts the design
 rationale) — resolve with multi-seed pure-crossfreq×freqnone before writing the mechanism claim.
 
-### 13.41 Literature collision + mechanism verdict → the PAC framing is dead, a better one is exposed (2026-07-25)
 
-**Collisions found by the PI (all real, all must be conceded):**
-- Phase-swap (Lemkhenter & Favaro 2020, arXiv:2009.07664) — PAC *as an SSL objective*, explicitly. Direct precedent for our post-§13.18 claim.
-- **MFM (ICLR 2023, arXiv:2206.07706)** — low-/high-pass spectral masking + predict missing frequencies. **crossfreq is an instance of MFM**, and MFM already reported our §13.40-D finding (both high-band structure and low-band statistics help).
-- SpecMoE (2026-03), TFM-Tokenizer (ICLR 2026, arXiv:2502.16060; freq-band × temporal masking = cf_mixed), band rejection/prediction (Jayalath 2024), BandVQ (2026-05, per-band VQ tokenizers = "band as first-class token").
+### 13.41 MI-guided frequency mixer — the multiplicative/topological PAC prior, tested properly and REJECTED (2026-07-28)
 
-Net: **both the objective novelty (spectral masking) and the architecture novelty (bands as tokens) are taken.** The PAC-as-objective line cannot carry a paper.
+**Why this exists.** §13.10a's retraction (above) showed the multiplicative form had never
+actually been evaluated, and §13.2's "asymmetry" differentiator turned out to be false. That
+left one honest open question in the architecture line: **does the measured PAC coupling matrix,
+used directly to steer frequency-axis attention, carry information the model cannot get
+otherwise?** This section answers it. The answer is no.
 
-**Mechanism verdict (CHB-MIT PR-AUC, pure objectives, identical architecture, matched mask budget):**
+**Design (`models/triaxial.py`).** Two mixers, both with **zero learnable prior strength** —
+the coupling is hardcoded into the attention computation. This is deliberate: every previous
+attempt (`pac_scale`, `gate_w`) put the prior behind a learnable scalar, which gave training a
+free path to switch it off (§13.18) and gave us a silent-no-op failure mode (§13.10a
+retraction). With no knob there is nothing to collapse and nothing to get stuck at init.
 
-| objective | PR-AUC | final pretrain recon |
-|---|---|---|
-| lowfreq (hide bottom half) | **0.3669** | 0.106 |
-| crossfreq (hide top half) | 0.3457 | 0.063 |
-| bandrand (hide same NUMBER of scattered whole bands) | **0.1641** | 0.038 |
-| random MAE (baseline) | 0.158 | — |
+- `FreqMIProduct` — `softmax(QK/√d)` × row-mean-normalized coupling, then renormalize.
+  Row-mean normalization (not softmax-with-temperature) is what makes it **hyperparameter-free**:
+  the result is invariant to the overall scale of the coupling, so there is no `T` to tune, and
+  therefore no researcher degree of freedom to launder a null result through.
+  Multiplication happens **post-softmax** because logits are signed and coupling is non-negative;
+  multiplying pre-softmax would flip the sign of negative logits.
+- `FreqMITopology` — coupling picks the top-`k` source bands per target band (`mi_k=3` of 8);
+  everything else is `-inf`. A **structural** prior in §13.23's sense: no free path around it.
+- Matched shuffle controls (`*_shuffle`) permute the coupling entries within each
+  (electrode, patch) matrix. Same class, one flag flipped, so the arms cannot drift apart in any
+  other respect. **A fresh permutation every forward** — a permutation fixed for the run is
+  invertible, so the model could learn to undo it, silently turning the control into a second
+  copy of the treatment.
 
-Two conclusions:
-1. **Direction is irrelevant** — hiding the LOW half works as well as (slightly better than) hiding the high half. The "low phase → high amplitude PAC routing" story is empirically dead, independent of the prior art. Consistent with MFM.
-2. **Contiguity is the active ingredient** — bandrand hides the same number of whole bands but scattered, and collapses to the random-MAE baseline. A contiguous spectral gap forces *extrapolation*; scattered bands permit *interpolation from neighbours* (easiest pretext, recon 0.038, worst transfer). **Caveat: recon losses across different pretexts are not on a common scale, so this is evidence that bandrand is easier — NOT a general "recon loss inversely predicts transfer" law.** (The ECG systematic study arXiv:2605.12241 reports the opposite, positive, correlation *within* an objective.)
+All five variants are **strictly parameter-matched at 1,635,734**.
 
-**Objective transfers across backbones (CHB-MIT, CBraMod's own backbone, its native masking vs ours):**
+**Pre-registered decision rule (fixed before any result was seen).** Beats `attention` AND beats
+its own shuffle → the PAC pairing carries real information. Beats `attention` but ties shuffle →
+the win is structured sparsity, not PAC, and must be written up as such. Doesn't beat
+`attention` → dead. Single seed, so **gaps < 0.02 kappa are noise and are not interpreted**.
 
-| | PR-AUC | AUROC |
-|---|---|---|
-| CBraMod backbone + our spectral objective | **0.6087** | 0.9412 |
-| CBraMod backbone + its native random token masking | 0.5585 | 0.9282 |
+**Results** (TUEV, seed 0, supervised from scratch, test `cohen_kappa`; jobs 14889456-59;
+comparator `ours_scratch_tuev_bandidx` = job 14686988, config diff exactly 2 lines):
 
-+0.05 PR-AUC on someone else's SOTA backbone; and 0.6087 > our own backbone's 0.5472, i.e. **their backbone is better AND our objective still improves it.** This is the one result that is backbone-agnostic.
+| variant | test kappa | vs attention | vs own shuffle |
+|---|---|---|---|
+| **attention (baseline)** | **0.4679** | — | — |
+| mi_product | 0.4382 | **−0.030** | −0.018 (tie) |
+| mi_product_shuffle | 0.4564 | −0.012 | — |
+| mi_topk | 0.4340 | **−0.034** | +0.015 (tie) |
+| mi_topk_shuffle | 0.4190 | −0.049 | — |
 
-**The field's own state (2026), which reframes everything:**
-- Liu et al., *EEG Foundation Models: Progresses, Benchmarking, and Open Problems* (arXiv:2601.17883) — 12 models × 13 datasets: **specialist models trained from scratch remain competitive and sometimes outperform EEG FMs**; larger FMs do not generalise better; linear probing is insufficient — and **they explicitly did not investigate the root cause.**
-- NeuroAtlas (arXiv:2605.14698) — **EEG-specific FMs do not consistently outperform generic time-series FMs** that have no EEG architecture and no EEG pretraining; "current models do not yet deliver on the promise of an out-of-the-box unified EEG model." Also no root-cause analysis.
-- We independently reproduced this: BIOT pretrained 0.8811 vs scratch 0.8780 on TUAB (no gain); on TUEV **both** BIOT (0.4125 vs 0.4449) and CBraMod (0.4436 vs 0.5017) are WORSE pretrained than from scratch.
+**Nothing beat the baseline.** And the sharpest fact: `mi_product_shuffle` — destroyed coupling —
+scored **higher** than the real coupling. On the other arm `mi_topk` beat its shuffle by +0.015.
+Opposite signs, both inside the noise band. **Zero evidence that the true PAC pairing carries
+usable information for the frequency-axis mixer**, under either the soft-weighting or the
+hard-topology reading of "guide attention with MI".
 
-**Unclaimed niche, and it is what our own data is about: WHY EEG-specific priors fail to pay off.** §13.39's substitution 2×2 (frequency prior injectable from objective OR architecture; both together interfere: 0.547 / 0.547 / 0.408 / 0.158) is a mechanism for exactly NeuroAtlas's finding — EEG-specific models stack redundant priors. Nearest prior art is architecture/objective *alignment* in audio SSL (arXiv:2607.00387); the *interference/substitution* claim is unclaimed, and absent in EEG.
+**These runs were real (unlike §13.10a).** Three independent confirmations:
+1. **epoch-0 `train_loss` differs across all five**: 1.0265 (attn) / 1.0222 / 1.0476 / 1.0347 /
+   1.0531. `mi_product` and `mi_product_shuffle` are the same class with one flag flipped and
+   diverge from the first epoch — the coupling matrix is provably entering the computation.
+   *This is the check §13.10a needed and lacked: a no-op mixer is bit-identical to `attention`
+   at the same seed.* Make it the standard first check on any new mixer.
+2. Full-model forward/backward on **real TUEV** data measured `mi_spread=0.9987`,
+   `kept_frac=0.3750` (= 3/8, exact).
+3. Neither mixer has a learnable prior strength, so the §13.10a failure mode is structurally
+   impossible, not merely unobserved.
 
-**Direction of record (see next entry).** Not "another prior"; the paper that explains why priors don't add up, and builds the model that spends the prior budget once.
+**Known gap:** the `mi_spread`/`mi_kept_frac` diagnostics added to `train.py` never reached any
+log — `wandb.init(mode="disabled")` (`train.py:85`) makes `wandb.log` a no-op. Point 1 above is
+what actually carries the "it ran" claim. **If wandb is ever re-enabled, those lines start
+working; until then, do not rely on `wandb.log` for run-time assertions — print them.**
 
-### 13.42 DIRECTION OF RECORD — "Priors Don't Stack" (2026-07-25)
+**Resolution limit — read this before trusting any 0.03-level result on TUEV.** Within-run
+epoch-to-epoch val-kappa std is **0.024-0.038** (range up to 0.11). That is *larger than every
+between-arm gap here*. Direct evidence the selection is noise-driven: `mi_product` has the
+**highest best-val kappa of all five runs (0.4779** vs baseline 0.4600) and a **below-baseline
+test** (0.4382). Val→test does not transfer at this resolution. So the honest reading of the
+table is **not** "MI is worse" — it is "**no evidence MI is better**", which is already
+sufficient to kill it, because reviving a dead line requires positive evidence.
 
-Replaces the PAC/crossfreq framing, which §13.41 retired on two independent grounds (prior
-art: MFM/TFM-Tokenizer/BandVQ/Phase-swap; and our own data: masking direction is irrelevant).
+**Decision: the architecture-side PAC line is CLOSED for real this time.** Phase 2 (TUSZ + TUAB,
+8 runs) is **cancelled** — not because the numbers are bad, but because two structurally
+*different* uses of the same prior (soft reweighting, hard topology) return the same answer and
+both random controls tie. Further tuning of `k`, of the normalization, or of the temperature
+would be fishing inside the noise band.
 
-**The field's open problem, stated by the field itself.** Two 2026 benchmarks — Liu et al.
-(arXiv:2601.17883, 12 models × 13 datasets) and NeuroAtlas (arXiv:2605.14698) — report that
-EEG foundation models do NOT reliably beat from-scratch specialists, and that **EEG-specific
-FMs do not beat generic time-series FMs with no EEG architecture and no EEG pretraining**.
-Both explicitly decline to analyse the root cause. We reproduced the effect independently
-(§13.38/13.40: BIOT and CBraMod both *worse* pretrained than from scratch on TUEV).
-
-**Our claim (the unclaimed niche).** A domain prior is a **substitute good, not an additive
-one**. §13.39's 2×2 on CHB-MIT: the frequency prior injected from the objective (cf_mixed +
-index BandPE, 0.547) or from the architecture (random MAE + hz BandPE, 0.547) each recovers
-the full benefit; neither → collapse (0.158); **both → interference (0.408)**. That is a
-mechanism for exactly NeuroAtlas's finding: EEG-specific models stack redundant encodings of
-the same prior and pay for it, while generic models inject it once or not at all.
-
-**Constructive consequence.** If the prior can be spent only once, spend it in the
-**objective**, because the objective is backbone-portable and the architecture prior is not:
-our spectral objective improves **CBraMod's own backbone** over its native masking
-(0.6087 vs 0.5585 PR-AUC, §13.41), and that backbone is stronger than ours (0.6087 > 0.5472).
-Target model = strong generic backbone + exactly one prior, carried by the objective.
-
-**Positioning vs the colliding work.** MFM, TFM-Tokenizer, BandVQ, SpecMoE, band-rejection
-are all "here is one more prior". This is the paper arguing that adding them together is the
-problem. Nearest neighbour is architecture/objective *alignment* in audio SSL
-(arXiv:2607.00387); *interference/substitution* is unclaimed, and absent in EEG.
-
-**Load-bearing risk, and the gate.** The entire direction rests on a 2x2 measured on ONE
-dataset (CHB-MIT) at seed 0, where PR-AUC on 1% positives is noisy and the two "prior present"
-cells landing at 0.547/0.547 could be partly coincidence. **Nothing further is built until it
-replicates.**
-
-**Replication design — cross-dataset, NOT multi-seed (PI instruction 2026-07-25, consistent
-with the standing seed convention: seed 0 for development, multi-seed reserved for final
-reported results).** Configs generated by `scripts/gen_substitution_matrix.py`, verified
-line-identical to the seed-0 CHB-MIT cells apart from seed/name, so numbers are directly
-comparable. Queued: **TUEV 2x2 + TUSZ 2x2, seed 0** (8 jobs); the 16 multi-seed jobs were
-cancelled.
-
-What this buys and what it does not: three *independent datasets* agreeing is arguably
-stronger evidence of a real effect than three seeds on one dataset, since it rules out
-dataset-specific artefacts rather than only run-to-run variance. What it cannot do is
-**quantify within-dataset noise**, so no per-cell error bar exists and small gaps (< ~0.03
-PR-AUC) remain uninterpretable. If the pattern replicates here, multi-seed error bars become
-a requirement for the write-up, not for the decision.
-
-Read as: substitution holds if, per dataset, {objective-only} ~ {architecture-only} >> {neither}
-and {both} < max(either). If instead the four cells are within noise of each other, or the
-"both" cell is not depressed, the substitution claim fails and the direction must change again
-before any model is built.
+**What this does to the project's claims:**
+- §13.18 hardens: PAC-as-architecture is now 0-for-4 with hyperparameter-free, parameter-matched,
+  control-matched evidence. The prior belongs in the **objective**. Unchanged: `cf_mixed`.
+- **New open question.** `FreqPhaseSteered` (§13.12) is still the only architecture-side win, and
+  it is also a hard topology. `mi_topk` is a hard topology too and did **not** win. So the phase
+  win probably comes from **phase information itself**, not from restricting which bands may
+  attend to which. That is a testable, falsifiable claim and it is now the only live thread in
+  this line — but it does not reopen the line by itself.
+- Combined with §13.40-D (crossfreq's benefit is not from low→high reconstruction), the
+  mechanistic PAC story is now unsupported from **both** directions, architecture and objective.
+  `cf_mixed` still works; **why** it works is an open question, and the paper must not assert
+  the PAC-routing explanation without new evidence.
