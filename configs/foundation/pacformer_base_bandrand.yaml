@@ -1,0 +1,6 @@
+inherits: pacformer_base.yaml
+# Matched structural control: half ordinary random masks, half the same number
+# of whole bands chosen randomly instead of always choosing the high bands.
+structured_mask_mode: bandrand
+output_dir: checkpoints/foundation-pacformer-base-bandrand
+

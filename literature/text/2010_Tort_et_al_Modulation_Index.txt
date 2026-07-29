@@ -1,0 +1,2123 @@
+
+
+===== PAGE 1 =====
+
+ 104:1195-1210, 2010. First published May 12, 2010;  doi:10.1152/jn.00106.2010 J Neurophysiol
+Adriano B. L. Tort, Robert Komorowski, Howard Eichenbaum and Nancy Kopell 
+ You might find this additional information useful...
+29 articles, 10 of which you can access free at: This article cites 
+ http://jn.physiology.org/cgi/content/full/104/2/1195#BIBL
+including high-resolution figures, can be found at: Updated information and services 
+ http://jn.physiology.org/cgi/content/full/104/2/1195
+ can be found at: Journal of Neurophysiologyabout Additional material and information 
+ http://www.the-aps.org/publications/jn
+This information is current as of August 28, 2010 . 
+  
+ http://www.the-aps.org/.American Physiological Society. ISSN: 0022-3077, ESSN: 1522-1598. Visit our website at 
+(monthly) by the American Physiological Society, 9650 Rockville Pike, Bethesda MD 20814-3991. Copyright © 2010 by the 
+ publishes original articles on the function of the nervous system. It is published 12 times a yearJournal of Neurophysiology
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 2 =====
+
+Innovative Methodology
+Measuring Phase-Amplitude Coupling Between Neuronal Oscillations
+of Different Frequencies
+Adriano B. L. Tort, 1 Robert Komorowski, 2 Howard Eichenbaum, 2 and Nancy Kopell 3
+1Edmond and Lily Safra International Institute of Neuroscience of Natal and Federal University of Rio Grande do Norte, Natal, Brazil;
+and 2Center for Memory and Brain and 3Center for BioDynamics and Department of Mathematics and Statistics, Boston University,
+Boston, Massachusetts
+Submitted 00 00 0000; accepted in ﬁnal form 00 00 0000
+Tort ABL, Komorowski R, Eichenbaum H, Kopell N. Measuring
+phase-amplitude coupling between neuronal oscillations of different
+frequencies. J Neurophysiol 104: 1195–1210, 2010. First published
+May 12, 2010; doi:10.1152/jn.00106.2010. Neuronal oscillations of
+different frequencies can interact in several ways. There has been
+particular interest in the modulation of the amplitude of high-fre-
+quency oscillations by the phase of low-frequency oscillations, since
+recent evidence suggests a functional role for this type of cross-
+frequency coupling (CFC). Phase-amplitude coupling has been re-
+ported in continuous electrophysiological signals obtained from the
+brain at both local and macroscopic levels. In the present work, we
+present a new measure for assessing phase-amplitude CFC. This
+measure is deﬁned as an adaptation of the Kullback–Leibler dis-
+tance—a function that is used to infer the distance between two
+distributions—and calculates how much an empirical amplitude dis-
+tribution-like function over phase bins deviates from the uniform
+distribution. We show that a CFC measure deﬁned this way is well
+suited for assessing the intensity of phase-amplitude coupling. We
+also review seven other CFC measures; we show that, by some
+performance benchmarks, our measure is especially attractive for this
+task. We also discuss some technical aspects related to the measure,
+such as the length of the epochs used for these analyses and the utility
+of surrogate control analyses. Finally, we apply the measure and a
+related CFC tool to actual hippocampal recordings obtained from
+freely moving rats and show, for the ﬁrst time, that the CA3 and CA1
+regions present different CFC characteristics.
+INTRODUCTION
+Neuronal oscillations of different frequencies can interact
+with one another (Jensen and Colgin 2007). The interaction of
+rhythms in different bands is commonly called “cross-fre-
+quency coupling” (CFC) and has been reported in continuous
+electrophysiological signals obtained at different levels, rang-
+ing from local to more mesoscopic and macroscopic scales, as
+assessed by intracellular, local ﬁeld potential (LFP), electro-
+corticogram, and electroencephalogram recordings (Bragin et
+al. 1995; Canolty et al. 2006; Cohen 2008; Demiralp et al.
+2007; Jensen and Colgin 2007; Kramer et al. 2008; Lakatos et
+al. 2005; Young and Eggermont 2009). In one type of inter-
+action, known as phase-amplitude coupling or nesting, the
+amplitude of high-frequency oscillations is modulated by the
+phase of low-frequency rhythms. Perhaps the best-known ex-
+ample of this type of CFC occurs in the hippocampus, where
+the theta (5–10 Hz) phase modulates the gamma (30 –100 Hz)
+amplitude (Bragin et al. 1995). Theoretical work suggests that
+such theta– gamma nesting plays a role in sequential memory
+organization and maintenance of working memory (Lisman
+2005; Lisman and Idiart 1995).
+Phase-amplitude coupling between neuronal oscillations has
+been receiving increasing interest, with a recent outpouring of
+papers in the last 5 years (Axmacher et al. 2010; Canolty et al.
+2006; Cohen 2008; Cohen et al. 2009a,b; Demiralp et al. 2007;
+Handel and Haarmeier 2009; Hentschke et al. 2007; Jensen and
+Colgin 2007; Kramer et al. 2008; Lakatos et al. 2005, 2008;
+Schroeder and Lakatos 2009; Tort et al. 2008, 2009; Wulff et
+al. 2009; Young and Eggermont 2009). Phase-amplitude CFC
+has been reported in species such as mice (Buzsáki et al. 2003;
+Hentschke et al. 2007; Wulff et al. 2009), rats (Bragin et al.
+1995), sheep (Nicol et al. 2009), monkeys (Lakatos et al.
+2005), and humans (Axmacher et al. 2010; Canolty et al. 2006;
+Cohen et al. 2009a,b), and in brain regions other than the
+hippocampus, such as the basal ganglia (Cohen et al. 2009a;
+Tort et al. 2008) and the neocortex (Canolty et al. 2006; Cohen
+et al. 2009b; Lakatos et al. 2005). New evidence supports the
+idea that this type of coupling presents a functional role in the
+execution of cognitive functions (Axmacher et al. 2010; Cohen
+et al. 2009a,b; Lakatos et al. 2008; Tort et al. 2008, 2009), in
+accordance with theoretical models (Lisman 2005). In partic-
+ular, phase-amplitude coupling has been suggested to be in-
+volved in sensory signal detection (Handel and Haarmeier
+2009), attentional selection (Schroeder and Lakatos 2009), and
+memory processes (Axmacher et al. 2010; Tort et al. 2009).
+Several methods exist for assessing phase-amplitude cou-
+pling and no single method has been chosen as the gold
+standard for detecting the phenomenon. The different measures
+possess different advantages and limitations and may be used
+to serve different purposes (see Cohen 2008 and present
+results). Here, we describe in detail a measure that we have
+used in recent publications for detecting phase-amplitude cou-
+pling (Tort et al. 2008, 2009). We also show how this measure
+compares with other measures and, based on the results, we
+argue that the measure we propose has properties that make it
+attractive for quantifying the intensity of the nesting. Finally,
+we present a technique related to the measure—the phase-
+amplitude comodulogram–which scans multiple frequency
+pairs searching for CFC; as an example of its application, we
+apply the tool to analyzing in vivo hippocampal recordings in
+rats performing a cognitive task and we demonstrate that the
+CA3 and CA1 regions may present different subbands of
+gamma oscillations modulated by the theta phase.
+Address for reprint requests and other correspondence: A.B.L. Tort, Ed-
+mond and Lily Safra International Institute of Neuroscience of Natal and
+Federal University of Rio Grande do Norte, Natal, RN 59066, Brazil (E-mail:
+tort@natalneuro.org.br).
+J Neurophysiol 104: 1195–1210, 2010.
+First published May 12, 2010; doi:10.1152/jn.00106.2010.
+11950022-3077/10 Copyright © 2010 The American Physiological Societywww.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 3 =====
+
+METHODS
+In this section we describe how our phase-amplitude CFC measure
+is computed and the rationale for its deﬁnition. To be consistent with
+previous reports (Tort et al. 2008, 2009), we call the measure the
+modulation index (MI). The MI is able to detect phase-amplitude
+coupling between two frequency ranges of interest: the “phase-
+modulating” and “amplitude-modulated” frequency bands. We refer
+to these two frequency bands as the phase ( f
+p) and amplitude (f A)
+frequencies, respectively. In the following text we describe the steps
+required for the computation of the MI.
+Amplitude and phase time series extraction and the
+construction of the phase-amplitude plot
+We denote by xraw(t) the raw signal (e.g., the unﬁltered LFP). The
+MI is calculated from a phase-amplitude distribution-like plot (Fig. 1),
+which is obtained as follows.
+1) First, xraw(t) is ﬁltered at the two frequency ranges under analysis
+(fp and fA). We denote the ﬁltered signals as xfp(t) and xfA(t).
+2) The time series of the phases of xfp(t) [denoted as /H9278fp(t)] is
+obtained from the standard Hilbert transform of xfp(t). The Hilbert
+transform is also applied to xfA(t) to extract the time series of the
+amplitude envelope of xfA(t) [denoted as AfA(t)]. The composite time
+series [/H9278fp(t), AfA(t)] is then constructed, which gives the amplitude of
+the fA oscillation at each phase of the fp rhythm.
+3) Next, the phases /H9278fp(t) are binned and the mean of AfA over each
+phase bin is calculated. We denote by /H20855AfA/H20856/H9278fp
+(j) the mean AfA value at
+the phase bin j.
+4) Last, we normalize the mean amplitude /H20855AfA/H20856/H9278fp
+by dividing each
+bin value by the sum over the bins
+P( j) /H11005
+/H20855AfA /H20856/H9278fp
+( j)
+/H20858k/H110051
+N /H20855AfA /H20856/H9278fp
+( k)
+where N is the number of phase bins. 1 Note then that the normalized
+amplitude P has the same characteristics as a discrete probability
+density function (pdf); that is: P(j) /H113500 @j and /H20913j/H110051
+N P(j) /H110051.
+Although P is not deﬁned from a random variable—in contrast to the
+classical deﬁnition of a pdf—we will refer to this distribution-like
+function as the “amplitude distribution.” The phase-amplitude plot is
+obtained by plotting P as a function of the phase bin. In Fig. 1 we
+1 We have been typically using N /H1100518, i.e., we bin the 0 to 360° interval
+into eighteen 20° intervals. However, we note that in some circumstances a
+higher number of bins might be desirable (e.g., when working with multimodal
+distributions; see Fig. 13).
+0 200 400 600 800 1000
+−2
+0
+2
+mV
+Raw Signal (xraw)
+0 200 400 600 800 1000
+−2
+0
+2
+mV
+Theta Filtered Signal (xfp)
+0 200 400 600 800 1000
+0
+90
+180
+270
+360Phase (Deg)
+Theta Phases (φfp)
+0 200 400 600 800 1000−1
+0
+1
+time (ms)
+mV
+LG filtered signal (xfA) and LG amplitude (AfA)
+A
+B
+C
+D
+E
+0 90 180 270 360 450 540 630 7200
+0.05
+0.1
+Theta Phase (Deg)
+LG Amplitude
+Phase−Amplitude Plot
+FIG. 1. Steps in the computation of the phase-amplitude plot
+and modulation index (MI). The raw signal (A) is ﬁltered at the
+phase (B) and amplitude (D, thin line) frequency ranges of
+interest. Next the phase (C) and the amplitude (D, thick line)
+time series are calculated from the ﬁltered signals by using the
+Hilbert transform. A composite phase-amplitude time series
+(
+/H9278fp, AfA) is then constructed and used to obtain the mean
+amplitude distribution over phase bins (E; 2 cycles shown for
+clarity). The MI is obtained by measuring the divergence of the
+observed amplitude distribution from the uniform distribution.
+See text for further details. LG, low-gamma (30 – 60 Hz).
+Innovative Methodology
+1196 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 4 =====
+
+show this procedure outlined above for a synthetic signal using theta
+as fp and low gamma (LG, 30 – 60 Hz) as fA.
+Note that the intensity of the phase-amplitude coupling can be
+already inferred by visual inspection of the phase-amplitude plot 2;
+however, it is desirable to extract a number out of a plot like this that
+corresponds to the intensity of the coupling. This is what our MI
+measure does, as explained in the following text.
+Rationale for the deﬁnition of the modulation index
+Note that if there is no phase-amplitude coupling between the pair
+of frequencies (f p, fA) under study, the amplitude distribution P
+(deﬁned earlier) over the phase bins is uniform, i.e., on average, the
+amplitude of f
+A is the same for all phases of the fp oscillation. The
+existence of phase-amplitude coupling is characterized by a deviation
+of the amplitude distribution P from the uniform distribution in a
+phase-amplitude plot. Following this reasoning, we deﬁned a measure
+that quantiﬁes the deviation of P from the uniform distribution. This
+was achieved by an adaptation of the Kullback–Leibler (KL) distance,
+a premetric that is widely used in statistics and in information theory
+to infer the amount of difference between two distributions (Kullback
+and Leibler 1951). The adaptation we performed was simply to make
+the distribution distance measure assume values between 0 and 1. Our
+MI is therefore a constant times the KL distance of P from the uniform
+distribution.
+In terms of equations, the KL distance of a discrete distribution P
+from a distribution Q is deﬁned as
+D
+KL(P, Q) /H11005/H20858
+j/H110051
+N
+P(j) log /H20875
+P(j)
+Q(j) /H20876
+The KL distance has the property thatDKL(P, Q) /H113500 and DKL(P, Q) /H11005
+0 if and only if P /H11005Q, i.e., when the distributions are the same.
+Notice that the KL distance formula resembles the deﬁnition of the
+Shannon entropy (H) of a distribution P, which is given by
+H(P) /H11005/H11002/H20858
+j/H110051
+N
+P(j) log [ P(j)]
+In fact, the KL distance is related to the Shannon entropy by the
+following formula
+D
+KL(P, U) /H11005log (N) /H11002H(P)
+where U is the uniform distribution. Notice further that log ( N)i st h e
+maximal possible entropy value, which happens precisely for the
+uniform distribution [when we have P(j) /H110051/N for all bins j].
+Therefore because H(P) /H11349log (N), we deﬁned our MI by dividing the
+KL distance of the observed amplitude distribution ( P) from the
+uniform distribution (U) by log (N)
+MI /H11005
+D
+KL(P, U)
+log (N)
+Therefore if the mean amplitude is uniformly distributed over the
+phases (i.e., P /H11005U, meaning lack of phase-amplitude coupling), we
+have MI /H110050; MI increases the further away P gets from U, as inferred
+by the KL distance. An MI value of 1 happens if P is a Dirac-like
+distribution, that is P(k) /H110051 for a given bin k and P(j) /H110050 for all bins
+j different from k. This would denote an oscillation f
+A that just exists
+in a single phase bin of fp and vanishes at the other phase bins.
+In Fig. 2, we show the performance of the MI in assessing different
+cases of phase-amplitude coupling, using theta-nested gamma as an
+example. Note that the MI tracks the intensity of the coupling, as seen
+more intuitively from the amplitude distributions.
+Dependence of the MI on the data length
+In this section we discuss the dependence of the MI on the length of the
+signal. If a given brain signal is a perfect periodic function possessing no
+noise component, the amount of phase-amplitude CFC can be inferred
+from very short epochs of the data, as long as the
+/H9278fp(t) and AfA(t) time
+series are longer than a full cycle of the fp rhythm. However, given that
+virtually all continuous signals recorded from the brain include a signif-
+icant amount of noise, a natural question that arises is how long the
+analyzed epoch should be to average out the noise component.
+We have investigated this issue using synthetic LFPs in which we
+could control the length of the signal and the intensity of noise while
+preserving the amplitude envelope and all other parameters of the
+LFPs (see the
+APPENDIX); this preserves what we intuitively think of as
+the parameters that produce the CFC. Results of this analysis are
+shown in Fig. 3. We ran 100 trials for each set of parameters under
+study (epoch length and noise intensity); we found that longer epochs
+led to smaller MI variation among trials, as inferred from the coefﬁ-
+cient of variation (CV) (Fig. 3A). We also found that, in general, a
+higher intensity of coupling is associated with lower CV for the same
+epoch length (Fig. 3B). This means that strong coupling can be more
+conﬁdently inferred than weak coupling for short time epochs.
+Note that even after deﬁning an acceptable level for the variation in
+the measurements (e.g., assuming that a reliable measurement is
+associated with a CV of /H1134910%), we are unable to recommend a
+universal minimal epoch length to be used in all experimental settings
+because the measurement is also dependent on the amount of noise
+present in the signal (Fig. 3 A), which may vary among different data
+sets and laboratories. We also note that the minimal data length for a
+reliable measurement is dependent on the f
+p frequency because slower
+oscillations will have fewer cycles sampled than faster oscillations.
+Using LFPs and studying theta as f
+p, we have been typically comput -
+ing the MI for epochs /H1102230 s (i.e.,/H11022200 cycles analyzed), since we
+found this length long enough to provide us with a reliable measure-
+ment in our experimental setting. We recommend that each laboratory
+should perform its own control analysis to assess the minimal data
+length providing a reliable measurement (we note that this issue
+pertains to all CFC measures, not just the MI). In some cases,
+however, the nature of the paradigm used does not allow long epochs
+to be analyzed; to circumvent this, one can make use of surrogate
+control analyses to evaluate whether the measured MI can be ex-
+plained by random ﬂuctuations in the signal or whether it denotes true
+coupling: this is the topic of the next section.
+Surrogate control analyses
+When analyzing experimental results, a statistical control analysis
+can be performed for a single MI value to infer whether the observed
+value actually differs from what would be expected from chance.
+Common in the analysis of neurophysiological data is the generation
+of a chance distribution derived from the analysis of surrogate time
+series that shares statistical properties with the original data (Hurtado
+et al. 2004). To this end, the surrogate time series is usually obtained
+from a trial shufﬂing procedure, although alternative methods also
+exist.
+In Fig. 4, we show an example of such control analysis applied to
+an actual theta–LG phase-amplitude plot derived from in vivo LFP
+recordings; these were recorded from the CA3 region of the hip-
+pocampus while a rat was performing a task. For each trial of this task,
+the rat is allowed to explore its current spatial context (to perform a
+subsequent associative choice) and the resulting phase-amplitude plot
+was constructed using 20 trials in a session where the animal learned
+2 In this work, we do not deﬁne a particular CFC measure (among the ones
+we review) as being the gold standard for assessing the level of phase-
+amplitude coupling. Thus we often ask the reader to intuitively infer the level
+of coupling by visual inspection either of the amplitude envelope or, equiva-
+lently, of the phase-amplitude plots. In particular, in the present work, example
+cases presenting identical phase-amplitude plots are said to possess the same
+levels of phase-amplitude coupling.
+Innovative Methodology
+1197PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 5 =====
+
+the task (for details on data acquisition and task design see Tort et al.
+2009). We created shufﬂed versions of the [ /H9278fp(t), AfA(t)] time series by
+associating the phase series [ /H9278fp(t)] of trial k with the amplitude series
+[AfA(t)] of trial l, with k and l randomly chosen among the trial
+numbers. We then generated 200 surrogate MI values, from which we
+could infer the MI chance distribution. As shown in Fig. 4, the trial
+shufﬂing procedure breaks the appearance of phase-amplitude cou-
+pling, which is reﬂected by very low MI values (mean /H110051.43 /H1100310
+/H110025,
+SD /H110051.12 /H1100310/H110025) compared with the measured MI value (88.29 /H11003
+10/H110025). Indeed, considering P /H110210.01 as signiﬁcant, we ﬁnd that the
+signiﬁcance threshold lies on 4.30 /H1100310/H110025, much below the experi -
+mental result. We can therefore conclude that there was real (above
+chance) coupling between theta-phase and LG-amplitude in CA3
+while the rat was exploring the arena in our paradigm.
+As discussed earlier, the surrogate control analyses is particularly
+important when assessing the MI of short data epochs because random
+ﬂuctuations of the signal could give rise to artifactual coupling. With
+long data epochs, such as the one analyzed earlier, the noise inﬂuence
+is less likely to affect the MI, since the noise component gets averaged
+out from the phase-amplitude plot when a high number of cycles is
+analyzed.
+Comparison with other phase-amplitude coupling measures
+In this section, we quickly review other phase-amplitude coupling
+measures and compare their performances.
+1) The heights ratio
+A possible CFC measure is simply to compute the ratio
+h
+max /H11002hmin
+hmax
+where hmax and hmin are the maximal and minimal amplitude heights,
+respectively, inferred from the same phase-amplitude plot used to
+compute the MI (Fig. 5A). We note that this measure has equivalent
+variations such as the “modulation ratio” used by Lakatos et al. (2005)
+deﬁned by h
+max/hmin, and also the ratio (h max /H11002hmin)/(hmax /H11001hmin)
+used in AM radio transmission, both of which provide qualitatively
+similar results (not shown). We opted to use the heights ratio as
+deﬁned earlier because it is intuitive and bounded between 0 and 1.
+2) The power spectral density of the amplitude envelope
+As observed by Cohen (2008), the existence of phase-amplitude
+modulation can be assessed by analyzing the power spectral density
+(PSD) of the instantaneous amplitude time series A
+fA(t) (Fig. 5B).
+Notice that this measure has the advantage of ﬁxing just the fA
+frequency, whereas multiple fp can be analyzed simultaneously. The
+occurrence of a peak in the PSD characterizes the existence of
+phase-amplitude coupling between f
+A and the frequency band(s)
+where the peak(s) occurred. The CFC intensity can be inferred by the
+integral (or mean) power over the phase-modulating band. In the
+examples depicted in Figs. 1, 2, and 5, the theta–LG coupling strength
+is obtained by integrating the LG amplitude PSD over the theta band.
+3) The mean vector length
+Canolty et al. (2006) pointed out that a time series deﬁned in the
+complex plane by A
+fAei/H11569/H9278fp could be used to extract a phase-amplitude
+coupling measure. In our example case of theta–LG coupling (Figs. 1
+and 2), each instantaneous LG amplitude point is represented by the
+length of the complex vector [i.e., the distance from the center (0, 0)],
+whereas the theta phase of the time point is represented by the vector
+angle. In the case of an absence of phase-amplitude coupling, the plot
+of the A
+fAei/H11569/H9278fp time series in the complex plane is characterized by a
+roughly uniform circular density of vector points, symmetric around
+zero, because the A
+fA values are on average the same for all phases /H9278fp.
+If there is modulation of the fA amplitude by the fp phase, this means
+that AfA is higher at certain phases than others. This higher amplitude
+for certain angles will lead to a “bump” in the complex plane plot of
+the A
+fAei/H11569/H9278fp time series, leading to loss of symmetry around zero. This
+0 360 720
+0
+0.05
+0.1
+Phase (Deg)
+Amplitude
+1 2 3 4
+0
+0.002
+0.004
+0.006
+0.008
+0.01
+0.012
+0.014
+0 360 720
+0
+0.05
+0.1
+Phase (Deg)
+Amplitude
+0 360 720
+0
+0.05
+0.1
+Phase (Deg)
+Amplitude
+0 360 720
+0
+0.05
+0.1
+Phase (Deg)
+Amplitude
+Modulation Index
+Case
+Case 4 Case ase ase 1
+A
+3C 2C
+   B
+FIG. 2. Modulation index performance in assessing phase-amplitude coupling. A, left: 4 cases differing in coupling strength are shown (top traces) along with
+their corresponding phase-amplitude plots (right panels). The thin and the thick traces plotted underneath show the LG ﬁltered signal and its amplitude envelope,
+respectively. B: MI values for the 4 example cases shown in A.
+Innovative Methodology
+1198 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 6 =====
+
+loss of symmetry can be inferred by measuring the length of the vector
+obtained from the mean over all points in the complex plane. It is thus
+assumed that a symmetric distribution as it occurs during lack of
+coupling leads to a small mean vector length (because the points in the
+different phases would cancel each other), whereas the existence of
+coupling leads to a larger mean vector length (as the points in the
+“bump” would prevail over the others; see Fig. 5 C).
+4) The phase-locking value
+Penny et al. (2008) and Cohen (2008) recently described new
+phase-amplitude CFC measures. One of these proposed measures has
+been named the phase-locking value (PLV) and is deﬁned by PLV /H11005
+/H14067/H20855exp[i(
+/H9278fp /H11002/H9278AfA)]/H20856/H14067, where/H9278AfA is the phase time series of the
+amplitude envelope (see Fig. 6), /H20855· /H20856denotes the mean over all time
+points, and/H14067· /H14067calculates the length of the mean vector. By its deﬁnition,
+this measure provides the value of 1 whenever the phase series are locked
+and 0 if they are completely desynchronized (for a sufﬁciently large
+number of time points) and it constitutes a useful measure for detecting
+phase-amplitude coupling.
+5) The correlation coefﬁcient
+Another measure reviewed by Penny et al. (2008) is based on the
+assessment of the correlation between A
+fA and fp [or its normalization,
+deﬁned by cos ( /H9278fp)]
+0 50 100
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3 Case 1
+0 50 100
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3 Case 2
+0 50 100
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3 Case 3
+0 50 100
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3
+0 50 100
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3 Case 5
+0 50 100
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3 Case 6
+0 20 40 60 80 1000
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+Data Length (s)
+CV
+ 
+ 
+Case 1
+Case 2
+Case 3
+Case 4
+Case 5
+Case 6
+0 50 100
+0
+0.5
+1
+1.5
+2
+x 10
+−3 σ = 0
+0 50 100
+0
+0.5
+1
+1.5
+2
+x 10
+−3 σ = 0.08
+0 50 100
+0
+0.5
+1
+1.5
+2
+x 10
+−3 σ = 0.16
+0 50 100
+0
+0.5
+1
+1.5
+2
+x 10
+−3 σ = 0.24
+0 50 100
+0
+0.5
+1
+1.5
+2
+x 10
+−3 σ = 0.32
+0 50 100
+0
+0.5
+1
+1.5
+2
+x 10
+−3 σ = 0.4
+0 20 40 60 80 1000
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+Data Length (s)
+CV
+ 
+ 
+σ  = 0
+σ  = 0.08
+σ  = 0.16
+σ  = 0.24
+σ  = 0.32
+σ  = 0.40
+Data Length (s)
+Data Length (s)
+Modulation IndexModulation Index
+A
+B
+Case 4
+FIG. 3. Dependence of the MI on the data length. A: plots in the left show the mean MI value as a function of the data length for 6 cases of theta–LG coupling
+differing in noise intensity ( /H92682 is the variance of the white noise process; see APPENDIX). Dashed lines denote /H11006SD; 100 trials were simulated for each parameter
+set. Notice that the mean MI approaches a steady value and that the variance among trials gets reduced with longer data lengths. The corresponding coefﬁcient
+of variation (CV) levels are shown in the right plot. B: CV levels (right plot) as a function of the data length for 6 cases of theta–LG coupling differing in coupling
+strength (left plots). Noise level was ﬁxed at /H9268/H110050.24.
+Innovative Methodology
+1199PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 7 =====
+
+rESC /H11005Corr ( fp, AfA)
+where ESC stands for envelope-to-signal correlation .I nF i g .7w e
+show some examples of scatterplots between fp and AfA.
+6) The general linear model
+As observed by Penny et al. (2008), the correlation coefﬁcient
+measure described earlier has the deﬁciency of being inﬂuenced by
+the phase of the coupling. In particular, as shown in Fig. 7A, notice
+that this measure is not able to detect coupling at
+/H9266/2 phase-difference
+between the fp and AfA. To circumvent this, Penny et al. (2008) created
+a new measure based on a general linear model (GLM); this measure
+is basically a generalization of the correlation coefﬁcient measure that
+is able to detect phase-amplitude coupling at all phase lags (for details
+see Penny et al. 2008).
+7) The coherence value
+More recently, Colgin et al. (2009) used a phase-amplitude CFC
+tool based on the coherence spectrum between A
+fA and the original
+signal xraw(t). This method is based on the same principle as the PLV
+measure, although it uses a different tool for assessing the level of
+phase-locking. As in the case of the amplitude PSD, a coupling
+measure can be deﬁned by integrating the coherence levels over the
+phase-modulating band (Colgin et al. 2009).
+RESULTS
+Performance comparison
+Recent reports have suggested that the intensity of the
+phase-amplitude coupling may change depending on cognitive
+demands (Tort et al. 2008) and performance (Tort et al. 2009);
+it is thus desirable to have a metric that is able to assess the
+magnitude of the coupling (cf. Fig. 2), in addition to detecting
+its existence. As we will show in the following text, the
+principles underlying four of the CFC measures reviewed
+earlier make them potentially not suitable for measuring CFC
+intensity, although these measures may present a positive
+correlation with coupling strength in a realistic scenario where
+noise is present in the system.
+Accordingly, the measures that are potentially not suitable to
+properly track the intensity of the coupling are the last four
+reviewed earlier: the two measures based on the levels of
+phase-locking between A
+fA
+and fp (the PLV and the coherence
+value) and the two measures based on the linear regression
+between A
+fA
+and fp (the correlation coefﬁcient and the GLM).
+The explanation for the ﬁrst case is the following: notice that
+different levels of phase-amplitude coupling can occur for the
+same level of phase-locking; the
+/H9278AfA
+time series will be exactly
+the same, irrespective of the magnitude of the variation in the
+levels of the amplitude envelope A
+fA
+if the level of phase
+locking is the same. For instance, if AfA
+varies (phase-locked to
+fp) between its maximal value and 90% of its maximal value or
+between the maximal value and 50% of its maximal value, the
+/H9278AfA
+series will be similar in both cases, varying from 0 to 360°
+(see Fig. 6). Therefore in principle, neither the PLV nor the
+coherence value—which depend essentially on phase-lock-
+ing— can properly distinguish different levels of phase-ampli-
+tude coupling.
+The two measures based on linear regressions are also
+potentially not suitable to assess different levels of coupling
+because the linear correlation between two variables X and Y is
+0 90 180 270 360 450 540 630 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Amplitude hmax
+hmin
+hmax- hmin
+Heights ratio = (hmax- hmin)/hmax
+0 200 400 600 800 1000 1200 1400 1600 1800 2000−0.5
+0
+0.5
+time (ms)
+mV
+LG filtered signal (xfA
+) and LG amplitude (AfA
+)
+0 10 20 30 40 50 600
+2
+4
+6
+8 x 10
+−3
+Frequency (Hz)
+Power
+LG Amplitude PSD
+−0.6 −0.4 −0.2 0 0.2 0.4 0.6
+−0.6
+−0.4
+−0.2
+0
+0.2
+0.4
+0.6
+Real Part
+Imaginary Part
+Mean Vector Length = || mean(AfA
+  e iφ
+fp) ||
+A          B           C
+FIG. 5. Principles underlying 3 phase-amplitude cross-frequency coupling (CFC) measures. A: the heights ratio measure can be straightforwardly
+deﬁned in a phase-amplitude plot, as indicated. B: the power spectral density (PSD) of the instantaneous amplitude envelope can be used to assess
+phase-amplitude coupling. In this example, a theta–LG coupling measure can be deﬁned by integrating the power values over the theta band. C:a
+phase-amplitude coupling measure can be deﬁned as the length of the mean vector (arrow) of a time series deﬁned in the complex plane by AfAei/H11569/H9278fp (black
+dots connected with line). Notice the existence of asymmetry around zero in this example, which characterizes the existence of phase-amplitude coupling
+in this analysis.
+Shuffled Original
+0
+0.2
+0.4
+0.6
+0.8
+1
+x 10
+−3
+Modulation Index
+0 360 720
+0
+0.02
+0.04
+0.06
+0.08
+Theta Phase (Deg)
+LG Amplitude (Normalized)
+0 360 720
+0
+0.02
+0.04
+0.06
+0.08
+Theta Phase (Deg)
+LG Amplitude (Normalized)
+A         B
+FIG. 4. Surrogate control analysis. A: theta–LG phase-am-
+plitude plots obtained for the original (left) and a representative
+trial-shufﬂed [ /H9278fp(t), AfA(t)] time series (right) derived from
+actual hippocampal data. B: mean MI for 200 trial-shufﬂed and
+the original phase-amplitude time series. Dashed line represents
+the signiﬁcance threshold.
+Innovative Methodology
+1200 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 8 =====
+
+the same as between X and C /H11569Y /H11001D, where C and D are
+multiplicative and additive constants, respectively; notice that
+D corresponds to a ﬁxed fraction of the amplitude envelope
+that does not vary and that different levels of coupling are
+reﬂected by different D values and regression slopes (C),
+which do not change the correlation/regression coefﬁcient (see
+Fig. 7B).
+In Fig. 8 we show the results obtained for the eight
+measures during the analysis of similar phase-amplitude
+coupling cases as in Fig. 2. For the same cases of coupling
+strength (as seen from the distributions shown in Fig. 8A ),
+we have analyzed the performance of the measures under
+two situations differing on the presence or not of noise in the
+synthetic LFP. In a situation without noise (Fig. 8B ), we
+conﬁrmed the earlier claims that none of the measures based
+on the assessment of linear regression or coherence between
+A
+fA
+and fp correlates well with the CFC intensity (Fig. 8B ,
+top row). On the other hand, all the other measures (i.e., the
+heights ratio, the mean vector length, and the amplitude
+PSD) were able to correlate with the magnitude of the CFC,
+similarly to the MI (Fig. 8B , bottom row).
+When analyzing synthetic LFPs with noise (the amplitude
+distributions of these cases are similar to Fig. 8A, since the
+noise gets averaged out), we then obtained that all measures,
+including the regression- and coherence-based measures, were
+able to track the intensity of the coupling (Fig. 8 C). That is,
+although in principle four measures would not be able to
+correlate with CFC intensity, they end by doing so in a more
+noisy, realistic scenario. The reason for this is that higher levels
+of CFC intensity usually present a higher signal-to-noise ratio,
+being more easily identiﬁed than weaker cases of CFC. This is
+translated into a better linear regression/coherence between A
+fA
+and fp, explaining why the four measures discussed earlier are
+able to track coupling strength in the presence of noise despite
+the limitations intrinsic to their deﬁnition (Figs. 6 and 7).
+To explore this matter further, we have assessed the toler-
+ance of the CFC measures to random ﬂuctuations by increasing
+the white noise level of our synthetic signal. The results of this
+analysis are shown in Fig. 9. As expected, we found that all
+regression- and coherence-based measures are very sensitive to
+noise and the values they provide present a clear negative
+dependence on noise level (Fig. 9, top row). We also found that
+all the other measures but the amplitude PSD present a good
+tolerance to noise (Fig. 9, bottom row).
+We next increased the amplitude of the LG oscillation in our
+synthetic LFP, while maintaining the level of coupling, and we
+veriﬁed that the mean vector length and the amplitude PSD
+measures are dependent on the absolute amplitude level of the
+amplitude-modulated band (Fig. 10; see also Fig. 11 for an
+intuitive explanation of this dependence). Although the regres-
+sion- and coherence-based measures are insensitive to different
+levels of absolute amplitude in a situation without noise (Fig.
+10C), they do present a clear positive dependence on the
+absolute amplitude when noise is present in the LFP (Fig.
+10D); this result is readily explained by the fact that larger
+amplitudes are associated with a higher signal-to-noise ratio
+(cf. preceding discussion). Only the MI and the heights ratio
+measure turned out to be completely independent on the
+absolute level of the amplitude-modulated band (Fig. 10).
+We also tested whether these measures would be able to
+detect the “width” of the modulation. As exempliﬁed in Fig. 12A, the
+amplitude peak as a function of the phase can have different
+widths, even for the same values of maximal and minimal
+amplitudes. We found that the MI and the amplitude PSD seem
+more suitable for detecting these effects, followed by the mean
+vector length analysis (Fig. 12B). Clearly, the heights ratio
+measure is unable to detect these effects by its very deﬁnition.
+We also found that the regression- and coherence-based mea-
+sures do not perform well in detecting the modulation width
+(not shown).
+Finally, we tested the ability of these CFC measures in
+detecting multimodal amplitude distributions. We note that,
+by their deﬁnitions, the regression- and coherence-based
+measures do not perform well in cases of multimodality (as
+also observed by Penny et al. 2008) and we have therefore
+focused our analysis on the other measures. As shown in
+Fig. 13, the heights ratio measure always assumes the same
+value, irrespective of the existence of multimodality, as
+expected from its deﬁnition. The mean vector length and the
+amplitude PSD measures were unable to detect symmetric
+multimodal distributions (Fig. 13A ) (the PSD detects a cou-
+pling at twice the theta frequency in our example case).
+However, the latter two measures were able to detect phase-
+amplitude coupling in nonsymmetric cases of multimodality
+0
+360
+φfp
+0
+360
+φAfA
+0
+360
+φfp
+0
+360
+φAfA
+A          B
+FIG. 6. Assessing the phase-locking between the amplitude
+envelope AfA and fp. A, top panels: shown are a synthetic local
+ﬁeld potential (LFP) example, along with the signal ﬁltered at
+theta and gamma ranges bottom traces. The amplitude envelope
+(AfA) of the gamma ﬁltered signal is also shown (thick line).
+Bottom panels: phase time series of theta (top) and gamma
+amplitude (bottom). B: same as before but for a case with
+stronger phase-amplitude coupling (as judged by the amplitude
+envelope). Notice that the phase-time series of the amplitude
+envelope is identical to the previous case and thus the levels of
+phase-locking to the f
+p rhythm are the same. Therefore CFC
+measures dependent on the level of phase-locking between AfA
+and fp are, in principle, potentially not able to track CFC
+intensity (for better clarity of the proof of principle, no noise
+was added to the synthetic signals shown in this ﬁgure).
+Innovative Methodology
+1201PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 9 =====
+
+(Fig. 13B ). On the other hand, the MI measure was able to
+detect both symmetric and asymmetric cases of multimodal
+distribution, and its values were sensitive to the different
+cases studied (Fig. 13).
+Based on the summary of these ﬁndings presented in Table 1, we
+conclude that the MI has some properties not shared by other
+measures that make it well suited for assessing the intensity of
+phase-amplitude coupling.
+Phase-amplitude comodulogram
+Although the MI measure is able to examine only two fre-
+quency ranges at a time [i.e., an (f
+p, fA) pair], it can be used to
+construct a phase-amplitude comodulogram plot, a tool that si-
+multaneously reports the level of coupling among multiple bands.
+The comodulogram is obtained by scanning frequency band pairs
+and applying the CFC measure to each one of them. Although
+−1 −0.5 0 0.5 1
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+fp (mV)
+Af
+A
+ (mV)
+rESC = 0.0
+−1 −0.5 0 0.5 1
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+fp (mV)
+Af
+A
+ (mV)
+rESC = 0.7
+−1 −0.5 0 0.5 1
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+fp (mV)
+Af
+A
+ (mV)
+rESC = 1.0
+−1 −0.5 0 0.5 1
+0.1
+0.2
+0.3
+0.4
+0.5
+fp (mV)
+Af
+A
+ (mV)
+−1 −0.5 0 0.5 1
+0.1
+0.2
+0.3
+0.4
+0.5
+fp (mV)
+Af
+A
+ (mV)
+rESC = 0.9985 rESC = 0.9998
+A
+B
+FIG. 7. Assessing the linear regression between the amplitude envelope AfA and fp. A, top panels: 3 cases of phase-amplitude coupling presenting the same
+intensity (as judged by the amplitude envelope) but different coupling phases (top trace: synthetic LFP; bottom traces: gamma ﬁltered signal (thin line) and
+gamma amplitude envelope (thick line)). Bottom panels: scatterplots between fp and AfA, which show that the correlation coefﬁcient (r ESC) depends on the phase
+lag between AfA and fp. B: 2 cases differing in CFC strength. Notice that the correlation coefﬁcient provides similar results, since it does not depend on the slope
+of the regression nor on its y-intercept. Therefore CFC measures dependent on the regression between AfA and fp do not, in principle, correlate well with its
+intensity (for better clarity of the proof of principle, no noise was added to the synthetic signals shown in this ﬁgure).
+Innovative Methodology
+1202 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 10 =====
+
+computationally expensive, this analysis is ideal for searching for
+phase-amplitude couplings when no a priori assumptions are
+made about the phase-modulating (f
+p) and the amplitude-modu-
+lated (f A) frequency bands. The results are described using a
+pseudocolor plot that indicates the level of coupling between
+several narrowed-ﬁltered frequency bands pairs. Typically, the
+abscissa represents the frequencies analyzed as f
+p, whereas fA is
+represented in the ordinate axis; that is, hot colors in a given
+coordinate (x, y) of the bidimensional map indicate that the phase
+of the x frequency modulates the amplitude of the y frequency.
+In Fig. 14 we show an example of application of the
+comodulogram plot to actual in vivo hippocampal recordings.
+The comodulograms shown in this ﬁgure were constructed by
+using f
+p calculated in 2 Hz steps with 4 Hz bandwidths and fA
+in 5 Hz steps with 10 Hz bandwidths. 3 The data set analyzed
+and the task used are the same as those used earlier (for details,
+3 That is, the fp ranges studied were [0 Hz, 4 Hz], [2 Hz, 6 Hz], [4 Hz, 8 Hz],
+and so forth, whereas the fA ranges were [10 Hz, 20 Hz], [15 Hz, 25 Hz], [20
+Hz, 30 Hz], and so forth. The centers of these intervals correspond to
+coordinates in the comodulogram plot.
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Amplitude (Normalized)
+Case 1
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Case 2
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Case 3
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Case 4
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Case 5
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+Phase−Locking Valu e
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+Correlation Measure
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+GLM Measure
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+Coherence Value
+Case
+1 2 3 4 50
+1
+2
+3
+4
+5 x 10
+−3
+Modulation Index
+Case
+1 2 3 4 50
+0.1
+0.2
+0.3
+0.4Heights Ratio Measure
+Case
+1 2 3 4 50
+0.01
+0.02
+0.03
+0.04Mean Vector Length
+Case
+1 2 3 4 50
+0.002
+0.004
+0.006
+0.008
+0.01
+Amplitude PSD
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+Phase−Locking Valu e
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+Correlation Measure
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+GLM Measure
+Case
+1 2 3 4 50
+0.2
+0.4
+0.6
+0.8
+1
+Coherence Value
+Case
+1 2 3 4 50
+1
+2
+3
+4
+5 x 10
+−3
+Modulation Index
+Case
+1 2 3 4 50
+0.1
+0.2
+0.3
+0.4Heights Ratio Measure
+Case
+1 2 3 4 50
+0.01
+0.02
+0.03
+0.04Mean Vector Length
+Case
+1 2 3 4 50
+0.002
+0.004
+0.006
+0.008
+0.01
+Amplitude PSD
+Case
+No noise (σ = 0)
+Noise (σ = 0.16)
+A
+B
+C
+FIG. 8. Performance comparison among 8 phase-amplitude coupling measures. A: 5 cases differing in coupling strength were analyzed. B: CFC measures
+values for the 5 cases shown in A in the absence of noise. Notice that the phase-locking index, the correlation measure, the general linear model (GLM) measure,
+and the coherence value are all able to detect phase-amplitude coupling, but do not distinguish well between different levels of coupling strength. C: similar to
+the above, but in the presence of noise. All measures are then able to track coupling intensity.
+Innovative Methodology
+1203PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 11 =====
+
+see Tort et al. 2009). The comodulogram analysis was able to
+conﬁrm the previously described (Bragin et al. 1995) theta-
+phase modulation of the amplitude of oscillations in the gamma
+range in the hippocampus during exploration (Fig. 14). In
+addition, this analysis showed that theta-phase modulated more
+the low-gamma (LG, 30 – 60 Hz) subband in the CA3 region,
+whereas the high-gamma (HG, 60 –100 Hz) subband was more
+modulated in CA1 (Fig. 14). Use of a common theta-phase
+signal (from a ﬁssure electrode) indicated that the peak of CA1
+HG amplitude precedes the peak of CA3 LG (Fig. 14). This
+result therefore suggests for the ﬁrst time different CFC char-
+acteristics between the CA3 and CA1 regions, while also
+questioning a monolithic deﬁnition for the gamma range as
+frequencies from 30 to 100 Hz. This example shows that new
+phase-amplitude CFC tools, such as the MI, and related tech-
+niques, such as the comodulogram, are able detect features
+about the brain rhythms that are blind to such standard tools as
+the Fourier analyses.
+DISCUSSION
+We have presented a measure for assessing CFC of the
+phase-amplitude type. This measure (called MI) is deﬁned as
+an adaptation of the KL distance, a function used to infer the
+distance between two distributions. Essentially, the MI is
+obtained by measuring the distance of an empirical amplitude
+distribution-like function over phase bins from the uniform
+distribution, which characterizes the absence of phase-ampli-
+tude coupling. We performed comparisons of the MI with other
+CFC measures and we showed that, by some performance
+benchmarks, the MI is well suited for assessing the intensity of
+the coupling. Finally, we have applied the MI and related
+techniques to actual hippocampal recordings obtained from
+freely moving rats; these tools were able to detect previously
+described theta– gamma nesting in the hippocampus and also
+revealed characteristics about this coupling that were not
+known before.
+Phase-amplitude coupling among brain rhythms has been
+receiving increasing interest, particularly because new ﬁndings
+are starting to link this phenomenon to the execution of
+cognitive functions (see
+INTRODUCTION). Along with the growth
+of interest in phase-amplitude CFC, there was a parallel devel-
+opment of new tools for studying these effects. In the present
+work, we have discussed eight tools (including ours) that were
+recently developed. The different tools are based on different
+principles and thus each tool is suited to a speciﬁc purpose. For
+instance, the method devised by Cohen (2008) is strong at
+detecting transient coupling in short time epochs. Other mea-
+sures, such as the heights ratio and the amplitude PSD, possess
+the advantage of being straightforward, which is likely to help
+convince readers of the ﬁndings reported.
+A main limitation of the heights ratio measure, however, is
+that it takes into account only the amplitude information
+present in two phase bins (those with the maximal and minimal
+heights) while discarding the mean amplitude values in the
+other phase bins. This measure is thus unable to detect the
+width of the modulation; that is, for the same maximal and
+minimal heights, there can be a narrow or a wide modulation
+around the maximal height (Fig. 12). This measure will also
+not distinguish unimodal from multimodal cases of phase-
+amplitude coupling as, for instance, in a biphasic amplitude
+distribution (Fig. 13).
+The amplitude PSD, on the other hand, turned out to be very
+sensitive to noise (Fig. 9). This sensitivity is readily explained
+if one considers that adding white noise to a signal is equiva-
+lent to adding a constant value to its PSD. In fact, the amplitude
+PSD has the important caveat of depending on the absolute
+amplitude of f
+A: for the same level of phase-amplitude coupling
+(as inferred by the heights ratio, for instance), the integral of
+the PSD will be higher for higher f
+A amplitudes (Figs. 10 and
+11). This caveat also hinders the comparison of CFC intensities
+among different bands because the different rhythms [e.g., low
+(30 – 60 Hz) and high (60 –100 Hz) gamma] have different
+amplitudes, usually following a 1/f law. We found that nor-
+malizing and expressing the PSD as relative power (or “%
+Power”) makes it an inefﬁcient phase-amplitude coupling mea-
+sure for the purpose of quantifying the CFC intensity, although
+the normalized PSD is still able to detect the presence of
+coupling (not shown).
+We also make two observations about the mean vector
+length measure: 1) a “small” or “large” mean vector length is
+a relative concept that depends on the f
+A amplitude. For
+0 0.08 0.16 0.24 0.32
+0
+1
+2
+3 x 10
+−3
+Modulation Index
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.1
+0.2
+0.3
+0.4Heights Ratio Measure
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.01
+0.02
+0.03Mean Vector Length
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.01Amplitude PSD
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.5
+1
+Phase−Locking Value
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.5
+1
+Correlation Measure
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.5
+1
+GLM Measure
+White Noise Level (σ)
+0 0.08 0.16 0.24 0.320
+0.5
+1
+Coherence Value
+White Noise Level (σ)
+FIG. 9. Inﬂuence of noise level on the coupling measures.
+Innovative Methodology
+1204 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 12 =====
+
+instance, during the same presence (or absence) of coupling,
+the mean vector length will be higher for a higher fA amplitude
+(Fig. 10). In other words, like the amplitude PSD measure, the
+mean vector length is also dependent on the absolute amplitude
+of the f
+A rhythm (Figs. 10 and 11). This caveat, however, can
+be circumvented by working with normalized mean vector
+length measures, as performed by Canolty et al. (2006). 2) This
+measure provides low values when the A
+fA
+ei/H11569/H9278fp time series is
+symmetric in the complex plane, as happens during the absence
+of coupling. However, a bimodal distribution of amplitude
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Case 2
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Case 3
+0 360 7200
+0.1
+0.2
+0.3
+0.4
+0.5
+Phase (Deg)
+Absolute Amplitude (mV)
+Case 1
+0 360 7200
+0.1
+0.2
+0.3
+0.4
+0.5
+Phase (Deg)
+Case 2
+0 360 7200
+0.1
+0.2
+0.3
+0.4
+0.5
+Phase (Deg)
+Case 3
+0 360 7200
+0.02
+0.04
+0.06
+0.08
+Phase (Deg)
+Amplitude (Normalized)
+Case 1A           B
+C
+D
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+Phase−Locking Valu e
+Case
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+Correlation Measure
+Case
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+GLM Measure
+Case
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+Coherence Value
+Case
+1 2 30
+1
+2
+3 x 10
+−3
+Modulation Index
+Case
+1 2 30
+0.1
+0.2
+0.3
+0.4Heights Ratio Measure
+Case
+1 2 30
+0.01
+0.02
+0.03
+0.04Mean Vector Length
+Case
+1 2 30
+0.002
+0.004
+0.006
+0.008
+0.01
+0.012Amplitude PSD
+Case
+No noise (σ = 0)
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+Phase−Locking Value
+Case
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+Correlation Measure
+Case
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+GLM Measure
+Case
+1 2 30
+0.2
+0.4
+0.6
+0.8
+1
+Coherence Value
+Case
+1 2 30
+1
+2
+3 x 10
+−3
+Modulation Index
+Case
+1 2 30
+0.1
+0.2
+0.3
+0.4Heights Ratio Measure
+Case
+1 2 30
+0.01
+0.02
+0.03
+0.04Mean Vector Length
+Case
+1 2 30
+0.002
+0.004
+0.006
+0.008
+0.01
+0.012Amplitude PSD
+Case
+Noise (σ = 0.16)
+FIG. 10. Inﬂuence of the absolute amplitude of the amplitude-modulated band on the coupling measures. A and B: 3 cases of identical coupling strength, but
+differing in the absolute amplitude of fA are shown. Panels in A show the normalized amplitude (i.e., the distribution-like function P; see METHODS), whereas
+panels in B show the absolute mean amplitude level per phase bin for the same 3 cases. C: CFC measures values for the 3 cases depicted in A and B in the absence
+of noise. D: same as the above, but in the presence of noise.
+Innovative Methodology
+1205PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 13 =====
+
+modulation can also produce cases that will not be detected by
+this measure (e.g., if the LG amplitude has two symmetric local
+maximums, one at the theta phase of
+/H9278and another at /H9278/H11001/H9266,
+then the two amplitude “bumps” will mutually cancel each
+other in the mean vector analysis).
+We have reviewed two measures based on linear regression
+and two measures based on the levels of phase-locking be-
+tween A
+fA
+and fp (i.e., the correlation coefﬁcient, the GLM, the
+PLV, and the coherence value, respectively). We showed that
+something curious happens with these four measures: although
+in principle (see Figs. 6 and 7) they should not be able to
+correlate with CFC intensity, they do present a positive corre-
+lation with CFC intensity in a realistic, noisy scenario. In fact,
+we have applied these measures to actual hippocampal LFP
+recordings, in which we have previously found increased
+theta– gamma coupling with learning (Tort et al. 2009), and we
+observed that these measures, similarly to the MI, were also
+able to track changes in CFC intensity (not shown). We
+concluded that differences in the signal-to-noise ratio associ-
+ated with different coupling strengths likely underlie these
+effects. Consistent with this, we found that these measures are
+very sensitive to the levels of noise present in the signal (Fig.
+9). Moreover, we found that these measures depend on the
+absolute amplitude of f
+A in the presence of noise (Fig. 10);
+again, this dependence is likely explained by the fact that a
+higher f
+A amplitude is associated with a higher signal-to-noise
+ratio. In light of these observations, we recommend care when
+analyzing results derived from the use of these techniques.
+−0.5
+0
+0.5
+Amplitude (mV)
+−2.5
+0
+2.5
+Amplitude (mV)
+0 10 20 30 40 50
+0
+0.01
+0.02
+0.03
+0.04
+0.05Power
+Frequency (Hz)
+A
+B
+0.5 mV
+−0.5 0 0.5
+−0.5
+0
+0.5
+−2.5 0 2.5
+−2.5
+0
+2.5
+0.2 mV
+−2.5 0 2.5
+−2.5
+0
+2.5
+FIG. 11. Amplitude dependence of 2 CFC measures. A, left panels: shown are 2 gamma ﬁltered signals (top thin traces) along with their amplitude envelopes
+(thick traces). Notice that both examples present a similar level of phase-amplitude coupling and that the y-scale is different between both panels; the amplitude
+of the gamma oscillation in the second example (gray) is ﬁvefold higher than the ﬁrst (black). The bottom panel shows both amplitude envelopes plotted in the
+same y-scale. Right: PSD of the amplitude envelopes (same color scheme), showing that the amplitude PSD measure is dependent on the absolute amplitude.
+B, left 2 panels: complex plane representation of the AfAei/H11569/H9278fp time series obtained from the examples in A, along with their mean vector length (same color
+convention). Notice the different x- and y-scales. When plotted in the same scale (3rd plot from left), the different gamma amplitudes become evident. The
+rightmost panel shows the mean vectors for both examples plotted in the same scale. The mean vector length measure is therefore dependent on the absolute
+amplitude of fA.
+Innovative Methodology
+1206 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 14 =====
+
+Recent reports have suggested that the strength of the phase-
+amplitude coupling may change depending on cognitive demands
+(Tort et al. 2008). It is therefore desirable to have a metric that
+correlates well with the intensity of the coupling. As we have
+stressed when reviewing the coupling measures, there is a differ-
+ence between being able to detect the phenomenon and to corre-
+late with its intensity. We have devised our MI as a measure that
+is able to both detect and quantify the intensity of the coupling.
+We have relied on statistics and information theory to select a
+function that seemed suitable for this purpose: the KL distance.
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Amplitude (Normalized)
+Case 1
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 2
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 3
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 4
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 5
+1 2 3 4 50
+1
+2
+3 x 10
+−3
+Modulation Index
+Case
+1 2 3 4 50
+0.1
+0.2
+0.3
+0.4Heights Ratio Measure
+Case
+1 2 3 4 50
+0.02
+0.04
+0.06
+0.08
+0.1
+Mean Vector Length
+Case
+1 2 3 4 50
+0.02
+0.04
+0.06Amplitude PSD
+Case
+0 360 720
+0.2
+0.3
+0.4
+0.5
+Phase (Deg)
+Amplitude (mV)
+A     B
+FIG. 12. Sensitivity of the coupling measures to the “width” of the amplitude modulation by phase. A: 2 example cases plotted simultaneously (black and gray
+curves) illustrating that the “modulation width” can vary for the same maximal and minimal heights. B: CFC measures values (bottom) for 5 cases varying in
+modulation width (top).
+1 2 30
+0.02
+0.04
+0.06
+0.08
+0.1
+Amplitude PSD
+Case
+1 2 30
+2
+4
+6
+8 x 10
+−3
+Modulation Index
+Case
+1 2 30
+0.1
+0.2
+0.3
+0.4
+0.5Heights Ratio Measure
+Case
+1 2 30
+0.05
+0.1
+0.15
+0.2
+Mean Vector Length
+Case
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Amplitude (Normalized)
+Case 1
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 2
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 3
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Amplitude (Normalized)
+Case 1
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 2
+0 360 7200
+0.01
+0.02
+Phase (Deg)
+Case 3
+1 2 30
+2
+4
+6
+8 x 10
+−3
+Modulation Index
+Case
+1 2 30
+0.1
+0.2
+0.3
+0.4
+0.5Heights Ratio Measure
+Case
+1 2 30
+0.05
+0.1
+0.15
+0.2
+Mean Vector Lengt h
+Case
+1 2 30
+0.05
+0.1
+0.15
+0.2
+Amplitude PSD
+Case
+A
+B
+FIG. 13. Sensitivity of the coupling mea-
+sures to multimodal amplitude distributions.
+A and B: CFC measures values for 3 cases of
+symmetric (A) and asymmetric (B) multimo-
+dal amplitude distributions.
+Innovative Methodology
+1207PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 15 =====
+
+Although our measure is less intuitively understood, we believe
+this disadvantage is compensated by its performance (Table 1).
+However, it should be remarked that we have here mainly
+studied the ability of these CFC tools in tracking the intensity
+of the coupling, as intuitively inferred by the visual inspection
+of phase-amplitude plots; although this parameter is of interest
+since it has been related to cognitive functioning (Tort et al.
+2008, 2009), we note that this is a particular deﬁnition of “CFC
+intensity,” among others possible. Depending on the research
+protocol, one may be more interested in tracking the coherence
+between the amplitude envelope A
+fA
+and the phase-modulating
+rhythm fp, irrespective of the magnitude of the variations in AfA
+.
+In this case, both the coherence value and the PLV measures
+would be more appropriate measures than the MI. It should
+also be noted that the MI loses time information and it cannot
+tell us whether the coupling occurred during the whole epoch
+being analyzed or whether there occurred bursts of coupling
+inside the epoch. On the other hand, measures based on the
+coherence or the regression between A
+fA
+and fp can give us a
+better idea of how consistent the coupling was in the whole
+epoch. Similarly, other CFC measures can be better suited than
+the MI for assessing other particular aspects of the data;
+assessing the CFC intensity—as deﬁned in this work—is just
+one particular feature that can be studied in these signals.
+We believe that the use of these new CFC tools should give
+rise to signiﬁcant new ﬁndings in the coming years. In the
+present report we have provided an example of this, by show-
+ing that the CA3 and CA1 regions can have different subbands
+of gamma modulated by theta phase. Previously, we also
+reported novel high-frequency oscillations (HFOs) in the hip-
+pocampus that were detectable only by means of CFC analy-
+ses, and we showed that the amplitude of HFO and gamma
+oscillations can peak at different phases of theta (Tort et al.
+2008). Such CFC tools give clues to the physiological under-
+pinnings of the dynamics and should facilitate the understand-
+ing of both the biophysical origins and the functions of brain
+dynamics.
+Historical notes, new and classical references
+References relevant to the MI measure include the classical
+paper by Shannon (1948) and the pioneer work by Kullback
+and Leibler (Kullback and Leibler 1951; see also Kullback
+1959, 1987). More information on the Kullback–Leibler dis-
+tance can be found in standard textbooks of statistics and
+information theory, as well as in science encyclopedias online.
+To the best of our knowledge, the MI equation that we used
+was applied for the ﬁrst time to neuroscience research by Tass
+et al. (1998). In this work, the authors applied this index to
+measure the divergence of phase-difference distributions from
+the uniform distribution. Therefore under their protocol, this
+measure was applied as a phase–phase coupling measure. The
+use of MI as a phase-locking measure has been reviewed by Le
+Van Quyen et al. (2001), Hurtado et al. (2004), and Young and
+Eggermont (2009) among others. The ﬁrst application of the
+MI as a phase-amplitude coupling measure was done in Tort et
+TABLE 1. Summary of characteristics of the phase-amplitude coupling measures studied
+Phase-Amplitude Coupling Measure Tolerance to Noise Amplitude Independent Sensitivity to Multimodality Sensitivity to Modulation Width
+Modulation index Good Yes Good Good
+Heights ratio Good Yes No discrimination No
+Mean vector length Good No Restricted Reasonable
+Amplitude PSD Low No Restricted Good
+Phase-locking value Low No* Restricted Low
+Correlation measure Low No* Restricted Low
+GLM measure Low No* Restricted Low
+Coherence value Low No* Restricted Low
+* Under the presence of noise.
+0 180 360 540 7200.05
+0.06
+Fissure Theta Phase (°)
+Amplitude
+ 
+ 
+CA3 LG
+CA1 HG
+LG HG LG HG0
+1
+2
+3
+4 x 10
+−4
+Modulation Index
+   CA3          CA1  
+0
+1
+2
+3
+  Mod. Index (x10-4)
+CA3
+Fissure Phase Frequency (Hz)
+Local Amplitude Frequency (Hz)
+5 10 15 20
+30
+40
+50
+60
+70
+80
+90
+100
+CA1
+Fissure Phase Frequency (Hz)
+Local Amplitude Frequency (Hz)
+5 10 15 20
+30
+40
+50
+60
+70
+80
+90
+100
+FIG. 14. Characteristics of the gamma amplitude modula-
+tion by theta-phase differ between the CA1 and CA3 regions.
+Top panels: representative phase-amplitude comodulograms
+computed for CA3 (left) and CA1 (right) LFPs recorded simul-
+taneously (at s. pyramidale) during context exploration. A
+common electrode located at the hippocampal ﬁssure was used
+as the phase reference. Bottom panels: mean amplitude (nor-
+malized) per theta phase of LG in CA3 (black) and HG in CA1
+(gray) for the same electrodes (left). The associated MI values
+are also shown (right).
+Innovative Methodology
+1208 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 16 =====
+
+al. (2008), in which phase–amplitude distributions were ana-
+lyzed. Notice that because the MI is essentially a measure of
+distance from a uniform distribution, it has a wide applicabil-
+ity. What makes the MI speciﬁc to phase–phase coupling, or
+phase–amplitude coupling, or to any other effect under study,
+is the nature of the distribution being analyzed.
+Analyses of multiple frequency pairs and expression of the
+results of a phase-amplitude CFC measure as a single bidimen-
+sional color map (the “comodulogram”) was previously per-
+formed in Canolty et al. (2006) and Colgin et al. (2009) for
+their respective coupling measures and in recent work of ours
+(Tort et al. 2008, 2009) for the modulation index described
+here.
+APPENDIX
+Our synthetic signal was modeled as 4
+xraw(t) /H11005AfA(t) sin (2 /H9266fAt) /H11001Afp sin (2/H9266fpt) /H11001W(t)
+where W(t) is a Gaussian white noise process of variance /H92682 and A
+/ledgerline
+fp
+is a constant determining the amplitude of fp. In our simulations, the
+amplitude envelope AfA(t) of the “amplitude modulated” rhythm as -
+sumed different shapes, according to the different cases studied. In the
+cases of unimodal distribution, the amplitude envelope was deﬁned as
+AfA(t) /H11005AfA
+(1 /H11002/H9273) sin (2 /H9266fpt) /H110011 /H11001/H9273
+2
+where A
+/ledgerline
+fp is a constant that determines the maximal amplitude of fA
+and /H9273/H20678[0, 1] is the fraction of the amplitude envelope that is not
+modulated by fp; the parameter /H9273thus controls the intensity of the
+coupling (notice that /H9273/H11005hmin/hmax in the phase-amplitude plot; see
+Fig. 5A).
+For studying the width of the modulation, the amplitude envelope
+was modeled as follows
+AfA(t) /H11005AfA/H20851(1 /H11002/H9273)g(fp, t) /H11001/H9273/H20852
+where g : /H11938/H11001/H11003/H11938/H11001¡ [0, 1] is a normalized Gaussian function
+deﬁned by
+g(fp, t) /H11005
+/H9021/H20851s(fp, t)/H20852/H11002min /H20851/H9021(s)/H20852
+max /H20851/H9021(s)/H20852/H11002min /H20851/H9021(s)/H20852
+where /H9021denotes a normal distribution function with zero mean and
+variance ˆ/H92682 and s(fp, t) is a sawtooth wave of frequency fp. The width
+of the modulation can therefore be controlled by varying ˆ/H92682.
+The modeling of multimodal phase-amplitude distributions was
+done by using a mixture of Gaussian functions deﬁned similarly as
+before, but presenting different phase lags in the sawtooth wave.
+The MATLAB scripts used to compute the phase-amplitude plots
+and the MI can be obtained on request to the authors.
+GRANTS
+This work was supported by National Institute of Mental Health Grants
+MH-71702 and MH-51570 to R. Komorowski and H. Eichenbaum, a National
+Science Foundation grant to N. Kopell, and a Conselho Nacional de Desen-
+volvimento Cientíﬁco e Tecnológico grant to A.B.L. Tort.
+DISCLOSURES
+No conﬂicts of interest, ﬁnancial or otherwise, are declared by the author(s).
+REFERENCES
+Axmacher N, Henseler MM, Jensen O, Weinreich I, Elger CE, Fell J.
+Cross-frequency coupling supports multi-item working memory in the
+human hippocampus. Proc Natl Acad Sci USA 107: 3228 –3233, 2010.
+Bragin A, Jando G, Nadasdy Z, Hetke J, Wise K, Buzsáki G. Gamma
+(40 –100 Hz) oscillation in the hippocampus of the behaving rat. J Neurosci
+15: 47– 60, 1995.
+Buzsáki G, Buhl DL, Harris KD, Csicsvari J, Czeh B, Morozov A.
+Hippocampal network patterns of activity in the mouse. Neuroscience 116:
+201–211, 2003.
+Canolty RT, Edwards E, Dalal SS, Soltani M, Nagarajan SS, Kirsch
+HE, Berger MS, Barbaro NM, Knight RT. High gamma power is
+phase-locked to theta oscillations in human neocortex. Science 313:
+1626 –1628, 2006.
+Cohen MX. Assessing transient cross-frequency coupling in EEG data. J
+Neurosci Methods 168: 494 – 499, 2008.
+Cohen MX, Axmacher N, Lenartz D, Elger CE, Sturm V, Schlaepfer TE.
+Good vibrations: cross-frequency coupling in the human nucleus accumbens
+during reward processing. J Cogn Neurosci 21: 875– 889, 2009a.
+Cohen MX, Elger CE, Fell J. Oscillatory activity and phase-amplitude
+coupling in the human medial frontal cortex during decision making. J Cogn
+Neurosci 21: 390 – 402, 2009b.
+Colgin LL, Denninger T, Fyhn M, Hafting T, Bonnevie T, Jensen O,
+Moser MB, Moser EI. Frequency of gamma oscillations routes ﬂow of
+information in the hippocampus. Nature 462: 353–357, 2009.
+Demiralp T, Bayraktaroglu Z, Lenz D, Junge S, Busch NA, Maess B,
+Ergen M, Herrmann CS. Gamma amplitudes are coupled to theta phase
+in human EEG during visual perception. Int J Psychophysiol 64: 24 –30,
+2007.
+Handel B, Haarmeier T. Cross-frequency coupling of brain oscillations
+indicates the success in visual motion discrimination. NeuroImage 45:
+1040 –1046, 2009.
+Hentschke H, Perkins MG, Pearce RA, Banks MI. Muscarinic blockade
+weakens interaction of gamma with theta rhythms in mouse hippocampus.
+Eur J Neurosci 26: 1642–1656, 2007.
+Hurtado JM, Rubchinsky LL, Sigvardt KA. Statistical method for detection
+of phase-locking episodes in neural oscillations. J Neurophysiol 91: 1883–
+1898, 2004.
+Jensen O, Colgin LL. Cross-frequency coupling between neuronal oscilla-
+tions. Trends Cogn Sci 11: 267–269, 2007.
+Kramer MA, Tort ABL, Kopell NJ. Sharp edge artifacts and spurious
+coupling in EEG frequency comodulation measures. J Neurosci Methods
+170: 352–357, 2008.
+Kullback S. Information Theory and Statistics. New York Wiley, 1959.
+Kullback S. The Kullback–Leibler distance. J Am Statist Assoc 41: 340 –341,
+1987.
+Kullback S, Leibler R. On information and sufﬁciency. Ann Math Stat 22:
+79 – 86, 1951.
+Lakatos P, Karmos G, Mehta AD, Ulbert I, Schroeder CE. Entrainment of
+neuronal oscillations as a mechanism of attentional selection. Science 320:
+110 –113, 2008.
+Lakatos P, Shah AS, Knuth KH, Ulbert I, Karmos G, Schroeder CE. An
+oscillatory hierarchy controlling neuronal excitability and stimulus process-
+ing in the auditory cortex. J Neurophysiol 94: 1904 –1911, 2005.
+Le Van Quyen M, Foucher J, Lachaux J, Rodriguez E, Lutz A,
+Martinerie J, Varela FJ. Comparison of Hilbert transform and wavelet
+methods for the analysis of neuronal synchrony. J Neurosci Methods 111:
+83–98, 2001.
+Lisman J. The theta/gamma discrete phase code occurring during the hip-
+pocampal phase precession may be a more general brain coding scheme.
+Hippocampus 15: 913–922, 2005.
+Lisman JE, Idiart MA. Storage of 7 /H110062 short-term memories in oscillatory
+subcycles. Science 267: 1512–1515, 1995.
+Nicol A, Zhan Y, Fischer H, Zhang X, Feng J, Kendrick K. Learning-
+related alterations in theta-nested gamma oscillations in sheep inferotempo-
+ral cortex. Program No. 192.19. 2009 Neuroscience Meeting Planner.
+Chicago, IL: Society for Neuroscience, 2009. Online.
+Penny WD, Duzel E, Miller KJ, Ojemann JG. Testing for nested oscillation.
+J Neurosci Methods 174: 50 – 61, 2008.
+4 The symbols fp and fA stand for frequency ranges throughout the main text;
+for parsimony of notation, however, in this APPENDIX we use these same
+symbols to denote ﬁxed (single) numbers determining the theta and gamma
+frequencies in the synthetic LFP examples. Accordingly, we used f
+p /H1100510 Hz
+(theta) and fA /H1100550 Hz (LG) or 80 Hz (HG).
+Innovative Methodology
+1209PHASE-AMPLITUDE COUPLING
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 
+
+===== PAGE 17 =====
+
+Schroeder CE, Lakatos P. Low-frequency neuronal oscillations as instru-
+ments of sensory selection. Trends Neurosci 32: 9 –18, 2009.
+Shannon C. A mathematical theory of communication. Bell Syst Tech J 27: ,
+623– 656379 – 423, 1948.
+Tass P, Rosenblum MG, Weule J, Kurths J, Pikovsky A, Volkmann J,
+Schnitzler A, Freund HJ. Detection of n : m phase locking from noisy
+data: application to magnetoencephalography. Phys Rev Lett 81: 3291–
+3294, 1998.
+Tort ABL, Komorowski R, Manns J, Kopell NJ, Eichenbaum H. Theta–
+gamma coupling increases during the learning of item– context associations.
+Proc Natl Acad Sci USA 106: 20942–20947, 2009.
+Tort ABL, Kramer MA, Thorn C, Gibson DJ, Kubota Y, Graybiel AM,
+Kopell NJ. Dynamic cross-frequency couplings of local ﬁeld potential
+oscillations in rat striatum and hippocampus during performance of a
+T-maze task. Proc Natl Acad Sci USA 105: 20517–20522, 2008.
+Wulff P, Ponomarenko AA, Bartos M, Korotkova TM, Fuchs EC, Bahner F,
+Both M, Tort ABL, Kopell NJ, Wisden W, Monyer H. Hippocampal theta
+rhythm and its coupling with gamma oscillations require fast inhibition onto
+parvalbumin-positive interneurons.Proc Natl Acad Sci USA106: 3561–3566, 2009.
+Young CK, Eggermont JJ. Coupling of mesoscopic brain oscillations: recent
+advances in analytical and theoretical perspectives. Prog Neurobiol 89:
+61–78, 2009.
+Innovative Methodology
+1210 TORT, KOMOROWSKI, EICHENBAUM, AND KOPELL
+J Neurophysiol • VOL 104 • AUGUST 2010 • www.jn.org
+ on August 28, 2010 jn.physiology.org Downloaded from 

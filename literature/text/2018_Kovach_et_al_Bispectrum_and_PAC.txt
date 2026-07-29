@@ -1,0 +1,2475 @@
+
+
+===== PAGE 1 =====
+
+The Bispectrum and Its Relationship to Phase-Amplitude Coupling
+Christopher K. Kovach a,∗, Hiroyuki Oya a, Hiroto Kawasaki a
+a Department of Neurosurgery
+University of Iowa Carver College of Medicine
+Iowa City, Iowa
+Abstract
+Most biological signals are non-Gaussian, reﬂecting their origins in highly nonlinear physiological
+systems. A versatile set of techniques for studying non-Gaussian signals relies on the spectral
+representations of higher moments, known as polyspectra, which describe forms of cross-frequency
+dependence that do not arise in time-invariant Gaussian signals. The most commonly used of
+these employ the bispectrum. Recently, other measures of cross-frequency dependence have drawn
+interest in EEG literature, in particular those which address phase-amplitude coupling (PAC). Here
+we demonstrate a close relationship between the bispectrum and popular measures of PAC, which
+we relate to smoothings of the signal bispectrum, making them fundamentally bispectral estimators.
+Viewed this way, however, conventional PAC measures exhibit some unfavorable qualities, including
+poor bias properties, lack of correct symmetry and artiﬁcial constraints on the spectral range and
+resolution of the estimate. Moreover, information obscured by smoothing in measures of PAC, but
+preserved in standard bispectral estimators, may be critical for distinguishing nested oscillations
+from transient signal features and other non-oscillatory causes of “spurious” PAC. We propose
+guidelines for gauging the nature and origin of cross-frequency coupling with bispectral statistics.
+Beyond clarifying the relationship between PAC and the bispectrum, the present work lays out a
+general framework for the interpretation of the bispectrum, which extends to other higher-order
+spectra. In particular, this framework holds promise for the detailed identiﬁcation of signal features
+related to both nested oscillations and transient phenomena. We conclude with a discussion of some
+broader theoretical implications of this framework and highlight promising directions for future
+development.
+Keywords: EEG, ECoG, Higher-order statistics, Polyspectra, Point process, Blind deconvolution
+1. Introduction
+Many interesting properties of signals in nature relate to nonlinear, non-Gaussian and non-
+stationary dynamics, which are poorly indexed by second-order measures such as power and cross
+spectra. Because the spectrum of a stationary Gaussian process lacks any statistical dependence
+across frequencies, measures of frequency-domain dependence can be extremely useful for gauging
+the presence and nature of higher order dynamics [51]. For stationary signals, higher order spectra,
+“polyspectra,” which capture such dependence, are the frequency-domain representations of higher
+∗Corresponding author
+Preprint submitted to Elsevier September 28, 2018
+arXiv:1705.10435v2  [stat.ME]  1 Mar 2018
+
+===== PAGE 2 =====
+
+moments [43], in which they mirror the relationship between the power spectrum of a signal and
+its autocorrelation. The bispectrum is the third-order polyspectrum, making it an obvious place
+to start in the approach towards higher-order dynamics, at least from a statistical standpoint.
+Bispectral analysis has proved its practical worth in applications to EEG [18, 53], most notably
+in gauging the depth of anesthesia [5, 21, 33, 42]. Nevertheless, a signiﬁcant drawback for the
+non-statistician remains its lack of an obvious connection to any simple physical interpretation [19].
+This point has been the source of some confusion in applied literature; for example, as recently
+reviewed by Hyaﬁl [28], various authors have suggested incorrectly that bicoherence relates to phase
+entrainment across pairs of frequencies. While it is true that bispectral measures cannot easily be
+reduced to any single interpretation, a goal of the present work is to show that speciﬁc forms
+of dependence leave easily recognized signatures in the bispectrum, making bispectral measures
+invaluable for distinguishing between a variety of phenomena related to cross-frequency coupling.
+A separate body of work has recently emerged from EEG literature, which examines the role
+of another form of cross-frequency coupling, phase-amplitude coupling (PAC) [12, 29]. PAC refers
+to dependence between analytic amplitude at one frequency and analytic phase at another. Rather
+than any statistical ﬁrst principle, interest in PAC has been motivated by the empirical discovery
+of PAC in signals recorded from the brain, alongside emerging computational and physiological
+models of how it arises within populations of interacting neurons [61, 32, 2, 29]. In this literature,
+the measurement of PAC is usually approached with second-order statistics, such as coherence,
+applied towards comparing analytic phase in one band with analytic amplitude extracted from
+another, treating the two as separate signals [49, 12, 56]. The situation with PAC is therefore
+reversed from bispectral measures: its physical meaning is more evident than its relationship to any
+general body of statistical theory.
+The present work aims to bridge this gap and resolve ambiguities of meaning in both directions.
+The central result is that second-order measures of PAC may be fundamentally understood as
+estimators of the bispectrum. In the same way that windowed stationary estimates of the power
+spectrum can be equated to smoothings of the true signal spectrum, windowed bispectral estimators,
+which include those underlying measures of PAC, amount to diﬀerent ways of smoothing the true
+signal bispectrum [22, 44, 55, 25]. In both cases, diﬀerences between estimators relate to properties
+of the respective smoothing kernels [14]. This observation demonstrates conclusively the meaning
+of PAC measures as they relate to the bispectrum and vice versa and establishes that second-order
+measures of PAC provide no unique information beyond what can be obtained from the bispectrum.
+While PAC measures are fundamentally measures of the bispectrum, the reverse is not true; it is
+not correct to conclude that the bispectrum is principally a reﬂection of phase-amplitude coupling.
+Forms of “spurious” PAC, related, for example, to spectrally broad signal features, may be traced to
+the bispectral nature of PAC measures. One practical implication is that the superior resolution and
+lower bias of standard bispectral measures, in comparison to PAC measures, allows them to retain
+information critical for distinguishing between nested oscillations and other sources of apparent
+phase-amplitude coupling [37]. Following a brief review of bispectral and PAC estimation, we
+will observe how diﬀerent regions of the bispectrum may be taken to reﬂect either phase-amplitude
+coupling or consistency of phase across a range of frequencies. It is shown that the bispectrum can be
+highly useful for ascertaining the presence and origin of phase-amplitude coupling. Properly applied
+and interpreted, bispectral statistics may overcome a number of recently highlighted limitations and
+ambiguities of existing PAC measures[4, 28, 37, 41, 50, 57]. For example, with conventional measures
+of PAC, the observable range of phase-providing frequencies is restricted by the bandwidth of the
+amplitude-providing band [4], yet no such limitation applies to bispectral estimates. In light of the
+2
+
+===== PAGE 3 =====
+
+relationship to the bispectrum, it becomes clear that this constraint is an artifact of the estimator
+rather than anything inherent in the quantity measured.
+Many of the questions that arise in considering the relationship between PAC and the bispectrum
+prove to be of much more general relevance for understanding a range of signal properties that are
+neglected by traditional spectral measures, a topic whose importance is becoming increasingly clear
+[15]. In particular, we develop a model that uses the bispectrum to capture spectrally complex
+signal features, of which PAC is only one example. The concluding sections are devoted to a
+prospective review of the application of the bispectrum towards understanding the nature and
+functional signiﬁcance of non-oscillatory and transient sources of cross-frequency coupling, beyond
+nested oscillations.
+1.1. Organization
+The overall aim of the current work is threefold; ﬁrst, a general introductory background is
+provided to motivate applications of higher-order spectra in signal analysis, accompanied in the
+appendices by a more focused and technical review of the bispectrum and its estimation. The
+second aim is to describe a formal equivalence between bispectral estimators and measures of
+phase-amplitude coupling, details of which are presented in Appendix C. Finally, building on this
+formal relationship, a framework is developed to guide the interpretation of the bispectrum. In
+most places, more technical development has been left to the appendices, the results of which are
+summarized in the main text alongside some background explanation.
+Section 2, in particular, focuses on introducing readers who have had little exposure to the
+ideas and applications of higher-order spectra to some general motivating principles, thus it deals
+with the subject very broadly. Section 3 gives a short summary of the main relevant properties
+of the bispectrum described in more detail in Appendix A and Appendix B. Section 4 similarly
+introduces phase-amplitude coupling, which is given a more detailed treatment in Appendix C.
+Section 5 develops a framework for understanding the relationship between PAC and the bispectrum,
+building on the proof provided in Appendix C. Section 6.2 brieﬂy considers an extension to phase-
+frequency coupling. The concluding sections set the framework within a broader theoretical context;
+section 8.1 describes a model of signal encoding and transmission that exploits properties of the
+bispectrum, while section 8.2 anticipates further development of the framework, especially in the
+direction of feature extraction and identiﬁcation.
+2. A primer on higher-order spectra in signal processing
+Abstractly, signal processing is about making sense of sequential or otherwise meaningfully
+ordered quantities; it considers the question, what kinds of measures best capture the essential
+nature of any dependence among the quantities as it relates to their position in the ordering space
+(henceforth assumed to be time)? An endless variety of diﬀerent measures can be conceived, the
+usefulness and interpretation of any of which naturally depends on very concrete particulars of the
+application. But to a theoretically-minded statistician, armed with the hammer of distribution
+theory, a signal is a nail drawn from a distributional pile, and signal processing is merely the
+application of a general form of statistical inference to the special case of ordered data. Our slightly
+naive theoretician might be forgiven for turning to measures related to moments, because, at least
+in principle, moments completely characterize a distribution, meaning that they collectively harbor
+all the information there is to harbor about the process generating the signal, irrespective of its
+source or nature.
+3
+
+===== PAGE 4 =====
+
+Moments are most familiar in the form of the mean, variance, skewness and kurtosis of univariate
+distributions, related to the expected values of the ﬁrst four powers of the random variable. The
+idea generalizes to the expected value of any power; the kth-order moment is the expectation of the
+kth power. The extension to multivariate distributions adds cross-terms to the picture, which are
+most commonly encountered in the oﬀ-diagonal values of a covariance matrix. At higher orders,
+cross-terms within the kth moment may take the form of the product of k distinct variates or any
+combination of powers of the variates that sum tok. For example, the kth moment of a distribution
+over (x,y,z ) includes all of the combinations of powers that appear in the expansion of (x+y+z)k.
+In applications to signal processing, the sampling space is neither univariate nor in general
+multivariate, rather it is the space of possible signals, which, for theoretical purposes, occupies
+a continuously inﬁnite number of dimensions. This fact causes moments to take on a decidedly
+intimidating air in signal-processing contexts, but the truth is that they behave more-or-less exactly
+like their tamely ﬁnite cousins. The ordering space of the signal (in our case, time) takes the place of
+the integer-valued index of multivariate distributions. In analogy to the cross-terms of multivariate
+distribution, moments of a continuous signal involve the expected values of the products of the
+signal with itself at speciﬁed points in time. For example, if X(t) is a bounded signal, meaning here
+the relevant moments are deﬁned, its ﬁrst moment at time t1 is the expectation of the signal itself,
+E [X(t1)], the second moment at (t1,t 2) is E [X(t1)X(t2)], while the expectation of the product
+E [X(t1)X(t2)...X(tk)] (1)
+is the kth moment at (t1,..,t k).
+In spite of their considerable theoretical appeal, the application of moment-related statistics to
+real-world problems in signal processing invariably runs into two obstacles. First, their estimation
+puts severe demands on data because moments may assume a set of distinct values over a parameter
+space that grows exponentially with order, starting from one that is already at least as large as the
+observed signal. Second, the question of how to interpret higher moments also seems to become
+exponentially less clear with increasing order. It is therefore impossible to estimate moment-related
+statistics without some judicious assumptions that rein in the parameter space, but the exercise is
+still bound to prove hollow if one lacks any insight into real-world meaning.
+The ﬁrst point is addressed easily enough by making assumptions about how the dependence
+relates to ordering; for example, windowing is commonly used to enforce the assumption that any
+dependence grows negligible outside some local neighborhood according to the window. Combined
+with the assumption of time invariance (reviewed in the following section) windowing and similar
+procedures make estimation of higher moments a tractable problem. Even so, the practical applica-
+tion of moment-related statistics in signal-processing contexts rarely involves orders above 4, while
+applications involving 3rd order dependence, of the type that will be given special attention here,
+already border on exotic. Moment-related statistics of order 1 and 2 are perfectly familiar as mean
+and covariance or autocorrelation; the leap from 2 to 3 introduces qualitatively new properties with
+potentially far-reaching implications, a few of which we will encounter in the following discussion.
+2.1. Time invariance
+A common and sometimes necessary simplifying assumption is that the statistics governing the
+signal remain constant over time. A very useful byproduct of time invariance, and motivation for
+giving special consideration to invariant measures, is that estimation may resort to averaging over
+time; for example, the estimate of the ﬁxed ﬁrst moment becomes the average ˆ µ1 = 1
+T
+∫T
+0 X(t)dt,
+4
+
+===== PAGE 5 =====
+
+which ought to converge with the true expectation, µ1, as T increases (provided again the signal is
+suitably bounded). Similarly, time invariance allows the second moment to vary only with respect
+to the delay between two points in time, µ2(τ) = E [X(t)X(t +τ)]. The second moment may
+therefore be estimated by averaging over time in the same way:
+ˆµ2(τ) = 1
+T
+∫ T
+0
+X(t)X(t +τ)dt (2)
+giving the familiar autocorrelation. Likewise, for higher moments, time-invariant statistics are those
+obtained by considering the lags between the indexed times, collapsing over the absolute time.
+2.2. Spectra and time-invariant moments
+A central result in signal-processing theory concerns the relationship between time-invariant
+statistics and the spectral representation of the signal, given by its Fourier transform: ˜X(ω) =
+F{X(t)}. From the inverse Fourier transform:
+X(t) = F−1
+{
+˜X (ω)
+}
+= 1
+2π
+∫
+˜X(ω)eiωtdω (3)
+one can readily appreciate that any shift of time, ∆t, separates out into an exponential term in the
+spectrum of X:
+F{X(t + ∆t)} = ˜X(ω)eiω∆t (4)
+Consider the eﬀect of a random shift, ∆t, with uniform distribution (and otherwise independent of
+the unshifted signal) on the second moment:
+µ2(τ) = E [X(t + ∆t)X(t + ∆t +τ)]
+= 1
+2π
+∫
+E
+[
+˜X(ω1) ˜X(ω2)
+]
+ei(ω1+ω2)t+iω2τE
+[
+ei(ω1+ω2)∆t
+]
+dω1dω2
+= 1
+2π
+∫
+E
+[
+˜X(ω1) ˜X(ω2)
+]
+ei(ω1+ω2)t+iω2τδ(ω1 +ω2)dω1dω2
+= 1
+2π
+∫
+E
+[⏐⏐⏐ ˜X(ω2)
+⏐⏐⏐
+2]
+eiω2τdω2
+(5)
+In other words, the time-invariant second moment, µ2(τ), is the time-domain representation of the
+power spectrum, a result known as the Wiener-Khintchine theorem (technically speaking, what is
+given here is a special case valid for integrable functions).
+More generally, paralleling the situation in the time domain, moments are represented in the
+spectral domain as the expectation of products of the signal spectrum across diﬀerent frequencies.
+One can conclude from a glance at Eq. (4) that any time-invariant products must arise from those
+combinations of frequencies for which the exponential terms cancel. For the ﬁrst moment, the
+exponential term vanishes only at ω = 0, hence time invariance applies only at the origin, ˜X(0),
+related to the ﬁxed constant mean. For the second moment, the exponent vanishes whenω1 =−ω2,
+as then ˜µ2 = ˜X(ω)eiω∆t ˜X(−ω)e−iω∆t =
+⏐⏐⏐ ˜X(ω)
+⏐⏐⏐
+2
+. The idea extends naturally to higher moments
+as well; in general, given the product
+˜µK = E
+[
+˜X(ω1) ˜X(ω2)... ˜X(ωK)
+]
+(6)
+5
+
+===== PAGE 6 =====
+
+time invariant statistics relate to those terms for which
+K∑
+i=1
+ωi = 0
+Such products go by the names higher order spectra or polyspectra and it is not very diﬃcult to
+show that, as with the second-order case, they are related to the time-domain moment of the
+corresponding order by a multi-dimensional Fourier transform. The 3rd order polyspectrum is
+known as the bispectrum while the 4th order is the trispectrum.
+2.3. Time-Varying Spectra and the Wigner-Ville Distribution
+In the previous section we equated time-invariant spectra to the spectral representation of a
+time-varying moment integrated over time, which we may likewise interpret as an estimate of the
+time-invariant spectrum obtained by averaging over time. But there are plenty of applications in
+which it must be assumed thatspectra vary over time. If the time-invariant estimate averages over
+time, shouldn’t it be possible to observe the time-varying spectrum simply by not averaging? An
+important class of time-frequency representations does just that, retaining the Fourier transform
+but skipping the integration over time; under a suitable change of variables, the outcome represents
+the original time-varying moment as a time-frequency distribution. The best-known example of
+such an object is the Wigner-Ville distribution (WVD):
+W (ω,t ) =
+∫
+X
+(
+t + τ
+2
+)
+X
+(
+t− τ
+2
+)
+e−iωτdτ (7)
+The WVD applies a Fourier transform along the lag dimension of the time-varying second moment,
+combined with a trivial change of variables that centers the lag, τ, on absolute time, t. Though
+sometimes used as a time-frequency representation in its own right, it suﬀers from the drawback
+that “spurious” energy may arise as a result of interference between spectrally isolated components
+in regions where neither component separately contains energy.
+The WVD is, arguably, more useful as a conceptual starting point in developing a general theory
+of power-spectral estimation: any of the common stationary and time-varying Fourier-derived power
+spectra can be gotten by smoothing or integrating over the distribution, which has the eﬀect of
+smoothing away energy related to interference [27, 14]. Distinctive properties of any estimator
+are a consequence of the particular window it applies to the distribution. This idea generalizes
+naturally to higher moments, whose estimators may be likewise equated to smoothings of higher-
+order Wigner-Ville distributions, with distinguishing properties set by the choice of smoothing
+window.
+2.4. Polyspectra and Gaussian Processes
+One of the important qualitatively new properties of third-order and higher polyspectra arises
+from the fact that Gaussian signals are fully characterized by second-order statistics, meaning that
+any linear time-invariant (LTI) Gaussian process is completely determined by its mean and power
+spectrum. All forms of cross-frequency dependence relate to polyspectra of order 3 or higher (those
+with two or more frequency dimensions), therefore LTI Gaussian processes exhibit no dependence
+across frequencies. One of the main selling-points of higher-order spectra is that they can reveal the
+presence of non-Gaussian behavior as might result, for example, from non-linear signal dynamics.
+At the conclusion of this work we will see that it is possible to isolate such non-Gaussian signals
+6
+
+===== PAGE 7 =====
+
+from a background of Gaussian noise on the basis of higher-order spectra. This is an especially
+compelling application of higher-order spectra because the most interesting signal components are
+also often the least Gaussian.
+2.4.1. Moments and Cumulants
+Cumulants are closely related to moments, but for Gaussian processes they are identically zero
+at all orders above two. They may therefore be constructed by subtracting the moment of a
+Gaussian process with a matching spectrum from the corresponding signal moment. For higher-
+order spectra, this generally involves subtracting a term within those sub-domains wherein the
+polyspectrum reduces to a product of power spectra and/or any non-zero mean. For example, the
+cumulant trispectrum subtracts E
+[⏐⏐⏐ ˜X(ω1)
+⏐⏐⏐
+2]
+E
+[⏐⏐⏐ ˜X(ω2)
+⏐⏐⏐
+2]
+from the moment trispectrum within
+the subspace where ω3 =−ω1, while outside this region the moment and cumulant trispectra are
+equal. The cumulant bispectrum and moment bispectrum diverge only along ω1 = 0, ω2 = 0 and
+ω1 =−ω2 for a non-zero mean process but are identical everywhere for a zero-mean process, a
+property that extends to all odd-ordered cumulants.
+2.5. Cross Polyspectra
+In the polyspectral moment products described by Eq (6), each term is drawn from the same
+signal, but there is nothing to stop us from mixing terms across multiple signals. Such cross
+polyspectra, which are the higher-order generalizations of the cross spectrum, describe various forms
+of dependence between multiple signals and are cross terms in the moments of the corresponding
+multivariate signal distributions. The practical application of these measures to EEG has gained
+some recent attention [52, 13].
+Third-order cross polyspectra also arise implicitly when considering the dependence between
+second-order statistics, and independent measures of interest. For example, it is often of interest
+to relate ordinary power spectra or cross spectra to experimental variables that change over time.
+Standard regression models which treat power as the dependent measure implicitly model a subset
+of cross-bispectral interactions with the independent variable. The possible value of a more explicit
+treatment of third-order interactions in such analyses is a question worth pondering.
+2.6. A Philosophical Aside on Time Invariance
+Much of signal-processing theory is preoccupied with time-invariant measures, but the matter is
+usually presented as an assumption about the signal, and a rather restrictive, too-often unrealistic
+one, at that. It can be motivated in a diﬀerent way: in many settings the origin of the time scale
+has no intrinsic bearing on the signal and might be chosen arbitrarily. If the observer lacks any
+other information by which to meaningfully situate the signal in time, such as the time of some
+relevant external event, then from the observer’s perspective, time is subject to some large random
+shift, reﬂecting the arbitrariness of the origin. The question becomes, what properties of the signal
+can such an observer measure? As illustrated in Eq. (5), a lack of timing information makes it
+possible to observe only time-invariant moments. Even if essential properties of the signal are not
+strictly constant over time, in the perspective of such an observer, the moment expectations become
+those of a stationary signal, whose bounded statistical properties do remain constant. Time-shift
+invariant properties are particularly relevant because uncertainty of timing is, more often than not,
+inherent in the problem of signal identiﬁcation.
+7
+
+===== PAGE 8 =====
+
+One may arrive at a similar idea by noticing that the time-dependent moment of orderk consid-
+ered at the outset in Eq. (1) can be trivially equated to a time-invariant moment of orderk+1 which
+includes a cross-term dependence on the impulse function, δ(t); this is so because the spectrum of
+the latter is constant and unit valued, ˜δ(ω) = 1, allowing it to partake implicitly in any product.
+“Situating a signal in time” therefore amounts to observing the dependence between the signal
+and some time-anchoring event, encoded as an impulse. But nothing gives such a function special
+importance next to any other function of doubtful relevance to the signal. One may conclude that
+time-invariant moments give a completely general description of the signal-generating process when
+the full structure of dependence is taken into account, whether or not the full structure includes
+signals encoding such “time-anchoring” event(s).
+In this view, one sense of what is conventionally meant by “stationary” becomes a statement
+about dependence between the signal and particular time-anchoring events. There is another com-
+monly used sense, which refers to whether low-order statistics, especially 2nd, vary over time. Such
+ﬂuctuations may however be described with higher-order time-invariant statistics and so do not
+technically require signal statistics to change over time. For example, the tendency for signal power
+to ﬂuctuate over time at a particular modulation frequency may be captured by 4th-order statis-
+tics, which encompass the power spectrum of bands within the WVD. What about the case when
+a glance at the spectrogram makes it plainly obvious that the signal is not stationary? In such
+cases, one’s eye has situated the signal in time according to some clearly identiﬁable series of events
+within the signal itself. But this is also, in a sense, what time-shift invariant statistics do: they
+take the signal itself as its own “time-anchoring” input. For example, in the case of PAC, phase
+at one frequency deﬁnes the time window over which power is observed to vary at another. In
+this way, time-shift invariant 3rd-order statistics may account for a particular form of 2nd-order
+non-stationarity.
+One important qualiﬁcation should be mentioned. It has been noted more than once now
+that moment estimation assumes the distribution to be bounded at the corresponding order, but
+it is possible to construct distributions whose moments are unbounded at or above some order
+(a property of Student’s t-distributions, for example); thus “stationary” might be applied more
+generally to signals arising from distributions with bounded moments, while signals with unbounded
+moments are properly non-stationary at the given order.
+Perhaps it is conceptually helpful that in the spectral domain, time invariance relates to a
+particular subset of moment products for which time shifts cancel, making it more natural to
+think of the measurement of time-invariant spectral moment products as something which does not
+prejudge the nature of the signal. That is, one does not need to make assumptions about time-
+dependent moments to measure time-invariant moments, any more than measuring a mean requires
+an assumption about variance. This view of the matter may serve to unclutter the question of
+stationarity, making it about the boundedness of the distribution on the one hand, and dependence
+on particular events on the other.
+3. The Bispectrum
+The previous section laid out some general context and motivation for appealing to higher-order
+spectra in signal processing. The remainder of the work is concerned with addressing the two
+stumbling blocks identiﬁed earlier in relation to third-order statistics: computation and interpreta-
+tion. The appendices contain a more technically oriented overview of the bispectrum in which the
+8
+
+===== PAGE 9 =====
+
+question of how to design estimators is given particular attention. To address the problem of inter-
+pretation, we broaden the range of estimators beyond what is normally considered. This extension
+will allow us to link one class of non-standard bispectral estimator to common measures of phase-
+amplitude coupling. The following section summarizes the main results presented in Appendix A
+and Appendix B.
+3.1. Deﬁnition
+LetX be a random realization of a harmonizable time-series process, obeying usual assumptions
+of boundedness and integrability, with moments deﬁned up to order 3. In most cases, it will be
+assumed thatX is real-valued, unless otherwise speciﬁed. Frequency-domain representations will be
+indicated with a tilde; for example, ˜h(ω) is the Fourier transform of h(t). Scaling and normalizing
+constants, such as 1 /2π in the inverse Fourier transform, will also be suppressed for notational
+economy where doing is not expected to create confusion.
+The bispectrum of the process generatingX is given by the following expectation in the frequency
+domain:
+B(ω1,ω 2) = E
+[
+˜X(ω1) ˜X(ω2) ˜X∗(ω1 +ω2)
+]
+(8)
+Some insight into the meaning of this quantity comes by introducing the inverse Fourier expansion
+of ˜X into Eq. (8):
+B = E
+[∫∫∫
+X(r)X(s)X(t)e−iω1(r−t)−iω2(s−t)drdsdt
+]
+=
+∫∫∫
+E [X(τ1 +t)X(τ2 +t)X(t)]e−iω1τ1−iω2τ2dτ1dτ2dt
+(9)
+which integrates a two-dimensional Fourier transform over time. Directly paralleling the ordinary
+power spectrum [14], the integrand here may be understood as the 3rd-order Wigner-Ville distri-
+bution, up to a time-centering change of variables [22, 25, 20]:
+W3 (ω1,ω 2,t ) =
+∫∫
+X
+(2
+3τ1− 1
+3τ2 +t
+)
+X
+(2
+3τ2− 1
+3τ1 +t
+)
+X
+(
+t− 1
+3 (τ1 +τ2)
+)
+e−iω1τ1−iω2τ2dτ1dτ2
+(10)
+For a third-order stationary process, the expectation of the third-order moment depends only on
+the relative lags of the times:
+E [X(τ1 +t)X(τ2 +t)X(t)] =µ3(τ1,τ 2) (11)
+in which case, substituting (11) into Eq. (9)
+B =
+∫∫
+µ3(τ1,τ 2)e−iω1τ1−iω2τ2dτ1dτ2 (12)
+In other words, for a third-order stationary process, B is the two-dimensional Fourier transform of
+the third moment, B = ˜µ3(ω1,ω 2). This relationship parallels the equivalence between the power
+spectrum and the second moment (i.e. auto-correlation), and extends likewise to higher polyspectra
+and moments [43, 25]. For a more review of the main properties of the bispectrum, the reader is
+invited to spend time in Appendix A. Matters related to the estimation of the bispectrum and, in
+particular, the design of bispectral estimators are tackled in Appendix B
+9
+
+===== PAGE 10 =====
+
+3.2. The Quick Summary
+Of the properties reviewed in 3.1 and Appendix A, a particularly useful set for our purposes
+are those related to convolution. Just as the convolution of two signals in time becomes the
+multiplication of their spectra in the frequency domain, the bispectrum of the convolution of two
+signals is the product of the separate bispectra—provided the signals are statistically independent
+or deterministic. Because this property allows the result to be analyzed in terms of the separate
+bispectra of the convolved signals, it will be useful for developing a model of recurring transient
+features whose timing is governed by a point process (described in 5.1 and Appendix D). The
+bispectra of these processes are separately amenable to more detailed analysis, and properties of
+the bispectrum of a transient feature, in particular, will be used to establish the link with PAC.
+Appendix B takes a closer look at the problem of estimating bispectra. Just as techniques for
+estimating power spectra which use windowed Fourier transforms can be understood as smoothing
+or integrating over the ordinary Wigner-Ville distribution (see Eq. 7), bispectral estimators (as
+well as higher-order spectral estimators generally) likewise involve integrating and smoothing over
+higher-order Wigner distributions [22, 20, 25]. Diﬀerences between alternative estimators relate to
+properties of the windows each applies in the smoothing or integration, but all estimators reﬂect
+the same underlying quantities related to signal moments of a given order.
+Estimators that rely on windowed Fourier transforms can be formally understood as employing
+a bank of single-sideband ﬁlters [9, 3, 36]. Taking this ﬁlter-bank perspective opens a wider range
+of possible estimators to consideration because ﬁlter properties might be permitted to vary across
+bands, whereas they remain ﬁxed in the more conventional windowed-Fourier view. Three diﬀerent
+classes of estimators are considered in section Appendix B.2, which diﬀer according to the relative
+bandwidths of the three bands that participate in the bispectral product. The results laid out in
+that section are used in Appendix C to show the close relationship between PAC estimators and
+one such class of bispectral estimator.
+4. Phase-Amplitude Coupling
+Phase-amplitude coupling refers to dependence between the analytic envelope of an oscillatory
+signal component within one band and phase within another. For the envelope of the ﬁrst component
+to ﬂuctuate at the scale of the second, the bandwidth of the ﬁrst component must be at least as great
+as the center frequency of the second and its center frequency correspondingly higher, for which
+reason the ﬁrst component is a “fast oscillation” (FO), while the second is the “slow oscillation”
+(SO).
+Measures of PAC relate the analytic signal in a band encompassing the SO to the analytic
+envelope from the band of the FO, treating the two as separate signals, typically using a second-
+order statistic such as coherence, phase-locking or weighted mean vector strength. While it is also
+most common to use signal amplitude in quantifying PAC, one might use signal power (squared
+amplitude) in place of amplitude in the same way, giving phase-power coherence (PhPC). Appendix
+C demonstrates the direct relationship between PhPC and the bispectrum. Because conventional
+measures that use amplitude are related to those that use squared amplitude by a simple scalar
+transformation of the ﬁltered input signals, they reﬂect the signal bispectrum to a ﬁrst approxima-
+tion and might otherwise be interpreted as bispectral estimates computed on suitably transformed
+input signals.
+10
+
+===== PAGE 11 =====
+
+4.1. Multi-modal dependence
+The second-order measures described above are most suitable when there is a single mode in
+the distribution of the phase diﬀerence between the SO and FO envelope. A number of extensions
+develop tests that improve sensitivity to multimodal distributions, using alternative distributional
+measures over phase, such as Kullback-Leibler divergence or other entropy-related measures [56].
+Such alternative methods of quantifying dependence can be translated to the bispectrum with
+relatively little eﬀort; the extension involves a similar treatment of the distribution of phase within
+the unaveraged terms in the bispectral estimator (Eq. 28). The question is brieﬂy considered again
+in 6.1. The important take-away message for the present purpose is that the essential argument
+developed in the following sections remains generally valid for measures of PAC derived from the
+joint distribution of analytic amplitude and phase in diﬀerent frequency bands.
+5. Bispectral Signatures of P AC
+Appendix C contains a proof that phase-power coherence is fundamentally a bispectral esti-
+mator, which diﬀers from conventional bispectral estimators only in the shape of the associated
+smoothing kernel. While past authors have noted some similarities between bispectral and PAC
+measures [37, 28], this formal relationship appears not to have been previously described. The
+following sections extend this observation with a signal model that will oﬀer some more practical
+insight into how the bispectrum relates to PAC.
+5.1. Transient and Oscillatory Models
+A case traditionally used to illustrate PAC is that of a sinusoidally modulated FO added to a
+sinusoidal SO of the same frequency as the FO modulating window (see Figure 1). Here, the SO
+is a pure sinusoid, cos(θt), and the FO is the sinusoidally modulated sinusoid, (1 − cos(θt)) cos(γt)
+. It is easy to get a handle on the bispectrum of this signal because we need only worry about
+4 quantities (ignoring the negative half of the spectrum, which is symmetric)): peaks at ω = θ,
+ω =γ−θ, ω =γ and ω =γ +θ:
+˜X(ω) =δ(ω−θ) +δ(ω−γ) +δ(ω−γ−θ)/2 +δ(ω−γ +θ)/2 (13)
+The bispectrum contains two peaks in the principal domain where the product ˜X(ω1) ˜X(ω2) ˜X∗(ω1+
+ω2) does not vanish, at ( ω1 = θ,ω 2 = γ−θ) and (ω1 = θ,ω 2 = γ). From this, it is clear that it
+conveys something about phase-amplitude coupling.
+It is natural to try to understand spectral measures in terms of the sinusoidal functions that
+are elemental to spectral decompositions; but this example oﬀers only modest insight into what
+the bispectrum means in more realistic settings with signals that may be spectrally broad. Part of
+the problem is that the bispectrum, by deﬁnition, relates to the interaction between the separate
+components in this example. But this means that one can’t rely on any conceptually helpful
+decomposition according to the FO and SO considered separately to build up insight into more
+complicated cases.
+A diﬀerent tack might bring us closer to such a decomposition. We have already noted that the
+spectrum of the convolution of two signals is the product of their separate spectra, a fact that gen-
+eralizes to higher order spectra, provided the signals are deterministic or statistically independent
+at the corresponding order. We might approach the problem by considering the signal as a series
+of transient features, fi(t−τi), whose timing is governed by a point process, N. This view of the
+11
+
+===== PAGE 12 =====
+
+0 0.5 1 1.5 2
+0 0.5 1 1.5 2 0 0.5 1 1.5 2
+0 10 20 30 40 50 60
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+0 10 20 30 40 50 600
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+0 10 20 30 40 50 60
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+×
++
+Hz Hz
+Hz
+Bispectrum
+Bispectrum
+Transient 
+model
+Oscillatory 
+model
+Transient 
+(SO + FO)
+SO FO
+Point process (N)
+0 0.5 1 1.5 2
+time (s)
+time (s)
+0 0.5 1 1.5 2
+-1
+-0.5
+0
+0.5
+1
+Hz
+Hz
+SO + FO
+A B
+C
+E F
+D
+G H
+I
+0 10 20 30 40 50 60
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+time (s)
+time (s)time (s)
+Figure 1: Transient versus oscillatory models of phase-amplitude coupling. The sum of a slow oscillation (SO, A)
+and a sinusoidally modulated fast oscillation (FO, B) with modulation frequency the same as the SO, yields a signal
+(C) whose bispectrum contains two peaks ( D), one at the FO frequency and another at the sum of FO and SO
+frequencies. The same signal can be modeled as the convolution of a transient SO and transiently modulated FO
+(E, blue line ) with a periodic train of impulse functions ( F). Using the convolution property (described in Appendix
+A.2), the bispectrum of the SO+FO signal can be understood as the product of the bispectrum of the transient ( G)
+and that of the point process which governs its occurrence in the signal ( H ). The bispectrum of the latter contains
+energy only at harmonically related peaks, which restricts the comparatively smooth and broad bispectrum of the
+transient FO+SO to the subset of peaks at which energy in the two bispectra overlaps. In this example, the fact
+that the phase of the FO is ﬁxed relative to the SO implies that the former must be an integer multiple of the latter,
+which is not a necessary restriction of either model. When the phase of the FO’s are random and independent of
+each other and the SO, the bispectrum is no longer restricted to harmonic peaks in the range of the FO ( I ).
+12
+
+===== PAGE 13 =====
+
+problem decomposes the signal into a series of local features convolved with impulses generated by
+N, which encode global signal properties. Details of this model are worked out in Appendix D. For
+our purpose, we will want to consider transient functions that can be decomposed into two parts,
+a slowly varying low-frequency part, fSO(t) and a rapidly modulated high-frequency part fFO(t),
+with f(t) = fFO +fSO where both SO and FO are transient. 1 As illustrated in Figure 1, the
+transient model explains the two peaks in the bispectrum of the SO+FO signal as the restriction
+of the bispectrum of f to peaks in the bispectrum of N through multiplication.
+5.1.1. A Caveat
+The attentive reader may have noticed a problem with Figure 1, which gives the occasion to
+point out some limitations of the transient model: it illustrates the case when f is ﬁxed, meaning
+that the phase of the FO and SO are always in the same relation and by extension that the frequency
+of the FO must be an integer multiple of the SO, a rather severe restriction which does not arise
+in the oscillatory view of the same problem. Fortunately, the transient model is not bound to this
+assumption, and a key result described in section 5.3.1 is that the bispectrum retains energy in the
+SO× FO range of frequencies even if the phase of fFO is random. The limitation of the analysis
+presented there relates instead to the fact that it takes as a simplifying assumption that N and
+emitted transients, the fi’s, are mutually independent.
+Among the results described in 5.3.1, when the phase of thefFO’s are random or vary uniformly,
+the contribution of the point process to the bispectrum drops out along a given dimension in the FO
+frequency range, leaving only the contribution of the transient. In such cases, the analysis concludes
+that the bispectrum will still be conﬁned to peaks in the spectrum of N in the range of the SO but
+will not be likewise restricted in the range of the FO. To arrive at the fact that there are only two
+peaks in the bispectrum when γ is anything but an integer multiple of θ (causing the relative phase
+of the fFO’s to vary), it is necessary to account for the dependence between adjacent fFO’s, which
+is something the analysis neglects. Nevertheless, as a conceptual tool it gets the general picture
+right, and as an analytic tool, the assumption of sequential independence is, if not always benign,
+at least one of the more commonly accepted transgressions in such settings.
+5.2. The Transient Bispectrum
+The main advantage of the transient model and its relevance for understanding PAC is explained
+next. If the mean of f, ˜f(0), is nonzero, it is easily seen that the bispectrum of f contains its own
+power spectrum, ˜f(0)
+⏐⏐⏐ ˜f(ω)
+⏐⏐⏐
+2
+, along the axes ω1 = 0 andω2 = 0. This observation can be extended
+more generally to slow oscillations beyond the DC axis: suppose f is the sum of two components,
+f = fSO +fFO, the ﬁrst of which, fSO, occupies a narrower bandwidth than the second at center
+frequency, ξ, while the amplitude of the second rises and falls transiently at a time scale shorter
+than the period of the ﬁrst. This modulation implies that fFO is eﬀectively windowed at a time
+scale less than 2πξ−1. The consequence of such time-domain windowing on the frequency domain
+mirrors exactly the eﬀect of frequency-domain windowing on the time domain (i.e. ﬁltering), which
+is to say the result is a smoothed version of the unwindowed spectrum. In particular, windowing at
+the scale 2πξ−1 implies that the spectrum offFO is smooth at the scale ofξ, justifying the following
+approximation
+˜fFO(ω) ˜f∗
+FO(ω +ξ)≈
+⏐⏐⏐ ˜fFO(ω)
+⏐⏐⏐
+2
+e−iξτ (14)
+13
+
+===== PAGE 14 =====
+
+=
+~fF O(!~fF O( )
+j j
+!~fS O( )9 + )9
+e-i2
+: ~fS O( )9 ~fF O(! ) =
+Time domain Frequency domain (power spectrum)
+2:/9 9
+9
+*
+!
+9
+Magnitude
+FO 
+unwindowed
+FO
+windowed
+Phase
+Bispectrum
+:
+A B
+C
+Hz Hz
+Hz
+Hz
+20 40 60 80 100 120 140 160 180 200
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+20 40 60 80 100 120 140 160 180 200
+-:/2
+0
+:/2
+:
+-:
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+    +f- =9 SO
+Figure 2: Transient modulation and spectral smoothing. Panel A: A signal is composed of a broadband “fast
+oscillation” (FO, blue) and a low frequency “slow oscillation” (SO, red). The FO is here depicted as white noise
+(gray) modulated by a brief window ( dashed line ) whose duration is less than the characteristic time scale of the
+SO, 2πξ −1. B: In the frequency domain, such transient windowing forces the spectrum of the FO to be smooth at
+the frequency scale of ξ (inset) so that the product ˜fFO(ω1) ˜f ∗
+FO(ω1 +ξ) may be locally approximated by the power
+spectrum of the FO multiplied by a complex sinusoid which encodes the delay of the window function, e−iξτ (see
+Eq. 15). Contrast the unsmoothed power spectrum in the absence of time modulation, ( gray). C: As a result of this
+relationship, the bispectrum of the composite signal contains information about the spectrum of the SO and power
+spectrum of the FO . The relative delay between the FO and SO is encoded in bispectral phase ( C, lower right ),
+which is approximately linear in the range of the SO; contrast the random phase of the unwindowed FO ( C, upper
+right)
+where τ accounts for some arbitrary time delay. These points are illustrated in Figure 2. The
+terme−iξτ describes the phase of the amplitude modulation relative to the emission time. We may
+partition the bispectral plane according to the spectral ranges of fSO and fFO, as shown in Fig. 3.
+Where energy falls within this partitioning gives the ﬁrst set of criteria for distinguishing PAC.
+5.3. Bispectral Deﬁnition of PAC
+First, we need a more precise statement of what is meant by PAC. An often-cited example of
+what is not meant are cases of “spurious” PAC that arise from recurring transient signal features,
+such as spectrally broad “spikes” or sharp-edged waves, which may or may not be periodic (see
+Figure 4) [37, 41]. Such false PAC will tend to exhibit a consistent phase relationship across a range
+of frequencies, in particular, along the harmonics of any fundamental periodicity. “True” PAC is
+taken here to mean nested oscillations with the following characteristics:
+14
+
+===== PAGE 15 =====
+
+fSO 
+fSO 
+fFO 
+fFO 
+~
+~
+~ ~
+ω1
+ω2
+Figure 3: Regions of the bispectrum used by the inside and outside criteria. Phase-amplitude coupling is character-
+ized by energy in the “outside” regions given by the support of ˜fSO ˜fFO (gray boxes) while features related to sharp
+peaks and edges also tend to create energy in the “inside” regions ( white boxes ).
+1. For a fast oscillation (FO) to be “nested,” within a slow oscillation (SO), its amplitude must
+vary at a time scale around the period of the slow oscillation.
+2. The FO should be concurrent with the SO.
+3. The phase of the FO must either lack any consistent phase relationship with that of the SO
+or it must fall within a band that is isolated from the SO and any related harmonics.
+The ﬁrst point implies that each burst of the FO occupies a bandwidth wider than the center
+frequency of the slow oscillation in which it is embedded, giving a characteristically smooth spectrum
+at the scale of the SO. The second point excludes non-concurrent responses; for example, a fast
+oscillation followed by a slower one. The third point excludes spectrally broad features associated
+with sharp transients and ensures that any oscillation nested in the SO with a consistent phase
+relationship is genuinely oscillatory. These points justify guidelines for identifying PAC in the
+bispectrum, outlined in the following sections. More generally, they provide a way to characterize
+recurring signal features through the bispectrum.
+5.3.1. Deﬁning PAC: The Outside Criterion
+The ﬁrst criterion for PAC is that the time scale over which the amplitude of the nested fast
+oscillation, fFO, varies must be less than the period of the slow oscillation, fSO, in which it is
+embedded. When this holds, the approximation in Eq. (14) implies that the power spectrum of
+fFO appears in the bispectrum parallel to the ω2 axis within the support of ˜fSO because within this
+range
+˜f(ω1) ˜f(ω2) ˜f∗(ω1 +ω2)≈ ˜fSO(ω1)
+⏐⏐⏐ ˜fFO(ω2)
+⏐⏐⏐
+2
+eiω1τ (15)
+and likewise for the ω1 axis under symmetry. The time delay, τ, recovers the relative lag between
+fSO and the envelope of fFO. It can be seen that the power spectrum of fFO is reproduced parallel
+to the ω1 axis at ξ, while in the orthogonal direction, the spectrum of fSO is reproduced parallel
+to ω2 within the support of ˜fFO(ω1). Examples of this eﬀect can be found in Figure 4 (middle
+panels) for both the nested-oscillation and transient test signal.
+Applying a similar analysis to the stochastic case describe in Appendix D.2, suppose that the
+spectrum of fFO overlaps negligibly withfSO, so that ˜fSOi(ω) ˜fFOj(ω)≈ 0, then within the support
+15
+
+===== PAGE 16 =====
+
+ Bicoherence
+0 20 40 60 80 100
+0
+10
+20
+30
+40
+50
+Nested
+Oscillations
+Periodic
+Transients
+PhPCTest signals
+0 20 40 60 80 100
+0
+10
+20
+30
+40
+50
+0 20 40 60 80 100
+!2
+!1
+0
+10
+20
+30
+40
+50
+0 20 40 60 80 100
+amplitude-providing
+ frequency
+(Hz)
+phase-providing
+ frequency
+(Hz)
+time
+0
+10
+20
+30
+40
+50
+(Hz)
+SO
+FO FO
+Figure 4: Comparison of bicoherence and phase-power coherence, a PAC measure, for two test signals, one modeling
+a periodic broad-spectrum transient and the other, a nested oscillation with random phase in the FO. Top Row :
+The ﬁrst test signal was designed to contain nested oscillations by adding 30-80 Hz ﬁltered white noise amplitude
+modulated according to the phase in a second 6-10 Hz band of ﬁltered noise, which was also added, along with a
+background of 0 dB 1/f noise (top left panel ; signal with noise is gray line ). Bottom Row : For the second test signal,
+a periodic train of transients was simulated as exp [10 cos ( φ(t))] where φ(t) is analytic phase from 6-10Hz ﬁltered
+white noise, to which 0 dB 1 /f noise was added ( bottom left panel ). Middle Column : Bicoherence clearly reveals
+the presence of nested oscillations in the ﬁrst test signal ( top middle panel ). For the second test signal, the origin
+of cross-frequency coupling in sharp transients is reﬂected by harmonic structure and terms on the diagonal ( bottom
+middle panel ). Right Column : Phase-power coherence computed with 1 Hz bandwidth for the phase-providing band
+and 40 Hz for the amplitude-providing band also reveals the presence of nested oscillations in the ﬁrst test signal (top
+right panel ). Anisotropic smoothing in measures of PAC obscures the symmetry of the bispectrum under exchange
+of axes, but the eﬀect of symmetric terms can still be discerned as a slight increase in coupling between low frequency
+amplitude high-frequency phase (arrow). For the second test signal, the harmonic structure is reﬂected in the bands
+within the phase-providing frequencies, but the relative importance of diagonal terms is obscured by smoothing along
+the amplitude-frequency (ω2) axis ( bottom right panel ).
+16
+
+===== PAGE 17 =====
+
+of ˜fSO(ω1) ˜fFO(ω2) we are left with
+E
+[
+˜X(ω1) ˜X(ω2) ˜X∗(ω1 +ω2)
+]
+=
+⣨
+˜fSO(ω1) ˜fFO(ω2) ˜f∗
+FO(ω1 +ω2)
+⟩
++
+⣨
+˜fSO(ω1)
+⟩⣨
+˜fFO(ω2) ˜f∗
+FO(ω1 +ω2)
+⟩
+˜µ2(ω1)
++
+⣨
+˜fFO(ω2)
+⟩⣨
+˜fSO(ω1) ˜f∗
+FO(ω1 +ω2)
+⟩
+˜µ2(ω2)
++
+⣨
+˜fSO(ω1) ˜fFO(ω2)
+⟩⣨
+˜f∗
+FO(ω1 +ω2)
+⟩
+˜µ2(ω1 +ω2)
++
+⣨
+˜fSO(ω1)
+⟩⣨
+˜fFO(ω2)
+⟩⣨
+˜f∗
+FO(ω1 +ω2)
+⟩
+˜µ3(ω1,ω 2)
+(16)
+Suppose the phase of fFO is random such that
+⣨
+˜fFO
+⟩
+=
+⣨
+˜fFO ˜fSO
+⟩
+= 0, then only the ﬁrst two
+terms of Eq. (16) remain:
+E
+[
+˜X(ω1) ˜X(ω2) ˜X∗(ω1 +ω2)
+]
+=
+⣨
+˜fSO(ω1) ˜fFO(ω2) ˜f∗
+FO(ω1 +ω2)
+⟩
++
+⣨
+˜fSO(ω1)
+⟩⣨
+˜fFO(ω2) ˜f∗
+FO(ω1 +ω2)
+⟩
+˜µ2(ω1)
+≈
+⟨
+˜fSO(ω1)
+⏐⏐⏐ ˜fFO(ω2)
+⏐⏐⏐
+2
+e−iω1∆τ
+⟩
++
+⣨
+˜fSO(ω1)
+⟩⟨⏐⏐⏐ ˜fFO(ω2)
+⏐⏐⏐
+2
+e−iω1∆τ
+⟩
+˜µ2(ω1)
+(17)
+The ﬁrst term does not vanish when there is a consistent relationship of phase between fSO and
+the amplitude modulation of fFO. The second term remains when there is also a consistent lag
+between both terms and the emission of the point process, which is reﬂected accordingly in the
+weighting by the spectrum of the point process, ˜ µ2(ω1). But because we are free to deﬁne the
+emission times of the point process such that τSO = 0, the second term merely reﬂects the power
+spectral contribution of the driving point process. The bispectral estimate within the support of
+fSO(ω1)fFO(ω2) therefore depends on the timing of the amplitude of fFO relative to the phase of
+fSO, but not the phase of fFO.
+This form of cross-frequency dependence fulﬁlls sensible criteria for phase-amplitude coupling:
+it implies a correlation between the amplitude of the amplitude-providing signal component, fFO,
+and an underlying oscillation with a longer period than the time scale of the amplitude modulation
+of fFO, which is what is meant conventionally by phase-amplitude coupling. Reﬂecting the scale
+of its modulation, the spectrum of fFO must be both relatively broad and smooth, but because
+the power spectrum discards phase information in fFO, the phase of fFO does not require any
+consistent relationship with fSO, which is also a frequent characteristic of nested oscillations in
+phase-amplitude coupling. This condition does not, however, rule out a contribution from spectrally
+broad transients (see example in Fig. 4, lower middle panel), a possibility that motivates the second
+and third criteria, next.
+5.3.2. Deﬁning PAC: The Inside Criterion
+The central part of the bispectrum covers the regions of support for ˜fSO(ω1) ˜fSO(ω2) and
+˜fFO(ω1) ˜fFO(ω2) (white boxes in Fig. 3). Non-vanishing terms in the bispectrum within these
+regions relate to the separate bispectra of the components. Energy in the FO ×FO “inside” box of
+17
+
+===== PAGE 18 =====
+
+0 0.1 0.2 0.3 0.4 0.5
+0
+10
+20
+30
+40
+0 50 100 150 200
+0
+10
+20
+30
+40
+PPC Bicoherence
+0 0.05 0.1 0.15 0.2
+0 50 100 150 200
+(Hz)
+normalized unitsnormalized units
+2 (Hz)!! 2
+(Hz)
+!1
+(Hz)
+!1
+μV
+μV
+00 20
+00 20
+275 275.5 276 276.5 277 277.5 278 278.5 279 279.5 280
+-300
+-200
+-100
+0
+100
+200
+300
+275 275.5 276 276.5 277 277.5 278 278.5 279 279.5 280
+time (s)
+-300
+-200
+-100
+0
+100
+200
+300
+Contact 222
+Contact 216
+Figure 5: Distinguishing the origin of PAC in human ECoG data with bicoherence. Twenty minutes of ECoG
+data were obtained from a patient undergoing invasive clinical monitoring for epilepsy while the patient watched
+a television show. Contact 216 over occipital cortex ( bottom row ) recorded frequent interictal spikes, while the
+neighboring contact, 222 ( top row ) contained few spikes. Left column : A 5 second window showing a typical series
+of discharges in channel 216 ( bottom left panel ). Middle column : Both channels exhibit strong apparent phase-
+amplitude coupling as measured by phase-power coherence, in channel 216, between 50-150 Hz gamma power and
+10 Hz phase ( bottom middle panel ) and 100-200 Hz power and 2-5 Hz phase in channel 222 ( top middle panel ).
+Right column : NNB Bicoherence reﬂects the phase-amplitude coupling in both cases but also reveals the presence
+of harmonic diagonal and oﬀ-diagonal terms in channel 216 ( bottom right panel , white line indicates ω1 = ω2),
+suggesting that PAC in this case originates from the sharp-edged ictal discharges. In channel 222 ( top right panel ),
+bicoherence reveals no harmonic structure and little energy around the transition from the inside to outside regions,
+implying that PAC cannot likely be explained by sharp-edged signal features. Energy near the center of the inside
+region (upper right inset ) suggests that he phase of the nested FO is not completely random with respect to its own
+envelope. Both insets show symmetric bicoherence over the full range of frequencies; regions shown in the adjoining
+panels are outlined in black.
+18
+
+===== PAGE 19 =====
+
+Fig. 3 reﬂects the consistency between the phase of the FO and its own modulating envelope. For
+example, if the FO is obtained by shifting cos( β(t +τ)) by some random delay, τ and windowing
+with an unshifted envelope, h:1
+fFO =h(t) cos(β(t +τ))
+then its bispectrum is given by
+E
+[
+˜fFO(ω1) ˜fFO(ω2) ˜f∗
+FO(ω1 +ω2)
+]
+= ˜h(ω1−β)˜h(ω2−β)˜h∗(ω1 +ω2−β)E
+[
+eiβτ]
+(18)
+which vanishes if the variability in τ suﬃces to make eiβτ uniform in the spectral range of the FO.
+Energy near the center of the inside box therefore implies a consistent relationship between the
+modulating envelope of the FO and its own phase.
+We observed similarly in 5.3.1 that energy in the outside box has to do with consistency between
+the envelope of the FO and the phase of the SO. Such consistency may of course, in both cases,
+be the result of some spectrally broad feature that we do not wish to call a nested oscillation,
+which will tend to manifest as consistent phase across a broad range of frequencies spanning the
+transition from inside to outside boxes. One might reason that energy in both boxes implies a
+consistent phase relationship between the SO and the FO, but this need not always be the case.
+Variability in the timing of the FO modulating window may happen on the scale of the SO without
+abolishing energy in the outside box, and this scale might be large relative to the frequency range of
+the FO. Variability of the FO delay will, however, attenuate the bispectrum around the transition
+from outside to inside boxes, because any energy in the SO at frequencies above the scale of the
+variability will be washed out. This will have the eﬀect of accentuating the separation between the
+inside and outside boxes as the contribution of higher-frequency components of the SO is suppressed
+by variability in the timing of the FO window.
+One may conclude from this that FO’s which are either spectrally isolated, and hence oscilla-
+tory, or those that occur with some variability of delay may generate modes in the inside region
+that clearly stand apart from energy in the outside region. 2 In contrast, energy generated by a
+sharp-edged transient will tend to exhibit a tight phase relationship among all components, lead-
+ing to a continuous smearing of energy across both regions. In the presence of periodicity, such
+energy will cluster at a lattice of harmonically-related peaks along axes given by mω1 =nω2 where
+˜f(nω) ˜f(mω) ˜f∗ ((n +m)ω) is non-vanishing [51]. This eﬀect is a well-known source of spurious
+phase-amplitude coupling [41], as well as spurious n :m phase locking [50].
+Figure 4 shows a comparison between such a periodic transient and nested oscillations involving
+a purely random FO. Figure 5 shows a very similar comparison for real data recorded from two
+neighboring regions of lateral occipital cortex in an epilepsy patient. Frequent inter-ictal spiking
+in one channel (Fig. 5, channel B, lower panels) results in what looks superﬁcially like PAC
+between phase around 10 Hz and power in the 50-150 Hz range. In the bispectral measure, this
+apparent phase-amplitude coupling is accompanied by clearly visible harmonic banding and a wide
+1It is assumed here for the sake of argument that h varies slowly relative to 2πβ −1 to avoid any complications
+related to overlapping spread from negative and positive frequencies (i.e. Bedrosian’s theorem applies) but quickly
+enough to allow for a non-vanishing bispectral product.
+2It can also be pointed out that energy in any of the regions might be the result of entirely unrelated signal
+components; it is assumed for the present that the signal bispectrum is dominated by one component. The problem of
+decomposing multi-components signals into their independent parts is an important open question brieﬂy considered
+in section 8.2.
+19
+
+===== PAGE 20 =====
+
+arb. units
+arb. units
+X
+IRF  from  bicoherence
+0 50 100 150 200 250
+-0.2
+-0.1
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+time (s)
+-5
+-4
+-3
+-2
+-1
+0
+1
+2
+3
+4
+5
+10
+-3
+-0.2 0.20 0.4 0.6
+time (s)
+-0.4
+-0.2
+0
+0.2
+0.4
+0.6
+0.8
+1
+Impulse responses used in test signal 
+construction
+100-150 Hz noise modulation
+Observed Imp. resp. at 130 Hz
+Simulated evoked response
+20 21 22 23 24 25
+(s)
+-8
+-6
+-4
+-2
+0
+2
+4
+6
+8
+Test signal: AM 100-150 Hz noise 
++ "evoked response"
+Signal with noise
+Signal without noise
+Test signal bicoherence
+0 50 100 150 200 250
+!2  (Hz)
+ (Hz)
+0
+10
+20
+30
+40
+50!1 (Hz)
+0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+Figure 6: Recovering signal features from the bispectrum. Top Left: The test signal ( black line ) simulates a series of
+high-frequency oscillations (FO) followed by a slower transient response, resembling a physiological evoked response
+embedded in Gaussian 1 /f noise at random times ( gray line , signal with noise). Top Right : Bicoherence reﬂects
+the association between the FO and the following slow response. Bottom Row : The one-dimensional inverse Fourier
+transform, taken along ω1, gives a function that approximates the impulse response relating the SO to modulations
+of power at the corresponding FO frequency (See Eq. 19) ( Right). For a transiently modulated FO, the impulse
+response approximates the SO over the support of the FO along ω2 (Left).
+monotonically diminishing spread of energy, which is much less easy to see in the PAC measure,
+due to the smoothing and limited ﬁeld of view of the latter.
+In a diﬀerent nearby channel, both measures reveal an association between phase in the 1-4 Hz
+range and power in the 80-200 Hz range, in the absence of a similar broad smear of energy—this
+looks more like the picture expected of phase-amplitude coupling related to nested oscillations. In
+the bispectral measure, some energy also appears near the center of the inside region (Fig. 5, inset
+of the upper right panel), implying that the FO exhibits some degree of consistency in its form
+(that is, phase is not completely random with respect to the modulating window), but the mode
+clearly separates from the outside region, making the attribution of PAC reasonable. Because PAC
+measures do not include the inside region within their ﬁeld of view, this detail is unavailable from
+them. As this example illustrates, both kinds of phenomena, PAC and sharp waves, occur as part
+of ongoing activity [58]; discriminating between them is crucial to the interpretation of PAC.
+20
+
+===== PAGE 21 =====
+
+5.3.3. Deﬁning PAC: The Time-Delay Criterion
+Eq. (15) implies that the bispectrum contains potentially useful information about the relative
+timing of SO phase and FO amplitude modulation. Information about timing can be recovered
+with an inverse Fourier transform along one of the frequency dimensions, as shown in Fig. 6. For
+the homogenous point process with constant λ, in the presence of pure PAC:
+I(τ,ω 2) =
+∫
+SO
+B(ω1,ω 2)eiω1τdω1
+≈fSO(τ + ∆τ)
+⏐⏐⏐ ˜fFO(ω2)
+⏐⏐⏐
+2
++ ˜fSO(ω2)eω2∆τf(2)
+FO(τ)
+(19)
+where the integral covers the support of fSO, excluding the diagonal symmetry region in quadrants
+II and IV. Because fSO and fFO occupy non-overlapping spectral ranges, the result is a two-
+dimensional function with two bands, the ﬁrst around the center frequency of fSO, containing the
+autocorrelation of fFO scaled by ˜fSO(ω2) and the second within the support of ˜fFO, containingfSO
+scaled by
+⏐⏐⏐ ˜fFO(ω2)
+⏐⏐⏐
+2
+, both shifted by the time delay between them. For a periodic N, the terms
+are reduplicated at the corresponding periodicity.
+This time-domain representation is useful for verifying that the FO and SO overlap in time, as
+should be the case for nested oscillations. More generally it provides a way to relate PAC to speciﬁc
+features of SO. It also illustrates the broader point that because the bispectrum preserves phase
+information, it encodes details of waveform shape that are lost in standard spectral analyses [6].
+6. Extensions
+6.1. Multi-modal dependence
+As mentioned in section 4.1, a variety of extensions to basic measures of PAC address more
+complicated forms of dependence between phase and amplitude, as when peaks of amplitude occur
+at two or more separate phases. It was also noted that similar extensions might be developed for
+the distribution of phase of within bispectral estimators. A major advantage of standard bispectral
+estimators is that their capacity to reveal phase-amplitude dependence is not inherently limited by
+the analysis bandwidths, but the need to construct a distribution over phase in such extensions is
+bound to increase sensitivity to the parameters of the analysis ﬁlter.
+An alternative strategy for this problem might appeal to subregions within 4th and higher order
+spectra. For example, if the modulation of the FO is doubled in frequency compared to the SO,
+meaning there are two peaks of amplitude at opposite phase over every 2 π cycle of phase in the
+SO, this might be revealed within the ω1 =ω3 plane of the trispectrum:
+E
+[
+˜X2(ω1) ˜X(ω2) ˜X∗(2ω1 +ω2)
+]
+(20)
+Likewise, a distribution with k peaks in the amplitude of the FO should be revealed within the
+ω1 =ω3 =ω4 =··· =ωk plane of the (k + 1)th order spectrum:
+E
+[
+˜Xk(ω1) ˜X(ω2) ˜X∗(kω1 +ω2)
+]
+(21)
+Because these pertain to a two-dimensional subspace in each case, the full polyspectrum does not
+need to be estimated to obtain a test of k-mode dependence, and estimation should therefore not
+greatly increase the computational burden over that of the bispectrum.
+21
+
+===== PAGE 22 =====
+
+time (s)
+time (s)
+5
+10
+15freq (Hz)
+-2
+-1
+0
+1amplitude-2
+-1
+0
+1
+2
+Amplitude Modulated FO Frequency Modulated FO
+c1
+c1
+s1
+0 1 2 3 4 5 0 1 2 3 4 5
+s1 c2c1 c2
+c2
+c1 + +
+Figure 7: Amplitude modulation (AM), frequency modulation (FM) and the smoothness of the bispectrum. As
+described in section 6.2, for an FO occupying a given bandwidth, coupling between the frequency of the FO and
+the phase of the SO (phase-frequency coupling, PhFC) is reﬂected in rapidly varying features of the bispectrum
+in the bandwidth of the FO while phase-amplitude coupling (PAC) is associated with smoothly varying features,
+illustrated here. Left panels: The modulation of a 10 Hz sinusoid ( gray line ) by a 1 Hz raised cosine black line gives
+rise to two side-band signals, c1 andc2, which correspond to the upper and lower halves of the region highlighted in
+the time-frequency decomposition ( lower left panel ). These can be regarded as separate sinusoidally AM sinusoids,
+oﬀset by±0.5 Hz from 10 Hz, whose modulating windows are in phase with each other. In the presence of a 1 Hz
+slow oscillation (SO), the common phase of the respective modulating windows generates two peaks with the same
+phase (See Fig. 1D for an example), modeling a “smooth” bispectrum. Right panels: The contrary case, modeling
+a “rough” bispectrum in which the peaks are at opposite phase, is illustrated by shifting the phase of the amplitude
+modulation in the lower band by 90 degrees, substituting s1 for c1 (lower panel ). The signal that results from this
+change (gray line ) exhibits frequency modulation with comparatively little amplitude modulation ( black line ). In
+the presence of the SO, the bispectrum will have the same magnitude as in the previous case, but the phase of the
+peaks (equivalent to sign in this example) will be opposed.
+22
+
+===== PAGE 23 =====
+
+6.2. The Bispectrum and Phase-Frequency Coupling
+So far, our interest in phase-amplitude coupling has led us to focus on smooth bispectra, which
+gain their smoothness from the windowing of the FO. As shown in Appendix C, conventional PAC
+measures aggressively smooth the bispectrum over the FO frequency range, giving them some speci-
+ﬁcity for bispectral features expected of PAC. One might view this as an advantage or disadvantage
+of PAC measures, depending on context, but it raises the question, what should one make of those
+sharply-varying features they suppress?
+To gain some insight on the question, we may turn back to the oscillatory model of section 5.1;
+in the case of an FO composed of a sinusoidally modulated sinusoid, the bispectrum contained two
+peaks of the same sign arising from the product of each of the two sidebands in the spectrum of the
+FO with the central “baseband” peak (See Fig. 1, panel D). It will be useful to think of the FO in
+this case as the sum of two sinusoids oﬀset in frequency from each other by θ and both modulated
+by cos(θ/2t):
+c1 = cos (θ/2t)∗ei(γ−θ/2)t and c2 = cos(θ/2t)∗ei(γ+θ/2)t (22)
+fAM(t) =c1 +c2 = 2 cos2(θ/2t)eiγt (23)
+The resulting FO is illustrated on the left side of Fig. 7.
+We may model the opposite of a smooth bispectrum by inverting one of the two side peaks in
+the spectrum of the FO within Eq. (13), which has the eﬀect of inverting one of the two peaks in
+the bispectrum of the FO + SO composite signal:
+˜fFM(ω) =δ(ω−γ)−δ(ω−γ−θ)/2 +δ(ω−γ +θ)/2 (24)
+Because this change causes the two peaks in the bispectrum to have opposite sign, they will tend
+to be suppressed by estimators that blur them together. The FO in this case is illustrated on the
+right side of Fig. 7. As in the former case, this signal may also be written out as the sum of two
+modulated sinusoids:
+s1 =i sin (θ/2t)∗ei(γ−θ/2)t and c2 = cos(θ/2t)∗ei(γ+θ/2)t (25)
+The crucial diﬀerence lies in the fact that the modulating envelopes of the two components are
+out of phase with each other, which has two important consequences; ﬁrst, the envelope of the
+composite signal ﬂuctuates over a smaller range than in the previous case:
+|XFM(t)| =|s1 +c2| =
+√
+1 + sin2(θt) (26)
+resulting in amplitude modulation which varies, in this case, over
+[
+1,
+√
+2
+]
+rather than [0, 2]. Second,
+the instantaneous frequency of the signal gravitates back and forth between between γ +θ/2 and
+γ−θ/2 according to which of the two components has the greater amplitude at any moment.
+One can therefore attach two interpretations to this case; the ﬁrst is to regard the components as
+separate AM signals whose modulating windows happen to be out of phase with each other. The
+second interpretation is that the FO is composed of a single frequency modulated (FM) signal and
+the bispectrum reﬂects phase-frequency coupling (PhFC) between the frequency of the FO and the
+phase of the SO. Estimators tailored to PhFC might replace the smoothing kernel of PAC and
+conventional bispectral measures with a high-pass “sharpening” kernel. As with PAC, whether the
+interpretation of PhFC is appropriate in any given case depends on other details.
+23
+
+===== PAGE 24 =====
+
+7. Methods
+7.1. Algorithm
+General principles of estimation are reviewed in Appendix B. The following section brieﬂy de-
+scribes the implementation with discretely sampled data used in the present examples. The “direct
+technique” of bispectral estimation starts with a windowed Fourier time-frequency decomposition,
+summing bispectral products over time. Although the technique is typically described in its appli-
+cation to the short-time Fourier transform, any time-frequency decomposition, S[k,n ], that can be
+expressed as a bank of single sideband ﬁlters might be used. 3 Herex is a discretely sampled signal
+and h is the time window used by the estimator:
+Sq[k,m ] =
+N∑
+n=1
+hqk[n]x[n−m] exp
+[
+−iω[k]n
+N
+]
+(27)
+B[j,k ] =
+M−1∑
+m=0
+S1[j,m ]S2[k,m ]S∗
+3[l,m ] (28)
+where j,k and l index frequency bands ω1[j],ω 2[k] and ω3[l] such that
+ω1[j] +ω2[k] =ω3[l]
+or more generally
+|ω1[j] +ω2[k]−ω3[l]|< ∆W3[l]
+with ∆W3[l] denoting the bandwidth of the S3[l,. ] band. The use of subindices on S and h here is
+meant to show that the analysis windows used by the estimator are permitted to vary according to
+frequency and place in the bispectral product, encompassing the non-standard estimators described
+in Appendix B, as well as those with bandwidths that vary over frequency, such as continuous
+wavelet decompositions [30].
+7.1.1. Normalization
+Bispectral statistics are shown in normalized form
+β[j,k ] = B[j,k ]
+A[j,k ] (29)
+using the normalization described in Appendix B.1.1, which takes the sum of bispectral product
+magnitudes over time as the normalizing term [24, 35], given by
+A[j,k ] =
+M∑
+m=1
+|S1 [j,m ]S2 [k,m ]S∗
+3 [l,m ]| (30)
+3Short-time Fourier transform, complex demodulation and single sideband ﬁltering all belong to a family of
+techniques that are formally equivalent, up to a linear phase term which is negligible for the present purpose because
+it cancels from the time-invariant bispectral products [36].
+24
+
+===== PAGE 25 =====
+
+A[j,k ] amounts to the maximum possible value of|B[j,k ]|, leaving the magnitudes ofS unchanged,
+which is attained when phase remains constant across all terms Eq. (28). With this normalization,
+β may be interpreted as a weighted-average phase locking value, which avoids some of the ambiguity
+related to the contribution of amplitudes in more standard forms of bicoherence [54, 40]. For a review
+of a closely-related problem in the context of ordinary coherence, which is directly applicable in
+this case as well, see Kovach [35].
+7.1.2. Bias Correction
+This weighted-average interpretation also allows for a straightforward bias correction [35], which
+compensates for amplitude-dependent biases that may vary by frequency [54]. The biascorrection
+subtracts an expected bias from the magnitude bispectrum and renormalizes
+|βBC| =|β|− ϵ
+1−ϵ (31)
+where expected bias is given by
+ϵ[j,k ] =
+∑M
+m=1|S1 [j,m ]S2 [k,m ]S∗
+3 [l,m ]|√∑M
+m=1|S1 [j,m ]S2 [k,m ]S∗
+3 [l,m ]|2
+(32)
+Note that the use of the magnitude symbol on the left side of Eq. (31) is an abuse of notation as
+random error might cause |βBC| to become negative. The correction can also be applied in a way
+that preserves phase information:
+βBC =|βBC| β
+|β| (33)
+which has the eﬀect of shrinking the positive bias of β. For further explanation, see Kovach [35].
+7.1.3. Software
+In the present examples and simulations, frequency-domain complex demodulation [9] (DBT)
+was employed as described by Kovach and Gander [36], using a software implementation for Matlab
+(Mathworks, Nattick, MA) developed by the ﬁrst author and available at https://github.com/
+ckovach/DBT. Polyspectral estimation with ﬁxed bandwidths across all terms for a single signal is
+implemented in the function PSPECT, while estimation that accommodates diﬀerent bandwidths,
+as well as cross polyspectra, is implemented in PSPECT2. A DBT implementation of phase-power
+coupling is given in DBTPAC.
+For the demonstrations in ﬁgures 5 and 4, phase-power coupling plots were generated with a
+bandwidth of 1 Hz for the SO and 40 Hz for the FO. Bispectra were computed with a bandwidth
+of 2 Hz.
+7.2. Procedure
+Example data shown in Fig. 5 were acquired from an epilepsy patient during a period of clinical
+monitoring with invasive intracranial recordings. Data were obtained over 20 minutes during which
+the patient passively watched a sitcom episode. All procedures were approved by the Internal
+Review Board of the University of Iowa and conducted with voluntary informed consent of the
+patient. For a detailed review of techniques, see [45].
+25
+
+===== PAGE 26 =====
+
+8. Discussion
+With respect to the relationship between PAC and the bispectrum, we have shown:
+1. Common measures of PAC based on analytic phase and amplitude are in fact bispectral
+estimators, and as such provide no unique information beyond what is recovered by standard
+bispectral estimators.
+2. PAC measures are severely biased with respect to the symmetry of the bispectrum and intro-
+duce artiﬁcial constraints on the range and resolution of the estimator.
+These limitations provide a clear rationale for favoring standard bispectral estimators in the eval-
+uation of phase-amplitude coupling. We have further given a more detailed, albeit qualitative,
+framework by which to evaluate the presence and nature of PAC from the bispectrum based on
+the distribution of energy within the bispectrum. The signal model developed in pursuit of this
+framework lends itself to a particularly straightforward interpretation: it describes some recurring
+feature embedded at times determined by the driving point process.
+8.1. Tuning In to the Bispectrum
+Beyond methodological questions, it is worth considering the relevance of this work to theoretical
+models of the gating and transmission of information in the brain and elsewhere. One of the epoch-
+deﬁning technologies of the last century, radio transmission, developed from the discovery that
+information can be eﬃciently conveyed over narrow slices of the radio spectrum. In essence, a
+sender and a receiver agree in advance on the power spectrum of the transmitting signal and tune
+resonators within their respective devices accordingly. Information is therefore transmitted within
+the space of signals of a given power spectrum, and the degrees of freedom within that space, which
+encode any to-be-transmitted information, correspond to the Fourier-domain phase of the signal.
+The crucial problem of overcoming noise is addressed with a “brute force” strategy: broadband noise
+is overwhelmed within a small frequency interval, along with any competing signal, by concentrating
+the transmission energy in the narrowest practical region of the spectrum, resulting in a tradeoﬀ
+between signal-to-noise ratio and maximum transmission rate.
+Starting from the model described in 5.1 and Appendix D, one may carry a similar transmission
+scheme over to the bispectrum and in return draw forth some promising new features. The signal
+space in this scheme is constrained to have a given agreed-upon bispectrum within the SO × FO
+division of the bispectral plane, both with respect to magnitude and phase. Transmitted information
+is encoded by the phase of the FO, which Eq. (17) allows to vary freely without aﬀecting either
+the phase- or magnitude-bispectrum. In contrast, the phase of the SO and the relative delay of the
+FO-modulating envelope determine the phase bispectrum within this region, meaning that they are
+not likewise free to vary.
+Three noteworthy features emerge from this scheme:
+1. The encoding space is speciﬁed within a two-dimensional spectral plane, rather than the one
+dimension aﬀorded by the power spectrum, increasing the number of ways the space may be
+divided. Among other things, this means that separate channels may transmit information
+within spectrally overlapping bands without creating interference.
+2. The phase bispectrum preserves information about timing, which allows for the addition of
+time division to the encoding scheme. Eq. (15) demonstrates how this might work by spacing
+the modulating window of the FO at diﬀerent delays. Frequency division is determined
+by the magnitude bispectrum while time division is determined by the phase bispectrum,
+26
+
+===== PAGE 27 =====
+
+thus channels which overlap in both dimensions of the magnitude bispectrum may still avoid
+interference through a division of the phase bispectrum.
+3. Strategies for overcoming Gaussian noise are not conﬁned to brute-force commandeering of the
+spectrum in a given region, but may take advantage of the fact that Gaussian processes have
+vanishing bispectra [26]. This holds true in the sense of an expectation, meaning in practice,
+signal-to-noise ratio might be improved through the averaging of repeated transmissions.
+An intuition-friendly summary of this scheme is as follows: it describes the encoding of informa-
+tion within a high-frequency waveform, the FO, which is embedded at a predetermined time relative
+to a low-frequency carrier waveform the SO; Figure 2 gives an example of how the components of
+such a signal might appear. The SO may serve as a timing signal which indicates when a new
+transmission has arrived. The receiver might identify the transmission by ﬁltering for the SO and
+then isolate the FO with the combination of a second ﬁlter and time-window around the interval
+encoded by the phase bispectrum. In this example, the bispectral equivalent of a “resonator” is
+a multistep process involving: (1) identiﬁcation of the SO through a suitable ﬁlter, which can be
+derived from the bispectrum as shown by Eq. (19). (2) Peaks in the output of the SO ﬁlter triggers
+the isolation of the FO through a second ﬁlter and time window. Finally, if the signal is corrupted
+by Gaussian noise aﬀecting the output of the SO ﬁlter or the phase of the FO, it may (3) be cleaned
+up by averaging multiple transmissions, provided the same FO is also repeated with the SO.
+Although this scheme raises the complexity of encoding and decoding considerably beyond the
+simple resonators of ordinary power-spectral transmission, it greatly increases ﬂexibility in the
+choice of transmitting signal, accommodating transient as well as oscillatory, spectrally broad as
+well as narrow signals. This scheme also meshes with recent theoretical accounts of the possible
+functions of PAC. Such models emphasize the role of PAC in multiplexing and routing of information
+through temporal gating and frequency division, both properties that emerge from our consideration
+of the bispectrum [38, 31, 61, 1, 39, 2, 29]. By ﬁxing such recent developments within a more formal
+spectral framework, it may be possible to better elucidate questions of eﬃciency and optimality as
+well as to generate predictions about the behavior that eﬃcient and optimal systems should exhibit.
+Common techniques of spectral analysis developed over the ﬁrst half of the last century in
+concert with narrowband radio and telegraphic transmission, and it is no accident that they are
+suited in the ﬁrst place to the study of spectrally narrow signals. Their availability, familiarity
+and versatility accounts in part for the special attention given to the neural functions of those
+periodic and oscillatory phenomena about which classical techniques have the most to say [59, 11],
+an emphasis carried over into the study of phase-amplitude coupling. Yet spectrally broad, often
+aperiodic phenomena, exempliﬁed most obviously by the action potential and transient evoked
+responses, also ﬁgure prominently in neural signaling at many scales. The importance of what
+traditional spectral methods neglect from these signals is becoming increasingly apparent [15].
+The tools aﬀorded by higher-order spectra may go a long way towards illuminating the forms and
+functions of neural responses beyond the conﬁnes of the narrow passband.
+8.2. Future Directions
+We have laid out a qualitative framework for understanding and interpreting bispectral statistics.
+As one would hope of any useful framework, it brings several interesting questions to the fore, the
+answering of which must be part of a larger project. Our aim has been less to give a comprehensive
+set of answers than to provoke interest in how the general picture might be further developed. No
+attempt has been made here to deﬁne quantitative scores that summarize the qualitative features
+outlined above. The extension of bispectral statistics to the study of phase-frequency coupling was
+27
+
+===== PAGE 28 =====
+
+given a cursory and highly schematic treatment and much more might be done to ﬂesh out this
+application.
+One problem that is particularly ripe for further development is that of distinguishing between
+bispectra which result from a single recurring feature or the co-occurrence of multiple independent
+features, and developing a suitable decomposition in the latter case. If the underlying processes are
+independent, the signal bispectrum is a sum of their separate bispectra. An important question is
+how one might go about decomposing the bispectrum or other higher-order spectra according to
+distinct sets of independent features. This question is related to one addressed by various blind
+deconvolution algorithms, a number of which proceed by identifying ﬁlters that maximize scalar
+moments [60, 17] (that is, the value of the kth moment at 0 lag); of particular relevance in the case
+of the bispectrum are those that rely on skewness [47, 46]. Future work will consider this problem
+in greater detail.
+Acknowledgements
+We wish to thank Phil Gander, Alex Billig and Matthew A. Howard, III.
+References
+[1] Akam, T. and D. M. Kullmann (2010). Oscillations and ﬁltering networks support ﬂexible
+routing of information. Neuron 67 (2), 308–320.
+[2] Akam, T. and D. M. Kullmann (2014). Oscillatory multiplexing of population codes for selective
+communication in the mammalian brain. Nature Reviews Neuroscience 15 (2), 111–122.
+[3] Allen, J. B. and L. R. Rabiner (1977). A uniﬁed approach to short-time fourier analysis and
+synthesis. Proceedings of the IEEE 65 (11), 1558–1564.
+[4] Aru, J., J. Aru, V. Priesemann, M. Wibral, L. Lana, G. Pipa, W. Singer, and R. Vicente (2015).
+Untangling cross-frequency coupling in neuroscience. Current opinion in neurobiology 31 , 51–61.
+[5] Barnett, T., L. Johnson, P. Naitoh, N. Hicks, and C. Nute (1971). Bispectrum analysis of
+electroencephalogram signals during waking and sleeping. Science 172 (3981), 401–402.
+[6] Bartelt, H., A. W. Lohmann, and B. Wirnitzer (1984). Phase and amplitude recovery from
+bispectra. Applied Optics 23 (18), 3121–3129.
+[7] Bartlett, M. (1963). The spectral analysis of point processes. Journal of the Royal Statistical
+Society. Series B (Methodological) , 264–296.
+[8] Berman, J. I., J. McDaniel, S. Liu, L. Cornew, W. Gaetz, T. P. Roberts, and J. C. Edgar (2012).
+Variable bandwidth ﬁltering for improved sensitivity of cross-frequency coupling metrics. Brain
+connectivity 2 (3), 155–163.
+[9] Bingham, C., M. Godfrey, and J. Tukey (1967). Modern techniques of power spectrum estima-
+tion. IEEE Transactions on Audio and Electroacoustics 15 (2), 56–66.
+[10] Birkelund, Y., A. Hanssen, and E. J. Powers (2003). Multitaper estimators of polyspectra.
+Signal Processing 83 (3), 545–559.
+28
+
+===== PAGE 29 =====
+
+[11] Buzsaki, G. (2006). Rhythms of the Brain . Oxford University Press.
+[12] Canolty, R. T., E. Edwards, S. S. Dalal, M. Soltani, S. S. Nagarajan, H. E. Kirsch, M. S.
+Berger, N. M. Barbaro, and R. T. Knight (2006). High gamma power is phase-locked to theta
+oscillations in human neocortex. science 313 (5793), 1626–1628.
+[13] Chella, F., L. Marzetti, V. Pizzella, F. Zappasodi, and G. Nolte (2014). Third order spectral
+analysis robust to mixing artifacts for mapping cross-frequency interactions in eeg/meg. Neu-
+roimage 91, 146–161.
+[14] Cohen, L. (1989, Jul). Time-frequency distributions-a review. Proceedings of the IEEE 77 (7),
+941–981.
+[15] Cole, S. R. and B. Voytek (2017). Brain oscillations and the importance of waveform shape.
+Trends in Cognitive Sciences 21 (2), 137 – 149.
+[16] Daley, D. J. and D. Vere-Jones (2003). An Introduction to the Theory of Point Processes.
+Volume I: Elementary Theory and Methods (2nd ed.). Springer Science & Business Media.
+[17] Donoho, D. (1981). On minimum entropy deconvolution. Applied Time Series Analysis 2 ,
+561–608.
+[18] Dumermuth, G., P. Huber, B. Kleiner, and T. Gasser (1971). Analysis of the interrelations
+between frequency bands of the eeg by means of the bispectrum a preliminary study. Electroen-
+cephalography and clinical neurophysiology 31 (2), 137–148.
+[19] Fackrell, J., P. White, J. Hammond, R. Pinnington, and A. Parsons (1995). The interpretation
+of the bispectra of vibration signals: I. theory. Mechanical Systems and Signal Processing 9 (3),
+257–266.
+[20] Fonoliosa, J. and C. Nikias (1993). Wigner higher order moment spectra: deﬁnition, prop-
+erties, computation and application to transient signal analysis. IEEE Transactions on Signal
+Processing 41 (1), 245.
+[21] Gan, T. J., P. S. Glass, A. Windsor, F. Payne, C. Rosow, P. Sebel, and P. Manberg (1997). Bis-
+pectral index monitoring allows faster emergence and improved recovery from propofol, alfentanil,
+and nitrous oxide anesthesia. The Journal of the American Society of Anesthesiologists 87 (4),
+808–815.
+[22] Gerr, N. L. (1988, Mar). Introducing a third-order wigner distribution. Proceedings of the
+IEEE 76 (3), 290–292.
+[23] Godfrey, M. D. (1965). An exploratory study of the bi-spectrum of economic time series.
+Journal of the Royal Statistical Society. Series C (Applied Statistics) 14 (1), 48–69.
+[24] Hagihira, S., M. Takashina, T. Mori, T. Mashimo, and I. Yoshiya (2001). Practical issues in
+bispectral analysis of electroencephalographic signals. Anesthesia & Analgesia 93 (4), 966–970.
+[25] Hanssen, A. and L. L. Scharf (2003). A theory of polyspectra for nonstationary stochastic
+processes. IEEE Transactions on Signal Processing 51 (5), 1243–1252.
+29
+
+===== PAGE 30 =====
+
+[26] Hinich, M. J. (1994, Dec). Higher order cumulants and cumulant spectra. Circuits, Systems
+and Signal Processing 13 (4), 391–402.
+[27] Hlawatsch, F. and G. F. Boudreaux-Bartels (1992). Linear and quadratic time-frequency signal
+representations. IEEE Signal Processing Magazine 9 (2), 21–67.
+[28] Hyaﬁl, A. (2015). Misidentiﬁcations of speciﬁc forms of cross-frequency coupling: three warn-
+ings. Frontiers in neuroscience 9.
+[29] Hyaﬁl, A., A.-L. Giraud, L. Fontolan, and B. Gutkin (2015). Neural cross-frequency coupling:
+connecting architectures, mechanisms, and functions. Trends in neurosciences 38 (11), 725–740.
+[30] Jamˇ sek, J., A. Stefanovska, and P. V. E. McClintock (2007, Oct). Wavelet bispectral analysis
+for the study of interactions among oscillators whose basic frequencies are signiﬁcantly time
+variable. Phys. Rev. E 76 , 046221.
+[31] Jensen, O. and L. L. Colgin (2007). Cross-frequency coupling between neuronal oscillations.
+Trends in cognitive sciences 11 (7), 267–269.
+[32] Jirsa, V. and V. M¨ uller (2013). Cross-frequency coupling in real and virtual brain networks.
+Frontiers in Computational Neuroscience 7 , 78.
+[33] Kearse, L. A., C. Rosow, A. Zaslavsky, P. Connors, M. Dershwitz, and W. Denman (1998). Bis-
+pectral analysis of the electroencephalogram predicts conscious processing of information during
+propofol sedation and hypnosis. The Journal of the American Society of Anesthesiologists 88 (1),
+25–34.
+[34] Kim, Y. C. and E. J. Powers (1979, June). Digital bispectral analysis and its applications to
+nonlinear wave interactions. IEEE Transactions on Plasma Science 7 (2), 120–131.
+[35] Kovach, C. K. (2017). A biased look at phase locking: Brief critical review and proposed
+remedy. IEEE Transactions on Signal Processing 65 (17), 4468–4480.
+[36] Kovach, C. K. and P. E. Gander (2016). The demodulated band transform. Journal of neuro-
+science methods 261 , 135–154.
+[37] Kramer, M. A., A. B. Tort, and N. J. Kopell (2008). Sharp edge artifacts and spurious coupling
+in eeg frequency comodulation measures. Journal of neuroscience methods 170 (2), 352–357.
+[38] Lisman, J. (2005). The theta/gamma discrete phase code occuring during the hippocampal
+phase precession may be a more general brain coding scheme. Hippocampus 15 (7), 913–922.
+[39] Lisman, J. E. and O. Jensen (2013). The theta-gamma neural code. Neuron 77 (6), 1002–1016.
+[40] Lowet, E., M. J. Roberts, P. Bonizzi, J. Karel, and P. De Weerd (2016). Quantifying neural
+oscillatory synchronization: A comparison between spectral coherence and phase-locking value
+approaches. PloS one 11 (1).
+[41] Lozano-Soldevilla, D., N. ter Huurne, and R. Oostenveld (2016). Neuronal oscillations with
+non-sinusoidal morphology produce spurious phase-to-amplitude coupling and directionality.
+Frontiers in computational neuroscience 10 , 87.
+30
+
+===== PAGE 31 =====
+
+[42] Myles, P., K. Leslie, J. McNeil, A. Forbes, M. Chan, B.-A. T. Group, et al. (2004). Bispectral
+index monitoring to prevent awareness during anaesthesia: the b-aware randomised controlled
+trial. The lancet 363 (9423), 1757–1763.
+[43] Nikias, C. L. and J. M. Mendel (1993). Signal processing with higher-order spectra. IEEE
+signal processing magazine 10 (3), 10–37.
+[44] Nikias, C. L. and M. R. Raghuveer (1987). Bispectrum estimation: A digital signal processing
+framework. Proceedings of the IEEE 75 (7), 869–891.
+[45] Nourski, K. V. and M. A. Howard III (2015). Invasive recordings in the human auditory cortex.
+Handb. Clin. Neurol 129 , 225–244.
+[46] Ovacıklı, A. K., P. P¨ a¨ aj¨ arvi, J. P. LeBlanc, and J. E. Carlson (2016, March). Recovering
+periodic impulsive signals through skewness maximization. IEEE Transactions on Signal Pro-
+cessing 64 (6), 1586–1596.
+[47] P¨ a¨ aj¨ arvi, P. and J. Leblanc (2004). Skewness maximization for impulsive sources in blind
+deconvolution. In Nordic Signal Processing Symposium: 09/06/2004-11/06/2004 , pp. 304–307.
+Helsinki University of Technology.
+[48] Sasaki, K., T. Sato, and Y. Yamashita (1975). Minimum bias windows for bispectral estimation.
+Journal of Sound and Vibration 40 (1), 139–148.
+[49] Schack, B., N. Vath, H. Petsche, H.-G. Geissler, and E. M¨ oller (2002). Phase-coupling of
+theta–gamma eeg rhythms during short-term memory processing. International Journal of Psy-
+chophysiology 44 (2), 143–163.
+[50] Scheﬀer-Teixeira, R. and A. B. Tort (2016, dec). On cross-frequency phase-phase coupling
+between theta and gamma oscillations in the hippocampus. eLife 5 , e20515.
+[51] Sheremet, A., S. N. Burke, and A. P. Maurer (2016). Movement enhances the nonlinearity of
+hippocampal theta. Journal of Neuroscience 36 (15), 4218–4230.
+[52] Shils, J., M. Litt, B. Skolnick, and M. Stecker (1996). Bispectral analysis of visual interactions
+in humans. Electroencephalography and clinical neurophysiology 98 (2), 113–125.
+[53] Sigl, J. C. and N. G. Chamoun (1994). An introduction to bispectral analysis for the elec-
+troencephalogram. Journal of clinical monitoring 10 (6), 392–404.
+[54] Srinath, R. and S. Ray (2014). Eﬀect of amplitude correlations on coherence in the local ﬁeld
+potential. Journal of Neurophysiology 112 (4), 741–751.
+[55] Swami, A. (1991, Apr). Third-order wigner distributions: deﬁnitions and properties. In [Pro-
+ceedings] ICASSP 91: 1991 International Conference on Acoustics, Speech, and Signal Process-
+ing, pp. 3081–3084 vol.5.
+[56] Tort, A. B. L., R. Komorowski, H. Eichenbaum, and N. Kopell (2010). Measuring phase-
+amplitude coupling between neuronal oscillations of diﬀerent frequencies. Journal of Neurophys-
+iology 104 (2), 1195–1210.
+31
+
+===== PAGE 32 =====
+
+[57] van Driel, J., R. Cox, and M. X. Cohen (2015). Phase-clustering bias in phase–amplitude
+cross-frequency coupling and its removal. Journal of neuroscience methods 254 , 60–72.
+[58] Vaz, A. P., R. B. Yaﬀe, J. H. Wittig, S. K. Inati, and K. A. Zaghloul (2017). Dual origins
+of measured phase-amplitude coupling reveal distinct neural mechanisms underlying episodic
+memory in the human cortex. Neuroimage 148, 148–159.
+[59] Wiener, N. (1961). Cybernetics or Control and Communication in the Animal and the Machine,
+Volume 25. MIT press.
+[60] Wiggins, R. A. (1978). Minimum entropy deconvolution. Geoexploration 16 (1-2), 21–35.
+[61] Young, C. K. and J. J. Eggermont (2009). Coupling of mesoscopic brain oscillations: recent
+advances in analytical and theoretical perspectives. Progress in neurobiology 89 (1), 61–78.
+Appendix A. Properties of the Bispectrum
+Here we review a handful of properties that will be called upon in developing the transient
+model of section 5.1 and Appendix D. Unless otherwise speciﬁed, variables r,s,t refer to time and
+τ to time lags.When δ is within the argument of a function it is also a lag variable, while outside
+of an argument it will represent the Dirac delta function. Frequency variables will be represented
+with ω,ν,η,ξ and λ.
+Appendix A.1. Symmetry
+The third moment is unchanged under a permutation of the time delays, τ1 and τ2, over the
+three instances of X in Eq. (10), creating a six-fold symmetry, illustrated in Figure A.8, with the
+following relations:
+µ3(τ1,τ 2) =µ3(τ2,τ 1) =µ3(−τ1,τ 2−τ1) (A.1)
+Because the spectrum of a real-valued signal is conjugate symmetric about the origin, the 6-fold
+symmetry of the third moment becomes a 12-fold conjugate symmetry in the bispectrum under the
+following relations:
+˜µ3(ω1,ω 2) = ˜µ3(ω2,ω 1) = ˜µ3(−ω1−ω2,ω 2) = ˜µ∗
+3(−ω1,−ω2) (A.2)
+For a real signal, the full bispectrum may be recovered from estimates within any one of the
+symmetry regions. These relations apply as well to the frequency dimensions of the third-order
+Wigner-Ville distribution, W3.
+Appendix A.2. Convolution
+The bispectrum inherits a number of basic spectral properties, among which are those related to
+convolution. Because the convolution of two signals in time equates to multiplication in the spectral
+domain, it is directly apparent that the bispectrum of a signal formed from the convolution of two
+other signals is likewise the product of their separate bispectra, provided the signals are third-order
+independent or deterministic; that is,
+B[X◦Y ] =B[X]B[Y ] (A.3)
+for third-order independent X,Y .
+32
+
+===== PAGE 33 =====
+
+Appendix A.3. Multiplication
+The reverse relationship, by which the product of two independent signals in time becomes a
+convolution in the frequency domain holds generally for the bispectrum only if at least one of the
+signals is also third-order stationary; that is
+B[XY ] =B[X]◦B[Y ] (A.4)
+if X and Y are third-order independent and if X or Y is third-order stationary. Because of the
+stationarity requirement, this relation applies only in trivial cases (i.e. X(t) =c) when both signals
+are deterministic, such that E [X(t)] =X(t).
+The relationship does, however, hold generally for the bispectral Wigner-Ville distribution; that
+is
+W3[XY ] =W3[X]◦ωW3[Y ] (A.5)
+for third-order independent X andY , where◦ω denotes convolution over the frequency dimension.
+Then
+B[XY ] = E
+[∫
+W3[X]◦ωW3[Y ]dt
+]
+(A.6)
+For third-order stationary X, time drops out of the expectation as E [ W3[X]] = ˜µ3[X], so that
+B[XY ] = E
+[∫
+W3[X]◦ωW3[Y ]dt
+]
+(A.7)
+= ˜µ3[X]◦
+∫
+E [W3[Y ]]dt = ˜µ3[X]◦B[Y ] (A.8)
+if X is stationary and third-order independent of Y .
+Appendix A.4. Alternative Forms
+The lags in Eq. (10) can be deﬁned in diﬀerent ways while preserving the essential properties
+of W3 [55]; it will at times be useful to apply a change of variables giving:
+W3(ν1,ν 2,t ) =
+∫∫
+X(t +δ)X(t−δ)X(t−τ)e−iν1δ−iν2τdτdδ (A.9)
+where ν1≡ω1−ω2 and ν2≡ω1 +ω2, δ≡ (τ1−τ2)/2, and τ≡ (τ1 +τ2)/2. Where necessary, the
+distinction between these forms will be made through a similar abuse of notation in the arguments.
+Similarly, in the spectral domain, it will later become useful to consider the change of variables
+ω′
+1 =ω1 and ω′
+2 =ω2 +ω1/2. This change eﬀectively modiﬁes the deﬁnition of the bispectrum to
+a form that is symmetrical around ω2 :
+B′(ω′
+1,ω′
+2) = E
+[
+˜X(ω′
+1) ˜X(ω′
+2−ω′
+1/2) ˜X∗(ω′
+2 +ω′
+1/2)
+]
+(A.10)
+Under this change of variables, the bispectrum assumes a radial symmetry with each of the axes
+shown in Fig. A.8 separated by 30 degrees. The corresponding change in the time-domain involves
+a modiﬁcation of the lags in the 3rd moment, τ′
+1 =τ1−τ2/2 and τ′
+2 =τ2, adding t′ =t +τ2/2 for
+the sake of symmetry gives
+µ′
+3(τ′
+1,τ′
+2,t′) =E
+[
+X(t′ +τ′
+1)X(t′ + τ′
+2
+2 )X(t′− τ′
+2
+2 )
+]
+(A.11)
+33
+
+===== PAGE 34 =====
+
+-3 -2 -1-1
+-1
+0 11
+1
+2 3
+!1
+-3
+-2
+-1
+0
+1
+2
+3
+!2
+τ 1
+τ 2
+0
+0
+Third moment Bispectrum
+R
+R
+R
+R
+R
+R
+Figure A.8: Symmetry of the third moment ( left panel ) and the bispectrum ( right panel ). For a real-valued signal,
+the six-fold symmetry of the third moment becomes a twelve-fold symmetry in which 6 pairs of regions are conjugate
+symmetric (complex conjugate indicated in gray).
+Appendix B. Bispectral Estimators
+A central concern here is how to obtain an estimator of B for a third-order stationary signal.
+The extension to non-stationary estimation parallels that of ordinary spectral estimation and will
+not be considered separately here. The most straightforward approaches follow the example set by
+conventional methods for computing Fourier power spectra [44, 10]. The so-called “indirect” method
+ﬁrst estimates the third moment of the signal in the time domain and windows it, giving ˆ µH
+3 =
+ˆµ3(τ1,τ 2)H(τ1,τ 2), from which the smoothed bispectrum is obtained with a two-dimensional Fourier
+transform. The “direct” method ﬁrst computes a series of windowed Fourier spectra, χj(ω), and
+averages over the productχj(ω1)χj(ω2)χ∗
+j(ω1 +ω2). Both approaches generate a largely equivalent
+family of estimators.
+To minimize bias in the estimate and give an estimate with the proper symmetry, it is usually
+required thatH itself exhibit the same symmetry as the third moment, given in Eq. (A.1). Windows
+should also be real-valued in time and frequency and non-negative in the frequency domain [48].
+Two-dimensional windows fulﬁlling these requirements may be constructed in either the time or
+frequency domains from a window deﬁned in one dimension, h(t):
+H(τ1,τ 2) =h(τ1)h(τ2)h(τ1−τ2) or ˜H(ω1,ω 2) = ˜h(ω1)˜h(ω2)˜h(ω1 +ω2) (B.1)
+Although speciﬁc windows are shown to be optimal for minimizing bias of bispectral estimators
+[48], we will consider a more general case, which also includes windows for which symmetry relation
+may not hold. We will relate PAC measures to bispectral estimators that lack the proper symmetry
+constraint, which motivates dropping the constraint in the present discussion. It will still be assumed
+that the windows are non-negative and real-valued in the frequency domain and symmetric under
+a 180 degree rotation, although the complex conjugate will be indicated where appropriate for
+notational consistency.
+The “direct” estimator most commonly begins with a series of windowed Fourier transforms,
+evenly spaced in time (here treated as continuous for simplicity), which may be regarded equivalently
+as the outcome of a bank of ﬁlters whose outputs are analytic signals shifted in frequency (i.e.
+complex demodulates) obtained by bandpass-ﬁltering the original signal [23, 9, 36]:
+χh(ω,t ) =
+∫
+h(s−t)X(s)e−iωsds (B.2)
+34
+
+===== PAGE 35 =====
+
+An estimate of the bispectrum is obtained from this time-frequency representation as
+ˆB(ω1,ω 2) =
+1
+T
+∫
+T
+χh(ω1,s )χh(ω2,s )χ∗
+h(ω1 +ω2,s )ds
+= 1
+T
+∫∫∫
+X(t +τ1)X(t +τ2)X(t)e−iω1τ1−iω2τ2
+∫
+h(s +τ1)h(s +τ2)h(s)dsdτ 1dτ2dt
+(B.3)
+The last integrand in (B.3) deﬁnes the smoothing window:
+H(τ1,τ 2) =
+∫
+h(s +τ1)h(s +τ2)h(s)ds
+=
+∫
+˜h(ξ1)˜h(ξ2)˜h∗(ξ1 +ξ2)eiξ1τ1+iξ2τ2dξ1dξ2
+(B.4)
+Comparing this to Eq. (B.1) makes it clear that the resulting estimator fulﬁlls the symmetry
+requirement of Eq. (A.1). Combining these results:
+B(ω1,ω 2) =
+∫∫∫
+W (ξ1,ξ 2,t ) ˜H(ξ1−ω1,ξ 2−ω2)dξ1dξ2dt (B.5)
+which makes the smoothing property of the bispectral estimator explicit. With a time-centering
+change of variables, this relation also gives a time-varying estimate of the bispectrum as a smoothing
+of the third-order Wigner-Ville distribution, absent the integration over time [20, 25]. As in the
+second-order case, suppressing cross terms in the time-varying spectrum requires some additional
+smoothing over time.
+Appendix B.1. Bicoherence
+Each of the estimators considered above can be regarded as an inner product between two signals,
+the ﬁrst being the higher analytic band, χ3(ω1 +ω2,t ) and the second obtained by multiplying the
+two lower bandsχ1(ω1,t )χ2(ω2,t ). The degree of alignment between these two terms is often used
+as a normalized measure of dependence, which is obtained in the same way as for an ordinary
+correlation, by dividing the inner product with the magnitudes of the separate terms [34]:
+β(ω1,ω 2) =
+ˆB(ω1,ω 2)√∫
+|χ1(ω1,t )χ2(ω2,t )|2dt
+√∫
+|χ3(ω1 +ω2,s )|2ds
+(B.6)
+This is a commonly used deﬁnition of bicoherence.
+Appendix B.1.1. Alternative Deﬁnition
+It is worth noting that this common deﬁnition of bicoherence does not share the full set of
+symmetry properties with the bispectrum because the normalizing term is not likewise symmetric.
+Whereas β(ω1,ω 2) = β(ω2,ω 1), it is not generally true that β(ω1,ω 2) = β(−ω1−ω2,ω 2). Some
+alternative deﬁnitions of bicoherence do preserve the appropriate symmetry. The following deﬁnes
+an alternative index [24]:
+βφ(ω1,ω 2) =
+ˆB(ω1,ω 2)∫
+|χ1(ω1,t )χ2(ω2,t )χ∗
+3(ω1 +ω2,t )|dt (B.7)
+This index may be interpreted as a weighted-average vector strength over the phase component of
+the bispectrum, thus it gives a measure of phase locking [35].
+35
+
+===== PAGE 36 =====
+
+Appendix B.2. Estimators with Diﬀerent Analysis Filters
+Eq. (B.3) constrains the analysis window for each of the three bands used in the estimate to
+be identical, which had the beneﬁt of yielding an estimator with the proper symmetry. While the
+symmetry conditions in (A.1) are usually regarded as a criterion of admissibility for windows used
+in estimating the bispectrum, there is in fact no essential reason why one may not smooth the
+bispectrum with windows that do not obey these relations. Although the resulting estimator will
+be biased with respect to the symmetry of the bispectrum, it might conceivably have other useful
+properties that outweigh this consideration. For instance, one might select estimators that are
+better tuned to speciﬁc features of interest in the signal bispectrum, which we will ﬁnd illustrated
+with PAC measures. We therefore consider next the consequence of estimating the bispectrum
+using diﬀerent analysis ﬁlters for each band, which leads to the following estimation window:
+H(τ,δ ) =
+∫
+˜h1
+(ν1 +ν2
+2
+)
+˜h2
+(ν2−ν1
+2
+)
+˜g∗(ν2)eiν1δ+iν2τdν1dν2 (B.8)
+with separate analysis ﬁlters, h1, h2, and g.
+In general, because the smoothing occurs over the two-dimensional bispectral plane, the choice
+of third window is over-constrained. This is easily recognized in the limit as the bandwidth of one
+ﬁlter diverges from that of the other two, in which case the smoothing window factors over the two
+dimensions. For example, as ˜g→δ in (B.8), one obtains:
+˜H(ν1,ν 2)→ ˜h1
+(ν1
+2
+)
+˜h∗
+2
+(ν1
+2
+)
+˜g∗(ν2)
+Whereas in the limit ˜h2→δ,
+˜H(ω1,ω 2)→ ˜h1(ω1)˜h2(ω2)˜g∗(ω1)
+and likewise for ˜h1 → δ. In each of these cases the resulting window in one dimension is the
+product of the two broader ﬁlters. The estimator therefore produces the same result as when using
+two ﬁlters: the ﬁrst given by a narrow ﬁlter and the second by the root product of the remaining
+two. Without loss of generality, the following sections therefore consider estimators for which two
+of the three analysis ﬁlters use the same window. We consider permutations of the bandwidth of
+the three analysis ﬁlters applied to the three bands sorted by frequency: ω1≤ω2 <ν 2. Shapes of
+ﬁlter kernels resulting from each combination are depicted in Figure B.9.
+Appendix B.2.1. Two Filters: Narrow, Narrow, Broad
+When ˜g is wider than ˜h in (B.8), ˜H becomes symmetric so that W is smoothed equally along
+the ν1 and ν2 axes. As ˜g(ν2)→ 1 we obtain the approximation:
+˜H(ν1,ν 2)→ ˜h
+(ν1 +ν2
+2
+)
+˜h∗
+(ν1−ν2
+2
+)
+= ˜h (ω1) ˜h∗ (ω2) (B.9)
+An estimate of the bispectrum with radially symmetric smoothing is therefore recovered by:
+B(ω1,ω 2) =
+∫
+χh(ω1,t )χh(ω2,t )X(t)ei(ω1+ω2)tdt (B.10)
+Note that the radial symmetry here does not obey the symmetry relations of (A.1), so the estimate
+does not exactly recover the symmetry of the bispectrum. On the other hand, (B.10) suggests a
+36
+
+===== PAGE 37 =====
+
+BBB
+-3 -2 -1 0 1 2 3
+1
+-3 
+-2 
+-1 
+0
+1
+2
+3
+NNB
+-3 -2 -1 0 1 2 3
+-3 
+-2 
+-1 
+0
+1
+2
+3
+BBN
+-3 -2 -1 0 1 2 3
+-3 
+-2 
+-1 
+0
+1
+2
+3
+NBB
+-3 -2 -1 0 1 2 3
+-3 
+-2 
+-1 
+0
+1
+2
+3
+!2
+!2
+!1 !1
+Figure B.9: Relationship between analysis ﬁlter bandwidth and equivalent smoothing kernels for 4 bispectral
+estimators. Dashed lines indicate the axes given by ν1≡ ω1−ω2 and ν2≡ ω1 +ω2. In each case, one of two
+Gaussian analysis ﬁlters is applied to each of the three bands used in estimating the bispectrum, ordered by center
+frequency: ω1≤ω2 <ν 2. Frequency windows are N arrowband with standard width, σ = 0.25, or Broadband with
+standard width, σ =
+√
+2, and the estimators are indicated according to which window was applied to each ordered
+band: BBB, NNB, BBN and BNB. Top Left : BBB (also NNN under rescaling) Fixed analysis bandwidth. Each
+band is ﬁltered using the same analysis window, B. Top Right : NNB Highest band is broad and the other two
+narrow, giving the asymptotically symmetric kernel, ˜g(ω1)˜g(ω2). Bottom Right : BBN Highest band is narrow and
+the remaining two are broad giving the asymptotic kernel, |h(ν1/2)|2 ˜g(ν2). Bottom Left : NBB (also BNB under a
+transpose of axes) Second band is narrow and the remaining two broad, giving the asymptotic kernel, ˜h(ω1)|g(ω2)|2.
+37
+
+===== PAGE 38 =====
+
+less cumbersome approach to estimation which foregoes the summation over the product of three
+separate bands. The estimator is obtained instead from the frequency-domain covariance of the
+time-frequency decomposition after remodulation and weighting by the original signal. In practice,
+however, the time-frequency decomposition is often downsampled, so it will still be necessary to
+either apply an anti-aliasing ﬁlter toX appropriate for the sampling rate and frequency range under
+consideration, or oversample χh. Both options tend to negate any computational advantage that
+might otherwise be gained from such a simpliﬁcation.
+Appendix B.2.2. Two ﬁlters: Broad, Broad, Narrow
+The estimator in Eq. (B.10) results in a smoothing window with radial symmetry, but the
+symmetry came about from greater smoothing in the ν2 direction entailing a sacriﬁce of resolution.
+One may consider the converse possibility, allowing the bandwidth of g (in B.8) to be narrower
+than that of h. This produces a smoothing window with the limit ˜g(ν2)→δ(ν2). In the approach
+to this limit one obtains the following approximation:
+˜H(ν1,ν 2)→
+⏐⏐⏐˜h
+(ν1
+2
+)⏐⏐⏐
+2
+˜g∗(ν2) (B.11)
+Provided that g is narrower than h, this estimator allows the smoothing along ν1 and ν2 to be
+separately controlled.
+Appendix B.2.3. Two ﬁlters: Narrow, Broad, Broad
+In the limit ˜h1→δ in (B.8), we have g(ν2)→g(ω2). Letting h2 =g, without loss of generality,
+we have
+˜H(ω1,ω 2)→ ˜h (ω1)|˜g(ω2)|2 (B.12)
+The same result holds for the BNB estimator swapping the arguments. The smoothing kernel
+here is related to the previous examples through a 45 degree rotation in the bispectral plane. One
+important potential drawback of this family of estimators is that the outcome will not reﬂect the
+symmetry of the bispectrum about the diagonal, ω1 = ω2. Measures of phase-amplitude coupling
+relate to bispectral estimators of this type, as shown in Appendix C.
+Appendix C. Phase-Power Coherence as a Smoothed Bispectral Estimator
+The following appendix provides a mathematical demonstration of the equivalence between
+phase-power coherence (PhPC) and the NBB class of bispectral estimators. PhPC is calculated
+from the cross spectrum between the squared analytic envelope at one frequency and the original
+signal at another. The goal is normally to isolate the fast oscillation within the ﬁrst band and the
+slow oscillation within the second. The squared envelope of the FO band, centered at γ ﬁltered
+with the analysis window, h, is given by
+P (γ,t ) =
+∫∫
+h(r−t)h∗(u−t)X(r)X∗(u)e−iγ(r−u)drdu (C.1)
+PhPC is calculated from the cross spectrum between P and X, obtained with a second analysis
+ﬁlter,g, which will be of a narrower band than h, targeted to the range of the SO around frequency
+38
+
+===== PAGE 39 =====
+
+θ:
+φ(θ,γ ) =
+∫∫∫
+g(t−τ)g∗(s−τ)X(s)P∗(γ,t )e−iθ(s−t)dsdtdτ
+=
+∫∫
+g(2)(s−t)X(s)P∗(γ,t )e−iθ(s−t)dsdt
+(C.2)
+where g(2) denotes the autocorrelation of g. Expanding P in (C.2) according to (C.1), we have
+φ(θ,γ ) =∫∫∫∫
+g(2)(s−t)h(r−t)h(u−t)X(s)X(r)X∗(u)e−iγ(r−u)−iθ(s−t)dsdtdudr (C.3)
+Following the foregoing series of substitutions, the integral overt in (C.3) no longer depends on the
+signal (which is now indexed by r,s and u). Pulling out the term that integrates over t yields a
+smoothing kernel:
+A =
+∫
+g(2)(s−t)h(r−t)h(u−t)e−iθ(s−t)dt
+=
+∫
+|˜g(ξ3)|2 ˜h(ξ1)˜h∗(ξ2)eiξ1r−iξ2u+i(ξ3−θ)s−i(ξ1−ξ2+ξ3−θ)tdξ1dξ2dξ3dt
+=
+∫
+|˜g(ξ2−ξ1 +θ)|2 ˜h(ξ1)˜h∗(ξ2)eiξ1(r−s)−iξ2(u−s)dξ1dξ2
+=
+∫
+|˜g(θ + 2λ2)|2 ˜h (λ1 +λ2) ˜h∗ (λ1−λ2)eiλ1(r−u)−iλ2(r+u)+i2λ2sdλ1dλ2
+(C.4)
+from which, setting r =s +τ2 and u =s +τ1:
+A =
+∫
+|˜g(θ + 2λ2)|2 ˜h (λ1 +λ2) ˜h∗ (λ1−λ2)e−i(λ1+λ2)τ1−i(λ2−λ1)τ2dλ1dλ2 (C.5)
+Substituting back into (C.3) and applying (10), one arrives at
+φ(θ,γ ) =∫∫∫
+|˜g(θ + 2λ2)|2 ˜h (λ1 +λ2) ˜h∗ (λ1−λ2)W (λ2 +λ1−γ,λ 2−λ1 +γ,z )dλ1dλ2dz
+(C.6)
+which with another change of variables,ω1≡− 2λ2 andω2≡λ2−λ1+γ and applying the symmetry
+relation from Eq. (A.2), W (−ω2−ω1,ω 2,z ) =W (ω1,ω 2,z ), this becomes
+φ(θ,γ ) =∫∫∫
+|˜g (ω1−θ)|2 ˜h∗ (ω2 +ω1−γ) ˜h (ω2−γ)W (ω1,ω 2,z )dω1dω2dz (C.7)
+Finally, because in measuring phase-amplitude coupling, the SO ﬁlter,g, is selected with a narrower
+bandwidth than the FO ﬁlter, h, approaching the limit ˜g→ δ, we may use the following good
+approximation
+φ(θ,γ )≈∫∫∫
+|˜g (ω1−θ)|2 ˜h∗ (ω2 +θ−γ) ˜h (ω2−γ)W (ω1,ω 2,z )dω1dω2dz (C.8)
+39
+
+===== PAGE 40 =====
+
+Appendix C.1. Relationship between PhPC and the Bispectrum
+The equivalent smoothing window for PhPC estimators, given by Eq. (C.8), very nearly de-
+scribes an NBB smoothing kernel like the one in (B.12). The only nontrivial diﬀerence arises from
+the fact that the smoothing kernel varies as a function of the SO frequency, θ. The eﬀect is easy
+to appreciate for the Gaussian window of bandwidth σω:
+˜h∗ (ω2−γ +θ) ˜h (ω2−γ) =e
+− 1
+σ2ω
+[2(ω2−γ+θ/2)2−θ2/2] (C.9)
+For the Gaussian case, the result is the same as smoothing with an NBB window, only shifted along
+ω2 by θ/2 and attenuated as a function of the phase-providing frequency by e−θ2/2 without any
+other change in the size or shape of the smoothing window. More generally, if h is symmetric, then
+˜h∗ (ω2−γ +θ) ˜h (ω2−γ) is symmetric and centered at γ−θ/2.
+PAC measures require the FO ﬁlter to have a bandwidth at least as great as the range of SO
+frequencies of interest, because the spectral range of ﬂuctuations in the power amplitude is limited
+to the bandwidth of the ﬁlter used to extract them, so that θ must remain small relative to the
+bandwidth of h and|h(ω +θ)|≈| h(ω)|[4]. Precisely within this range, PAC estimates may be
+treated directly as NBB estimators of the bispectrum, which use the window:
+HPAC =
+⏐⏐⏐˜g (ω1) ˜h (ω2)
+⏐⏐⏐
+2
+(C.10)
+This constraint that limits the spectral range of the SO according to the bandwidth of the FO seems
+at ﬁrst glance to be a fundamental consideration in measuring PAC, but the preceding analysis
+shows it to be in fact a dispensable property of the estimator unrelated to anything inherent in the
+underlying measured quantity.
+One approach to circumventing the spectral limitation of PAC estimators modiﬁes the FO ﬁlters
+used according to the SO frequency. For example, the problem is sometimes addressed by scaling
+the bandwidth of the FO ﬁlter,h, by the center frequency of the SO ﬁlter [8]: ˜hθ(ω) = ˜h
+(ω
+θ
+)
+, giving
+˜h∗
+θ (ω2 +θ−γ) ˜hθ (ω2−γ) =˜h∗
+(ω2−γ
+θ + 1
+2
+)
+˜h
+(ω2−γ
+θ
+)
+≈
+⏐⏐⏐⏐˜h
+(ω2−γ
+θ
+)⏐⏐⏐⏐
+2 (C.11)
+This adjustment removes the attenuation with SO frequency by ensuring that the bandwidth of the
+FO ﬁlter is appropriate for modulation frequencies in the range of θ. It still results in diminishing
+resolution of the FO with increasing SO, which is not a necessary constraint on bispectral estimators.
+An apparent disadvantage of standard bispectral estimators might be noted at this point, which
+is the shift of the FO spectrum by θ/2. This shift from the FO frequency is however not essential
+to the bispectral estimator and can be removed through the symmetrizing change of variables given
+in Eq. (A.10).
+It should be reemphasized that these diﬀerences between PhPC and bispectral estimators involve
+rather arbitrary properties of the respective smoothing kernels and do not reﬂect any essential
+diﬀerence in the quantity measured. It might be argued that the limit on the combined range and
+resolution of the estimator imposed by PAC helps tune it to bispectral characteristics of PAC. Such
+tuning may improve signal-to-noise sensitivity to PAC as well as computational eﬃciency, but it
+nevertheless forces some a priori assumptions about the bandwidth and spectral range of PAC.
+More importantly, smoothing may sacriﬁce information vital for distinguishing between alternative
+forms of cross-frequency coupling.
+40
+
+===== PAGE 41 =====
+
+Appendix C.2. Interregional PAC and Cross Bicoherence
+The foregoing discussion extends naturally to bivariate cross-frequency coupling involving two
+signals, for example, obtained from two separate recording channels. The bivariate extension of
+PAC measures describes the dependence between amplitude in one signal with phase in another.
+Using the same argument as in the single-channel case, measures of interregional PAC may be
+equated to the cross bispectrum of the form:
+Bij(ω1,ω 2) = E
+[
+˜Xi(ω1) ˜Xj(ω2− ω1
+2 ) ˜X∗
+j (ω2 + ω1
+2 )
+]
+(C.12)
+where in the language of PAC, i indexes the “phase-providing” signal and j the “amplitude-
+providing” signal.
+Appendix D. T ransient Signal Model
+The following appendix presents a basic signal model that will serve as a starting point in
+describing bispectral features associated with phase-amplitude coupling and other third-order signal
+features. It describes the case when recurring transient features with characteristic but unknown
+spectra lie embedded at unknown times in the observed record. The generating process can be
+separated into two parts: a (1) point process, N, whose increments determine the times, τi, at
+which (2) some random or deterministic transient feature, fi(t) is embedded in the signal. The
+ﬁrst process is concerned only with timing and the second only with the emitted waveform. The
+spectral representation of such a signal is
+˜X(ω) =
+∑
+i
+˜fi(ω)e−iωτi
+(D.1)
+The following sections consider the bispectrum that results from this process whenfi is independent
+of time and of N and, in the ﬁrst case, deterministic, and, in the second, i.i.d. random.
+Appendix D.1. Deterministic Features
+If the fi in (D.1) are deterministic with fi = f, it follows from the convolution property (Eq.
+A.3)
+BX(ω1,ω 2) = ˜f(ω1) ˜f(ω2) ˜f∗(ω1 +ω2)BN(ω1,ω 2) (D.2)
+with
+BN(ω1,ω 2) =
+∫∫∫
+e−iω1r−iω2s+i(ω1+ω2)tE [dN(r)dN(s)dN(t)] (D.3)
+For a “simple” point process, events coincide with vanishing probability, so that E[(dN(t))k] =
+E[dN(t)]. For a process with the ﬁrst three moments deﬁned, µ1,µ2,µ3 [7, 16], the expectation in
+Eq. (D.3) yields
+E [dN(r)dN(s)dN(t)] =
+[µ1(t)δ(r−t)δ(s−t)
++µ2(r−t)δ(s−t) +µ2(s−t)δ(r−t) +µ2(s−t)δ(r−s)
++µ3(r−t,s−t)]drdsdt
+(D.4)
+41
+
+===== PAGE 42 =====
+
+The bispectrum for this process is then
+BN(ω1,ω 2) =λ [1 + ˜µ2(ω1) + ˜µ2(ω2) + ˜µ2(ω1 +ω2) + ˜µ3(ω1,ω 2)] (D.5)
+where λ is the average rate (N/T→λ).
+For a stationary homogenous Poisson driving process (having constant µ(t) = λ), Eq. (D.5)
+reduces to
+BN(ω1,ω 2) =λ +λ2 [δ(ω1) +δ(ω2) +δ(ω1 +ω2)] +λ3δ(ω1)δ(ω2) (D.6)
+so that, neglecting the probability mass at the origins and along ω1 +ω2 = 0,
+BX =λ ˜f(ω1) ˜f(ω2) ˜f∗(ω1 +ω2) (D.7)
+This quantity is nonzero when f contains harmonics or is otherwise spectrally broad, so that its
+support covers some ω1,ω 2, and ω1 +ω2. In fact, because f is transient by assumption, this
+condition is already given: f must decay to zero within some ﬁnite time window, ∆T , and therefore
+its spectrum contains at a minimum a main lobe and side lobes spaced at 2 π/∆T . But if f has
+zero mean, a high center frequency and is highly oscillatory with an otherwise narrow spectrum,
+the product may still be negligible. The bispectrum will contain larger peaks when f has a broad
+spectrum on the order of 2/3 its center frequency, non-zero mean, or contains one or more harmonic
+complexes.
+Appendix D.2. Random Features
+Extending the preceding analysis to the case when each fi in (D.1) is itself the realization of a
+random process independent of N,
+BX(ω1,ω 2) =
+∑
+ijk
+E
+[
+˜fi(ω1) ˜fj(ω2) ˜f∗
+k (ω1 +ω2)eiω1(τk−τi)+iω2(τk−τj)
+]
+=E
+[∑
+i
+˜fi(ω1) ˜fi(ω2) ˜f∗
+i (ω1 +ω2)
++
+∑
+i̸=j
+˜fi(ω1) ˜fj(ω2) ˜f∗
+j (ω1 +ω2)e−iω1(τi−τj)
++
+∑
+i̸=j
+˜fi(ω2) ˜fj(ω1) ˜f∗
+j (ω1 +ω2)e−iω2(τi−τj)
++
+∑
+i̸=j
+˜fi(ω1) ˜fi(ω2) ˜f∗
+j (ω1 +ω2)e−i(ω1+ω2)(τi−τj)
++
+∑
+i̸=j̸=k
+˜fi(ω1) ˜fj(ω2) ˜f∗
+k (ω1 +ω2)e−iω1(τi−τk)−ω2(τj−τk)
+
+
+(D.8)
+42
+
+===== PAGE 43 =====
+
+If the process generating fi is independent ofN and time, so that ˜fi∼ ˜fj, for alli,j , andN simple,
+with the ﬁrst three moments deﬁned, µ1, µ2, µ3 [7, 16]:
+BX(ω1,ω 2) =λ
+[⣨
+˜f(ω1) ˜f(ω2) ˜f∗(ω1 +ω2)
+⟩
++
+⣨
+˜f(ω1)
+⟩⣨
+˜f(ω2) ˜f∗(ω1 +ω2)
+⟩
+˜µ2(ω1)
++
+⣨
+˜f(ω2)
+⟩⣨
+˜f(ω1) ˜f∗(ω1 +ω2)
+⟩
+˜µ2(ω2)
++
+⣨
+˜f(ω1) ˜f(ω2)
+⟩⣨
+˜f∗(ω1 +ω2)
+⟩
+˜µ2(ω1 +ω2)
++
+⣨
+˜f(ω1)
+⟩⣨
+˜f(ω2)
+⟩⣨
+˜f∗(ω1 +ω2)
+⟩
+˜µ3(ω1,ω 2)
+]
+(D.9)
+with the brackets denoting expectation, and a normalization by the cumulative event count, N, is
+left implicit. This reduces to BX =BfBN if the error of fi involves independent additive Gaussian
+noise.
+This division of labor allows one to separate the spectral contributions of local features described
+byf from those of the large-scale driving process; these respective contributions can be distinguished
+in the bispectrum 4. In the case of phase-amplitude coupling, f will be treated as the sum of two
+components: a single burst of fast oscillations, fFO, whose spectrum is characteristically broad
+and smooth, and a slow oscillation, fSO, with a narrow spectrum. In constructing the full signal,
+narrowband large-scale features can be viewed as the consequence of a ﬁlter applied to the train of
+impulses generated by the point process, where fSO plays the role of ﬁlter function.
+4The Poisson formulation adopted here for the driving point process is mildly restrictive in that it assumes
+the event count within a given interval follows a Poisson distribution. Periodicity in the driving process therefore
+does not entail a train of evenly spaced events, but instead a train of evenly spaced event clusters with Poisson-
+distributed size. An alternative point-process model that conditions on history, such as a renewal process, might
+handle periodicity more naturally in this setting, but elucidating the spectra of such processes is more technically
+involved, making them less useful for the present purpose. One way to address the case of simple uniform periodicity
+with the Poisson model, which leaves the foregoing spectral analysis unchanged, is to allow λ to take the form of
+transient bursts of inﬁnitesimal duration, each burst generating a cluster with Poisson-distributed size. The resulting
+signal then contains f at the cluster times modulated by cluster size. The variance of amplitude in f introduced by
+this weighting with cluster sizes can be made arbitrarily small by scaling λ so as to increase cluster size, with the
+inverse scaling applied f to keep amplitude ﬁxed.
+43

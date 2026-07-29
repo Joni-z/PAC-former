@@ -1,0 +1,1053 @@
+
+
+===== PAGE 1 =====
+
+Review
+Brain Oscillations and the
+Importance of Waveform
+Shape
+Scott R. Cole 1,* and Bradley Voytek 1,2,3,4
+Oscillations are a prevalent feature of brain recordings. They are believed to play
+key roles in neural communication and computation. Current analysis methods
+for studying neural oscillations often implicitly assume that the oscillations are
+sinusoidal. While these approaches have proven fruitful, we show here that
+there are numerous instances in which neural oscillations are nonsinusoidal. We
+highlight approaches to characterize nonsinusoidal features and account for
+them in traditional spectral analysis. Instead of being a nuisance, we discuss
+how these nonsinusoidal features may provide crucial and so far overlooked
+physiological information related to neural communication, computation, and
+cognition.
+Neural Oscillation Characterization
+Rhythms in neural activity are observed across various temporal and spatial scales and are often
+referred to as oscillations (see Glossary) [1]. Traditionally, neural oscillations have been
+clustered into canonical frequency bands, including delta (1 –4 Hz), theta (4 –8 Hz), alpha (8 –
+12 Hz), beta (15 –30 Hz), gamma (30 –90 Hz), and high gamma (>50 Hz). These bands roughly
+correspond to frequency ranges commonly observed in human electroencephalography (EEG)
+studies. Although they have been observed for nearly a century, recent theories suggest that
+these oscillations play an active role in neural communication [2].
+One prominent theory is that oscillations accomplish this function using cross-frequency
+coupling (CFC) , in which multiple neural oscillators in different frequency ranges interact with
+one another [3]. To characterize this coupling, the phase and amplitude properties of each
+oscillator are calculated using spectral analysis. A key feature in all spectral analysis methods is
+that they inherently assume that the ﬂuctuations in brain activity over time can be characterized
+using a sinusoidal basis. That is, the underlying assumption is that the complexities of
+oscillatory brain activity are best captured by sinusoidal oscillators. A sinusoid (or sine wave)
+is a smoothly varying rhythmic signal governed by a mathematical equation. However, as we will
+discuss below, neural oscillations are commonly nonsinusoidal. Instead of being a nuisance,
+we argue that these nonsinusoidal features may contain crucial physiological information about
+the neural systems and dynamics that generate them.
+We address here the inconsistency between standard neural analysis approaches and the
+observed nonsinusoidal shapes of oscillatory waveforms. We begin by reviewing a diverse set of
+examples of nonsinusoidal oscillations across species. Interestingly, studies published before
+the modern proliferation of advanced computation have focused more on raw, un ﬁltered data,
+by necessity. By contrast, recent studies tend to focus on heavily processed data and lack
+attention to the oscillatory waveform shapes. We discuss methodological approaches for
+Trends
+The properties of neural oscillations are
+commonly correlated to disease or
+behavior states. These measures are
+mostly derived using traditional spec-
+tral analysis techniques that assume a
+sinusoidal basis.
+Electrical recordings from many brain
+regions, at multiple spatial scales, exhi-
+bit neural oscillations that are
+nonsinusoidal.
+New methods have been developed to
+quantify the nonsinusoidal features of
+oscillations and account for these fea-
+tures when using traditional spectral
+analysis.
+Features of oscillatory waveform shape
+have been related to physiological pro-
+cesses and behaviors.
+Manipulating the features of stimulation
+waveforms changes the effects of
+rhythmic electrical stimulation.
+1Neurosciences Graduate Program,
+University of California, San Diego,
+La Jolla, CA, USA
+2Department of Cognitive Science,
+University of California, San Diego,
+La Jolla, CA, USA
+3Institute for Neural Computation,
+University of California, San Diego,
+La Jolla, CA, USA
+4Kavli Institute for Brain and Mind,
+University of California, San Diego,
+La Jolla, CA, USA
+*Correspondence:
+scott.cole0@gmail.com (S.R. Cole).
+TICS 1638 No. of Pages 13
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy http://dx.doi.org/10.1016/j.tics.2016.12.008 1
+© 2016 Elsevier Ltd. All rights reserved.
+
+===== PAGE 2 =====
+
+TICS 1638 No. of Pages 13
+characterizing nonsinusoidal features of neural oscillations, as well as adaptations to traditional
+spectral analysis to account for nonsinusoidal waveforms. Thus, combining waveform shape
+analysis with a modern understanding of the physiological generators of neural oscillations can
+provide an entirely new framework for understanding the physiological basis of neural compu-
+tation and cognition.
+Nonsinusoidal Waveforms Are Stereotyped
+One strong indication that the waveform shape of neural oscillations contains physiological
+information is that features of these waveforms are stereotyped across recordings. This
+consistency indicates that the waveform shape reﬂects something speciﬁc about the physiology
+of the recorded brain region. We review here several examples of this phenomenon.
+In human electrophysiology, oscillations with stereotyped nonsinusoidal shapes include the
+sensorimotor ‘mu rhythm’, motor cortical beta oscillation, and cortical ‘slow oscillations’. The mu
+rhythm oscillates at an alpha frequency (around 10 Hz) and was named because its waveform
+shape resembles the Greek character m (Figure 1 A). It is characterized by the fact that one
+extremum (e.g., its peak) is consistently sharper than the other (e.g., its trough); it is also
+described as an arch, comb, or wicket shape [4–10].
+In addition to the sensorimotor mu rhythm, we have recently highlighted that motor cortical beta
+oscillations also have striking nonsinusoidal features [11]. These beta oscillations manifest a
+sawtooth shape in that their voltage either rapidly rises before more slowly falling off, or vice
+versa ( Figure 1 B).
+In contrast to these faster rhythms, ‘slow oscillations ’ are low-frequency rhythms (<1 Hz) that
+dominate across the cerebral cortex during anesthesia and natural sleep [12–14]. Slow oscil-
+lations are distinguished by alternating periods of depolarization (up-states, positive half-wave in
+surface EEG) and hyperpolarization (down-states, negative half-wave in surface EEG) [12]. The
+negative half-waves are consistently sharper than the positive half-waves, again resulting in a
+stereotyped arch-like shape [15–19]. Because the waveform shapes of these oscillations are
+relatively conserved across brain regions, individuals, and even species, we reason that these
+oscillation features likely contain information about the oscillatory generators. Because of the
+assumptions of standard sinusoid-based spectral analyses, these potentially crucial nonsinu-
+soidal features will be lost or overlooked.
+Animal models also give us an opportunity to invasively record nonsinusoidal oscillations that are
+often not feasible to record in humans. Hippocampal theta oscillations, for example, are among
+the best-studied rhythms in the local ﬁeld potential (LFP); they have a stereotyped sawtooth
+shape (Figure 1C) [20–26]. Similarly, respiratory rhythms in the olfactory bulb are also sawtooth-
+like in shape [26,27]. While slow oscillations are arch-shaped when recorded with macro-
+electrodes, those recorded in the LFP have complex and diverse shapes, with sharp transitions
+between the up- and down-states ( Figure 1D) [12,26,28,29]. These invasive recordings present
+a unique opportunity to extract information from waveform shape because of their closer
+proximity to the signal source.
+If the waveform shape of an oscillation re ﬂects physiology that is truly evolutionarily conserved,
+we expect to see similar waveform features in analogous oscillations across species. One
+example of such conservation is the stereotyped sawtooth waveform of the hippocampal theta
+rhythm that is observed in rabbit, mouse, and rat [20,30,31]. In addition, arch-shaped alpha-
+frequency oscillations are observed in rat somatosensory cortex, and these have been hypoth-
+esized to be analogous to the previously mentioned mu rhythms in EEG [32,33]. Furthermore,
+slow oscillations are also arch-shaped in surface EEG in the anesthetized cat [12], to give only
+Glossary
+Amplitude: the magnitude of an
+oscillation in a signal, measured in
+volts.
+Arch: a periodic waveform in which
+one extremum is consistently sharper
+than the opposite.
+Cross-frequency coupling (CFC):
+a biophysical interaction between two
+oscillators with different fundamental
+frequencies.
+Multiplex: multiple streams of
+information encoded in a single
+signal.
+Nonsinusoidal: an oscillatory
+waveform shape that deviates from a
+sine wave.
+Oscillation: a periodic component of
+a time series, such that the phase at
+one timepoint can be predicted by
+the phase at a past timepoint. In
+electrical recordings, the voltage
+ﬂuctuates between two extremes,
+with some variability in frequency and
+amplitude.
+Phase: a point in a periodic cycle,
+such as the peak, trough, or zero-
+crossing.
+Phase–amplitude coupling (PAC):
+a subtype of CFC de ﬁned by a
+statistical correlation between the
+phase of one oscillation and the
+amplitude of a second oscillation.
+Oscillations can be from the same
+recording ( ’within-channel’) or from
+separate simultaneously recorded
+channels ( ’cross-channel’)
+Sawtooth: a periodic waveform that
+ﬂuctuates between two extrema with
+a fast rise (or decay) and a slow,
+linear decay (or rise).
+Sharpness: a description of the
+shape of oscillatory extrema. Extrema
+are relatively sharp if the rate of
+voltage change around the extrema is
+relatively high.
+Sinusoid: the imaginary component
+of the trajectory at a constant angular
+frequency along a circle in the
+complex plane. The sinusoid is a
+smoothly varying periodic signal that
+has special mathematical properties,
+allowing it to be used as the basis for
+the Fourier transform. A sinusoid is
+deﬁned by its frequency, amplitude,
+and phase.
+Spectral analysis: a family of
+techniques used to quantify the
+phase and amplitude of a neural
+oscillation by focusing on a small
+frequency range of interest.
+Spike-wave discharges: a
+stereotyped waveform that is
+commonly observed in epileptic
+2 Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy
+
+===== PAGE 3 =====
+
+TICS 1638 No. of Pages 13
+tissue. The waveform consists of a
+brief, sharp spike and a slower wave.
+Transient: a high-magnitude
+deﬂection in a time series that lasts a
+short period of time.
+three examples. Concerning slow oscillations, Amzica and Steriade presaged in 1998 that
+‘Fourier spectra are not able to discriminate between periodic phenomena and waves with a
+given shape ’, noting that analyses ‘should take into consideration the actual aspect of waves
+and, if possible, their relationship with the state of the cellular aggregates of the corticothalamic
+network’ [12]. We extend this sentiment here to all neural oscillations.
+In addition to the variety of empirical reports, theoretical estimates of ﬁeld activity acquired
+through computational modeling are also notably nonsinusoidal. A common method for simu-
+lating gamma oscillations, for example, is the biophysically inspired pyramidal-interneuron
+gamma (PING) cortical model. In a morphologically realistic simulation of the LFP, gamma
+oscillations show a sawtooth-like waveform shape; while the decay phase was very short, the
+(A)
+1 s
+1 s
+800
+600
+400
+200
+0
+–200
+–400
+400
+2
+0
+–2
+–4
+0 100
+V
+V
+a
+b
+Time
+Time
+LFP
+Key: ∑ ⎜I⎢
+300200 400
+Time (ms)
+Time (s)
+z–score
+0
+–400
+0.0
+–2 –1.5 –1 –0.5 0
+0.1 0.2 0.3 0.4 0.5
+100
+60
+20
+–20
+–60
+–100
+0.0 0.5 1.0 1.5 2.0
+0.6
+Time (s)
+Time (s)
+Voltage (μV)
+Voltage (μV)
+500 μV
+Voltage
+(μV)
+25 μV
+(E)
+(F)
+(G)
+(B)
+(C)
+(D)
+Figure 1. Oscillatory Waveforms Are Nonsinusoidal in Many Neural Recordings and Simulations. (A) The mu rhythm, a motor cortical oscillation with power at
+10 Hz, is characterized by its sharp extrema which produce an arch shape. Reproduced, with permission, from [8]. (B) Beta oscillations in the human primary motor cortex
+(ECoG) have sharp and sawtooth-like features. Produced by the authors. (C) Theta oscillations in the rodent hippocampus have a sawtooth-like wavefo rm in which
+oscillatory rises are steeper than decays. Reproduced, with permission, from [23]. (D) Slow oscillations in the neocortex have complex waveforms that contain aspects of
+arches, sawtooths, and rectangular waves. Reproduced, with permission, from [28]. (E) Gamma oscillations produced by the pyramidal –interneuron gamma (PING)
+mechanism. Field potentials were generated both in a population of morphologically realistic neurons (black) and by using a weighted sum of synaptic currents (red). In
+both cases the waveforms had an asymmetric shape: a sharp voltage drop followed by an exponential-shaped voltage rise. Reproduced, with permission, from [72]. (F)
+The waveform shape of a conductance-based Morris –Lecar oscillator model changes with the lambda parameter ( [5_TD$DIFF]a: [6_TD$DIFF]lambda = 0.02, [7_TD$DIFF]b: [6_TD$DIFF]lambda = 0.33), though they are
+never truly sinusoidal. Note that the top example is strikingly similar to the temporal dynamics of slow oscillations recorded in the parietal cortex of rats (see panel D).
+Reproduced, with permission, from [35]. (G) A type of alpha oscillations in the rat gustatory cortex (LFP) have a complicated arch waveform that disappears at taste
+delivery (dotted line). Reproduced, with permission, from [55]. Abbreviations: ECoG, electrocorticography; LFP, local ﬁeld potential.
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy 3
+
+===== PAGE 4 =====
+
+TICS 1638 No. of Pages 13
+voltage rise had an exponentially decaying trajectory, analogous to synaptic currents (Figure 1E).
+By comparison, a slightly different implementation of the PING model yielded gamma oscillations
+with an arch shape [34]. The different oscillatory shapes generated by different PING models are
+driven by differences in the de ﬁned biophysical parameters, hinting at a link between biophysics
+and waveform shape.
+Other computational models of neural oscillations are more abstract and do not directly simulate
+the synaptic currents that largely underlie the LFP. Even so, the waveform generated by a
+Morris–Lecar model [35] (Figure 1F, top) has a strikingly similar waveform to the slow oscillations
+shown in Figure 1 D. By changing the parameters of the model oscillators, researchers can ﬁt
+simulated waveforms to those recorded in the LFP. In theory, this technique of altering
+biophysical parameters in LFP simulations to ﬁt waveform shape can be inverted to try to infer
+biophysical parameters from the LFP. This could prove to be an enticing extension to the
+common analytic toolkit used to study oscillations, moving beyond standard spectral analyses to
+more physiologically informed approaches.
+Methods for Characterizing Nonsinusoidal Oscillations
+Given the numerous examples of stereotyped oscillatory waveforms described above, metrics
+have been developed to quantify the features of the waveform shape, although they are
+underutilized. We recently quanti ﬁed the sharpness of peaks and troughs by calculating the
+short-term voltage change around each extrema in the raw trace [11]. The ratio between peak
+and trough sharpness was shown to differentiate neural activity between neurological treatment
+conditions in Parkinson's disease (PD). In addition to the symmetry of oscillatory peaks and
+troughs, other studies have quanti ﬁed the symmetry between the rise and decay phases to
+determine how rapidly the voltage rises compares to its decay time. The ratio between the rise
+time and decay time has been used to quantify the sawtooth nature of the hippocampal theta
+rhythm, where the rise phase is consistently shorter than the decay phase [21,22]. Similarly, a
+‘slope ratio’ has been used to compare the steepness of the rise period to that of the adjacent
+decay period [36]. While promising, these metrics do not capture the full space of possible
+waveform features, and more approaches will need to be developed to further characterize
+oscillatory waveforms. Links between nonsinusoidal waveform shape and physiology will be
+more accurate by measuring multiple waveform features.
+In addition to quantifying features of the waveform shape, methods have been developed to
+account for nonsinusoidal waveforms when performing traditional spectral analysis. Nonsinu-
+soidal oscillations have been shown to generate unintuitive phase and amplitude estimates
+[22,37–39]. The amplitude of high-frequency oscillations is spuriously increased when ﬁltering
+sharp transients [39]. To correct for this, a classi ﬁer was developed to differentiate between
+sharp events with and without high-frequency oscillations [39]. Because the hippocampal theta
+waveform has such a striking sawtooth shape, some researchers studying the phase of this
+oscillation have developed alternative waveform-based phase estimates that interpolate
+between empirically identi ﬁed timepoints, including extrema and zero-crossings [21–23,40].
+Using this approach, it was shown that decoding the spatial position of a rat is improved by
+referencing spiking to this alternate phase estimate as compared to traditional sinusoidal phase
+estimates [21].
+Because both phase and amplitude estimates can be unintuitive for nonsinusoidal oscillations,
+waveform shape is an important consideration in phase–amplitude coupling (PAC) analysis,
+which quanti ﬁes the correlation between the phase of one oscillator and the amplitude of a
+higher-frequency oscillator. Box 1 contains extended discussion of how nonsinusoidal oscil-
+lations can lead to misleading PAC results. Similar concerns regarding phase –phase coupling
+are discussed in Box 2 . Past studies have provided various recommendations for assessing
+4 Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy
+
+===== PAGE 5 =====
+
+TICS 1638 No. of Pages 13
+whether PAC is true or spurious [38,41–46]. We suggest here that the spurious/non-spurious
+dichotomy may not be useful because ‘spurious’ implies uninformative. By contrast, we argue
+that the apparent PAC that arises from nonsinusoidal features is still a valid measure of signal
+properties, although the biophysical interpretation may differ depending on the waveform
+Box 1. Nonsinusoidal Oscillations In ﬂuence PAC Estimates
+PAC is estimated by quantifying the relationship between the phase of a low-frequency oscillation and the amplitude of a
+higher-frequency oscillation or broadband. Numerous reports have used both real and simulated data to show that
+nonsinusoidal oscillations with stereotyped sharp transients increase PAC estimates [11,36,38,41,42,44,45,87]. The
+presence of nonsinusoidal waveforms and sharp transients, rather than the ubiquity of PAC across the cortex, might
+reasonably explain why signiﬁcant PAC exists in a majority of cortical electrode recordings [85]. However, a recent review
+concluded less than 15% of papers reporting PAC discuss the possibility that it is biased by nonsinusoidal oscillations
+[43].
+Coupling between two oscillators can be clearly observed in some raw traces, including in the hippocampus (e.g.,
+[70,88]) and subthalamic nucleus (e.g., [89]). In these cases, the power spectra contain peaks in both frequency bands of
+interest, and coupling is speci ﬁc to these frequencies. This stands in contrast to reports of coupling between broadband
+power (50–200 Hz) and a broad range of low-frequency oscillations [90–93]. While this can be interpreted as a form a
+oscillatory multiplexing [94], wherein numerous low-frequency bands can couple to local spiking/high gamma, such
+broadband coupling can also arise from nonsinusoidal waveform features [11,44–46]. Rather than ubiquitous coupling
+across multiple overlapping neural oscillators, these reports of broad low-frequency phase to high-gamma coupling
+might be better explained by changes in the synchrony of synaptic bursts, which is known to alter low-frequency
+waveform shape [73].
+The accuracy of phase estimates increases with the relative power of the oscillation [43]. However, only around half of
+articles accounted for power changes in their PAC analyses [43]. This control is crucial when comparing PAC metrics
+between conditions in which the low-frequency band power changes signi ﬁcantly. For example, several studies have
+reported both a desynchronization of beta oscillations at movement onset as well as a decrease in beta –high-gamma
+PAC estimates [91,93,95,96]. This reduced beta –high-gamma PAC estimate with movement has been interpreted as
+evidence that the beta rhythm actively gates motor function [93]. However, such an estimated PAC change may invoke
+alternative physiological interpretations if some of the motor cortical beta oscillations are sharp, as is observed in similar
+ECoG recordings [11].
+The risk of cross-channel CFC arising from nonsinusoidal features may be lower than within-channel CFC because the
+phase and amplitude estimates are obtained from separate signals. However, apparent cross-channel CFC can also
+arise if the populations recorded by the two electrodes are driven by common input [43]. Therefore, analyses of cross-
+channel CFC should be controlled by within-channel analyses, such as within-channel PAC, as well as by cross-channel
+phase coherence.
+Box 2. Nonsinusoidal Oscillations In ﬂuence Phase –Phase Coupling (PPC) Estimates
+Within-channel cross-frequency PPC has been reported as a potential mechanism for information selection and routing
+[97]. When the frequency of the two coupled phases are integer multiples of one another, this is referred to as n:m
+coupling. For example, 3:1 phase synchrony occurs if a 60 Hz oscillation has three cycles in each cycle of a 20 Hz
+oscillation, such that the peaks of these two oscillators consistently align.
+PPC has been reported most prominently across the cortex [97] and in the hippocampus [21]. Cortical PPC exists
+simultaneously across many frequency bands within a channel [97,98]. However, similarly to ubiquitous PAC, it is
+possible that nonsinusoidal features extracted using sinusoidal basis functions can give the appearance of multiplexed
+PPC. Instead, the relevant features of the signal may more parsimoniously be explained by characterizing the oscillatory
+waveform. This was recently demonstrated in that hippocampal theta –gamma PPC does not statistically differ from
+chance because the sawtooth-shaped theta oscillation is necessarily phase-coupled to its harmonics [99].
+Some reports of PPC have included counter-arguments to the possibility that the coupling is generated by nonsinusoidal
+oscillations. For example, a difference between the cortical topography of alpha and beta power has been cited to
+support the existence of true coupling [100]. However, this topographical difference is also consistent with topographical
+changes in the waveform shape of alpha oscillations, as seen in the central mu rhythm, which contains increased
+harmonic power compared to the occipital alpha oscillation. Others have argued that positive amplitude correlations are
+required if nonsinusoidal oscillations underlie PPC [97]. Ultimately, waveform shape should be analyzed to clarify the
+temporal dynamics underlying reported PPC.
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy 5
+
+===== PAGE 6 =====
+
+TICS 1638 No. of Pages 13
+properties that give rise to the observed PAC. That is, statistically signi ﬁcant PAC may not
+indicate two interacting oscillators at different frequencies, but instead may re ﬂect one regular
+nonsinusoidal oscillator.
+PAC methods have been recently adapted to account for nonsinusoidal oscillations. Because
+nonsinusoidal oscillations produce a nonuniform distribution of instantaneous phase, PAC
+estimates may be biased, and a correcting factor based on phase nonuniformity was suggested
+[37]. This nonuniform phase distribution also confounds analyses of phase-locked spiking,
+which can be appropriately addressed using surrogate statistics [47]. As for amplitude esti-
+mates, the previously mentioned classi ﬁer that detects true high-frequency oscillations was
+applied to assess PAC changes while avoiding the confounding effects of sharp transients [48].
+Ultimately, measuring the waveform shape of oscillations would clarify the implications of PAC
+estimates.
+While nonsinusoidal oscillations are not parsimoniously captured in the components of the
+Fourier transform, alternative decomposition methods have been applied to study neural
+oscillations [49–52]. In contrast to techniques such as the Fourier transform, the matching
+pursuit algorithm decomposes the signal using transient broadband functions in addition to
+narrowband functions, making it suitable for capturing physiologically informative sharp wave-
+form features [50]. Another approach, empirical mode decomposition (EMD), decomposes a
+signal into rhythmic components based on local extrema rather than on sinusoidal components.
+One study showed that EMD improved the frequency resolution of coupling in both simulated
+data and mouse hippocampal recordings [52]. EMD was also applied to analyze amplitude –
+amplitude coupling in an attempt to account for the fact that such coupling is positively biased by
+nonsinusoidal and nonstationary oscillations [53]. Thus, decomposition methods that do not
+assume a sinusoidal basis may be more appropriate for analyzing the spectral properties of
+oscillations with a nonsinusoidal waveform shape.
+While such approaches require multiple oscillatory cycles to yield useful metrics, studying the
+temporal dynamics of single oscillatory cycles can also reveal crucial physiological information,
+as previously suggested [25,38]. The fast (30 –60 Hz) arch-shaped oscillations produced in
+response to cortical injury in the rabbit are relevant here [54]. At the start of injury, monophasic
+spikes appear in isolation, but gradually become broader and more frequent, generating an
+arch-shaped oscillation, followed by a quasi-sinusoidal oscillation. From a nonsinusoidal per-
+spective, each period of the oscillation has its own interesting temporal dynamics. Therefore,
+analysis of each period as an individual event may be more appropriate than analyzing the series
+of events as one oscillatory process.
+Distinguishing [9_TD$DIFF]between Different Oscillatory Processes by Waveform Shape
+The aforementioned methods for quantifying the features of oscillatory waveforms can be used
+to distinguish between oscillatory phenomena that appear at similar spatial locations, and at the
+same frequency, but have different physiological origins. Because distinct neural processes can
+coexist in the same frequency band, applying a narrow bandpass ﬁlter may make multiple
+distinct oscillatory processes indistinguishable from one another. For example, in the rat
+gustatory cortex there are three alpha-frequency rhythms that appear to be distinct because
+they occur at a speci ﬁc time during a sensory experience and can be distinguished by their
+waveform shape in addition to their center frequency and amplitude [55].
+Similarly, two of the earliest identi ﬁed signals in human EEG were the visual cortical alpha
+oscillation and the aforementioned sensorimotor mu rhythm. Because of their sometimes
+overlapping spatial topographies and frequencies (8 –12 Hz), the two oscillations can be mis-
+identiﬁed and confused with one another [56]. However, an important difference between these
+6 Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy
+
+===== PAGE 7 =====
+
+TICS 1638 No. of Pages 13
+two rhythms is their waveform shape. As mentioned above, the mu rhythm has an arch-like
+waveform while, By contrast, the occipital alpha oscillation has a more symmetric waveform that
+even appears characteristically triangular in some raw traces (e.g., [57])( Figure 1 G). These
+differences in shape likely reﬂect differences in the properties of these two oscillatory generators.
+The sharp transient of the mu rhythm is hypothesized to re ﬂect a current source in the primary
+somatosensory hand area [10]. The occipital alpha oscillation may manifest as a smoother
+waveform because the underlying current source is less temporally synchronous. This hypoth-
+esized difference in physiology is analogous to previous hypotheses regarding the differences in
+the shapes of slow oscillations [12].
+In addition to slow oscillations, 1 –5 Hz sawtooth-shaped waves also occur in human EEG and
+are particularly associated with rapid eye movement (REM) sleep [58–60]. Noting the shape of
+this rhythm has helped to associate it with distinct behaviors and mechanisms that would not
+have been possible if it was simply ﬁltered and identiﬁed as a ‘delta oscillation’. In addition, sleep
+spindles are characterized as bursts of 8 –14 Hz oscillations that are observed during sleep,
+together with slow oscillations and sawtooth waves. Sleep spindle subtypes can be distin-
+guished by their shape [61].
+Oscillation Waveform Shape Relates to Physiology
+Robust differences in the waveform shapes o f the oscillations mentioned above can be
+assumed to represent differences in the properties of their underlying generators. For example,
+the sharp transients that occur in spike-wave discharges ,a sw e l la si na na l p h ar h y t h mi nt h e
+gustatory cortex, correspond to synchronous local spiking [62–65]. By contrast, the smooth
+‘wave’ component of the spike-wave discharge coincided with a slow depolarization of layer 5/
+6n e u r o n s[66].T h e ‘spike’ portion of this waveform was preceded by a layer-speci ﬁc ﬁring
+pattern, coincided with fast depolarization, and was followed by fast hyperpolarization of these
+layer 5/6 neurons. Given the known variability of the generators for spike-wave discharge
+shapes [64], quantifying differences in waveform shape may explain some differences in the
+type or stage of epilepsy.
+Waveform shape differences are also observed within a region. The longer duration of slow
+oscillation up-states in the infragranular layers (below pyramidal cell bodies) compared to
+supragranular layers (above pyramidal cell bodies) contains information on how the slow
+oscillation is generated across layers [29]. By analyzing multielectrode recordings throughout
+the hippocampus, the hilar region has consistently been observed to have the most sinusoidal
+oscillations (see ‘hil’ in Figure 2A) [67–69]. These results suggest that the electrical properties of
+these oscillations are nonuniform across the region, even if the whole region contains power at
+the same frequency.
+In addition to differences across cortical layers, waveform shape may also contain informa-
+tion about the neurotransmitters that are present. Again in the hippocampus, the addition of
+atropine, which blocks acetylcholine receptors, resulted in more irregular theta oscillations,
+as characterized by broader distributions in cycle length and trough amplitude ( Figure 2 B)
+[70]. By contrast, urethane anesthesia makes the theta oscillation more symmetric [67].
+Addition of kainate to hippocampal slices induced gamma oscillations that were more
+sawtooth-shaped than spontaneously generated gamma oscillations [71]. The near-instan-
+taneous voltage drop followed by an exponentially decaying voltage rise observed in the
+kainate-induced gamma oscillations is strikin gly similar to the gamma oscillations produced
+in a previously mentioned PING model [72]. In summary, these experiments suggest that the
+shape of the LFP may index the in ﬂuence of neurotransmitters on neurophysiology. How-
+ever, because reports analyzing waveform shape are sparse, it is dif ﬁcult to generalize these
+results.
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy 7
+
+===== PAGE 8 =====
+
+TICS 1638 No. of Pages 13
+Attempts to explain distinct waveform shapes can inspire models of their physiological genera-
+tion. A recent study did exactly this for the transient beta oscillations recorded by magnetoen-
+cephalography (MEG) in primary somatosensory cortex (S1) and right inferior frontal cortex (IFC)
+(Figure 2 C) [73]. The S1 beta waveform is shaped such that the central trough is sharper and
+more negative than the adjacent troughs, consequently making its ﬂanks relatively steep. It was
+proposed that the transient oscillations could be generated by nearly synchronous excitatory
+(A)
+mol
+mol
+Control Atropine
+0.5 mV
+100 ms N (normalized)
+# Spikes
+10 Hz
+proximal
+drive
+10 Hz
+distal
+drive
+Time (ms)
+Dipole (nAm)
+–60
+–100
+0
+100
+–200
+0
+200
+06 0
+PK5
+Larger PK3–
+PK1
++PK2
++PK4
+Peakpolarity
+Steeper +/–:
+Voltage
+Waveform phase (degrees)
+400020000
+0
+180
+360
+540
+720
+0
+–1
+0
+1
+0.05 0.1
+gc
+hil
+gc
+(B)
+(C) (D)
+Figure 2. Features of Nonsinusoidal Waveforms Relate to Physiology. (A) The shapes of hippocampal theta oscillations change as a function of recording depth.
+Reproduced, with permission, from [67] (gc, granule cell layer; hil, hilus; mol, molecular layer). (B) Theta oscillations recorded in mouse hippocampus during exploration
+without (left) or with (center) the addition of atropine. The voltage at each trough is indicated with a dot, and the distributions of voltages are represented in histograms (right).
+Addition of atropine blocks muscarinic acetylcholine receptors and causes the trough voltage to be more variable (broader, black histogram). Reproduced, with permission,
+from [70]. (C) Transient beta oscillations in human somatosensory cortex recorded by magnetoencephalography (MEG). (Top) Examples of raw beta oscillationsaligned to
+the largest trough. (Center) The average waveform (shading, SD) has a sharp, steep center transient. (Bottom) This waveform shape was reproduced in a model by
+synchronous excitatory synaptic drive both distal and proximal to the soma. Reproduced, with permission, from [73]. (D) The temporal dynamics of extracellular theta
+oscillations relate to those of ﬁring rates. The ﬁring histogram (#, number of spikes) color indicates if the spike occurred in the rise of a theta oscillation (red) or the decay
+(black). The blue line indicates the median voltage of the theta oscillation in each phase bin. The purple line is a sinusoid of comparable frequency. Note that the nonsinusoidal
+voltage trace is more highly correlated to the population ﬁring rate compared to the sinusoid. Reproduced, with permission, from [21].
+8 Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy
+
+===== PAGE 9 =====
+
+TICS 1638 No. of Pages 13
+synaptic burst inputs into the proximal and distal dendrites of pyramidal cells. However, the
+relative sizes of the peaks and troughs differed between S1 and IFC; follow-up studies
+incorporating more physiological and architectural features may be able to explain this
+difference.
+For some oscillations, waveform shape may be a surrogate for the population ﬁring rate
+throughout a period. This relates trivially to slow oscillations in which one extremum is associated
+with greater local ﬁring whereas the opposite phase is associated with lower ﬁring. In addition,
+asymmetric peaks in a slow oscillation period are indicative of strong spiking in that cycle [74],
+and the sawtooth shape of hippocampal theta oscillations tracks ﬁring rate better than a
+comparable sinusoid ( Figure 2 D) [21]. However, the amount of ﬁring rate variance explained
+by the oscillation waveform in general is unclear, and likely differs by the identity of the oscillator
+being studied. In a model of cortical gamma oscillations, the population ﬁring rate was a
+candidate proxy for the biophysically computed LFP ( R
+2[8_TD$DIFF]> 0.5) [72]. However, waveform shape
+may not re ﬂect solely neural processes because glial membrane potentials are synchronized to
+slow oscillations and have similar shapes [12,13].
+As suggested earlier, the shape of an oscillatory waveform can be analyzed to test whether it is
+consistent with a proposed model of generation. This has been used, for example, in one
+modeling study that generated gamma oscillations using two different mechanisms. These two
+oscillators manifested waveforms that differed in slope ratio (de ﬁned above), predicting different
+waveform shapes [36]. In another example, an oscillation generated by pulsing inhibition has
+been hypothesized to produce an oscillation with ‘amplitude asymmetry ’ [75]. Amplitude
+asymmetry occurs when the trough voltage remains constant while the peak voltage ﬂuctuates
+(or vice versa). Thus it has been proposed that pulsing inhibition is the underlying mechanism of
+some MEG oscillations projected to occipital, central, and parietal areas that have this property
+[75–78]. This model is consistent with known inhibitory feedback from the neocortex and
+thalamus [75], but direct empirical evidence to con ﬁrm this model is needed.
+Causal evidence of the computational importance of oscillatory waveform shape comes from
+studies applying oscillatory neurostimulation. Modifying the shape of the stimulating waveform,
+while preserving amplitude and frequency, resulted in changes in the efﬁciency of entraining local
+population spiking in slices [29] and alpha oscillations in human EEG [79]. In both cases it was
+concluded that the steep slopes of the nonsinusoidal stimulation are key in entraining the
+network, reminiscent of a previous modeling result showing that nonsinusoidal oscillators
+synchronize faster to one another compared to more sinusoidal oscillators [35]. Relatedly,
+rectangular waves induce seizures more reliably than sine waves for electroconvulsive therapy
+[80,81], and sine wave stimulation is associated with greater memory loss and more intense
+seizures [82,83]. In summary, the effects of neurostimulation vary greatly with the stimulating
+waveform, suggesting that electrical waveforms generated by the brain may also impact on
+neural computation in different ways.
+Oscillatory Waveform Shape Relates to Disease and Behavior States
+Two recent studies have compared the shape of neural oscillations between disease states. In
+anesthetized rats, the relative duration of up- and down-states were measured in parietal cortical
+slow oscillations [28]. There was no difference in slow oscillation frequency between rats
+developing epilepsy compared to control animals. However, the rats developing epilepsy
+had relatively longer up-states. Recently we used electrocorticography (ECoG) to analyze
+primary motor cortex of patients with PD who had undergone implantation of a permanent
+deep brain stimulator (DBS) [11]. Oscillations were most asymmetric in regards to peak and
+trough sharpness in recordings from untreated Parkinsonian patients compared to those same
+patients when their DBS was turned on ( Figure 3A). Sharpening of oscillatory beta extrema may
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy 9
+
+===== PAGE 10 =====
+
+TICS 1638 No. of Pages 13
+reﬂect an increase in the synchrony of synaptic bursts [73] that is thought to be pathological in
+PD.
+There is mounting evidence that the prominent hippocampal theta oscillation shape is altered
+with behavior. In particular, the aforementioned sawtooth shape of hippocampal theta has been
+reported to become more asymmetric (i.e., approaching the instantaneous voltage change that
+characterizes a pure sawtooth) when a rat is running, compared to during immobility [70], lever
+pressing [20], or REM sleep [21] (Figure 3B). This change in the asymmetry of hippocampal theta
+oscillations during running must re ﬂect a change in the rhythmic neural computation. Future
+studies could identify the mechanisms associated with changes in theta asymmetry and what
+signiﬁcance this has for running behavior. A similar analysis on theta oscillations was performed
+during memory-encoding periods [23]. During the encoding of objects that were subsequently
+remembered (compared to subsequently forgotten), the hippocampal theta oscillation of the rat
+was more asymmetric ( Figure 3 C). There was no accompanying change in theta frequency or
+amplitude. The authors theorized that this elongation of the theta oscillation falling slope
+improved memory by enhancing CA3 –CA1 gamma coherence. Future studies can test this
+hypothesis by using electrical or optogenetic stimulation to manipulate the shape of the theta
+waveform in CA1.
+(A)
+(B)
+(C)
+200 200
+0.29
+0.27
+0.25
+0.23
+0.21
+1
+0
+–1
+Falling Trough Rising Peak
+PD, DBS oﬀ PD, DBS on
+Good memory
+Key:
+Good memory
+Key:
+Poor memory
+Sine wave
+Peak
+Trough
+Peak
+Key: Key:
+Trough
+Log sharpness (μV) Log sharpness ( μV)
+Theta phase
+Cumula/g415ve propor/g415on of cycle
+Standardized amplitude
+Propor/g415on of cycle
+Cycle count
+Cycle count
+00
+00 11
+0 0.25 0.5 0.75 1
+22 33
+Run
+Rem
+Figure 3. Features of Oscillatory Waveforms Relate to Behavior and Disease.(A) The sharpness of the peaks and troughs of motor cortical beta oscillations were
+measured in Parkinson's disease (PD) patients. The overlaps in peak and trough sharpness distributions are lower in PD patients with an implanted dee p brain stimulator
+(DBS) turned off (left) compared to when it is turned on (right). In other words, the sharpness ratio between the peaks and troughs is greater in untreat ed PD patients, as
+visualized by a separation in the distributions of peak and trough sharpness. Reproduced, with permission, from [11]. (B) Hippocampal theta oscillations in rats are more
+asymmetric while the rat is running (RUN, top) than when the rat is sleeping (REM, bottom). During running, theta oscillations generally have a steepe r rise to the peak and
+a more gradual decay to the trough. Reproduced, with permission, from [21]. (C) Hippocampal theta oscillation symmetry also differed in rats based on memory
+performance. During a successful encoding period of an object, the theta oscillation was more asymmetric in that its falling phase was extended and it s rising phase was
+shortened. Reproduced, with permission, from [23].
+10 Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy
+
+===== PAGE 11 =====
+
+TICS 1638 No. of Pages 13
+Concluding Remarks
+We have reviewed a broad literature showing that oscillations have diverse waveform shapes.
+These nonsinusoidal features likely relate to physiology, making it theoretically possible to infer
+physiology from waveform shape. Importantly, this idea has been hinted at or directly mentioned
+in several earlier reports [12,23,36,38,43,49,51,84,85]; however, such reports of waveform
+shape have been brief and sparse in the literature of neural oscillations. While relatively novel in
+neuroscience, nonsinusoidal oscillations emerge in other physical phenomena with associated
+methods for addressing these features. For example, the chemical-processing industry applies
+curve-ﬁtting algorithms to identify nonsinusoidal waveforms in control loops (e.g., [86]).
+Future efforts in experimental design, analytical method development, and computational
+modeling should explicitly probe how differences in waveform shape relate to differences in
+physiology (see Outstanding Questions). For example, rhythmic stimulation experiments (elec-
+tric, magnetic, optogenetic, etc.) can vary the stimulating waveform and assess behavioral or
+physiological differences. In addition, simultaneous recordings of ﬁeld potentials and neuronal
+spiking will help us to quantify relationships between waveform shape, synchrony, and other
+spiking features. It may even be possible to move past the sinusoidal assumptions of the Fourier
+transform and toward more biologically informed decomposition methods, perhaps consisting
+of a ‘dictionary’ of neurophysiological basis functions (as similarly suggested in [38]). Finally, and
+perhaps of great immediate interest, existing experimental data containing neural oscillations
+can be re-analyzed to inspect waveform shape. New empirical results will in turn inspire novel
+analytical methods and computational models to drive new theories regarding how oscillation
+waveform relates to their underlying biophysical generators.
+Acknowledgments
+We thank Richard Gao, Tammy Tran, and Roemer van der Meij for comments on the manuscript, and Erik Peterson, Tom
+Donoghue, Colin Hoy, Chris Holdgraf, Nicole Swann, and Brad Postle for invaluable discussion. S.R.C. is supported by the
+National Science Foundation Graduate Research Fellowship Program. B.V. is supported by the University of California, San
+Diego, the Qualcomm Institute, California Institute for Telecommunications and Information Technology, Strategic Research
+Opportunities Program, and a Sloan Research Fellowship.
+References
+1. Buzsáki, G. (2006) Rhythms of the Brain, Oxford University Press
+2. Fries, P. (2005) A mechanism for cognitive dynamics: neuronal
+communication through neuronal coherence. Trends Cogn. Sci.
+9, 474 –480
+3. Canolty, R.T. and Knight, R.T. (2010) The functional role of cross-
+frequency coupling. Trends Cogn. Sci. 14, 506 –515
+4. Arroyo, S. et al. (1993) Functional signiﬁcance of the mu rhythm of
+human cortex: an electrophysiologic study with subdural electro-
+des. Electroencephalogr. Clin. Neurophysiol. 87, 76 –87
+5. Pfurtscheller, G. et al. (2006) Mu rhythm (de)synchronization and
+EEG single-trial classi ﬁcation of different motor imagery tasks.
+Neuroimage 31, 153 –159
+6. Pfurtscheller, G. et al. (1997) On the existence of different types of
+central beta rhythms below 30 Hz. Electroencephalogr. Clin.
+Neurophysiol. 102, 316 –325
+7. Muthukumaraswamy, S.D. et al. (2004) Mu rhythm modulation
+during observation of an object-directed grasp. Cogn. Brain Res.
+19, 195 –201
+8. Kuhlman, W.N. (1978) Functional topography of the human mu
+rhythm. Electroencephalogr. Clin. Neurophysiol. 44, 83 –93
+9. Salmelin, R. and Hari, R. (1994) Spatiotemporal characteristics of
+sensorimotor neuromagnetic rhythms related to thumb move-
+ment. Neuroscience 60, 537 –550
+10. Tiihonen, J. et al. (1989) Magnetic mu rhythm in man. Neurosci-
+ence 32, 793 –800
+11. Cole, S.R. et al. (2016) Nonsinusoidal oscillations underlie path-
+ological phase –amplitude coupling in the motor cortex in
+Parkinson's disease. bioRxiv. Published online April 19, 2016.
+http://dx.doi.org/10.1101/049304
+12. Amzica, F. and Steriade, M. (1998) Electrophysiological corre-
+lates of sleep delta waves 1. Electroencephalogr. Clin. Neuro-
+physiol. 107, 69 –83
+13. Amzica, F. and Steriade, M. (2000) Neuronal and glial membrane
+potentials during sleep and paroxysmal oscillations in the neo-
+cortex. J. Neurosci. 20, 6648 –6665
+14. Steriade, M. et al. (1993) A novel slow (<1 Hz) oscillation of
+neocortical neurons in vivo : depolarizing and hyperpolarizing
+components. J. Neurosci. 13, 3252 –3265
+15. Massimini, M. (2002) EEG slow ( /C241 Hz) waves are associated
+with nonstationarity of thalamo-cortical sensory processing in the
+sleeping human. J. Neurophysiol. 89, 1205 –1213
+16. Massimini, M. (2004) The sleep slow oscillation as a traveling
+wave. J. Neurosci. 24, 6862 –6870
+17. Ngo, H.V.V. et al. (2013) Auditory closed-loop stimulation of the
+sleep slow oscillation enhances memory. Neuron 78, 545 –553
+18. Mölle, M. et al. (2002) Grouping of spindle activity during slow
+oscillations in human non-rapid eye movement sleep. J. Neuro-
+sci. 22, 10941 –10947
+19. Clemens, Z. et al. (2007) Temporal coupling of parahippocampal
+ripples, sleep spindles and slow oscillations in humans. Brain
+130, 2868 –2878
+20. Buzsáki, G. et al. (1985) Depth pro ﬁles of hippocampal rhythmic
+slow activity ( ’theta rhythm’) depend on behaviour. Electroence-
+phalogr. Clin. Neurophysiol. 61, 77 –88
+Outstanding Questions
+Can a ‘dictionary’ of biophysically
+informed oscillatory shapes be used
+as a more principled decomposition
+tool, compared to the set of sinusoidal
+basis functions of the Fourier
+transform?
+What are the most biophysically infor-
+mative features that can be extracted
+from an oscillatory waveform (e.g., rise-
+time to decay-time ratio). How do each
+of these features potentially relate to
+physiological processes (e.g., neural
+ﬁring synchrony)?
+Is it possible to predict how changes in
+the physical structure or network con-
+nectivity in a brain region affect the
+waveforms of oscillatory processes
+recorded in that region?
+To what extent does noise corrupt
+information represented in the shape
+of oscillatory waveforms?
+For what diseases can oscillatory
+waveform shape be a useful biomarker
+of pathology?
+How does manipulating the oscillatory
+waveform shape of electrical or opto-
+genetic stimulation differentially affect
+the neural circuit?
+How stable are the shapes of different
+neural oscillations over time?
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy 11
+
+===== PAGE 12 =====
+
+TICS 1638 No. of Pages 13
+21. Belluscio, M. et al. (2012) Cross-frequency phase –phase cou-
+pling between theta and gamma oscillations in the hippocampus.
+J. Neurosci. 32, 423 –435
+22. Dvorak, D. and Fenton, A.A. (2014) Toward a proper estimation
+of phase-amplitude coupling in neural oscillations. J. Neurosci.
+Methods 225, 42 –56
+23. Trimper, J.B. et al. (2014) Recognition memory and theta –
+gamma interactions in the hippocampus. Hippocampus 24,
+341–353
+24. Green, J.D. and Petsche, H. (1961) Hippocampal electrical activ-
+ity II. Virtual generators. Electroencephalogr. Clin. Neurophysiol.
+13, 847 –853
+25. Artemenko, D.P. (1972) Role of hippocampal neurons in theta-
+wave generation. Neurophysiology 4, 531 –539
+26. Lockmann, A.L.V. et al. (2016) A respiration-coupled rhythm in
+the rat hippocampus independent of theta and slow oscillations.
+J. Neurosci. 36, 5338 –5352
+27. Buonviso, N. et al. (2003) Rhythm sequence through the olfac-
+tory bulb layers during the time window of a respiratory cycle.Eur.
+J. Neurosci. 17, 1811 –1819
+28. Ouedraogo, D.W. et al. (2016) Abnormal UP/DOWN membrane
+potential dynamics coupled with the neocortical slow oscillation
+in dentate granule cells during the latent phase of temporal lobe
+epilepsy. eNeuro 3, ENEURO-0017
+29. Frohlich, F. and McCormick, D.A. (2010) Endogenous electric
+ﬁelds may guide neocortical network activity. Neuron 67, 129 –
+143
+30. Buzsáki, G. et al. (2003) Hippocampal network patterns of activ-
+ity in the mouse. Neuroscience 116, 201 –211
+31. Bland, B.H. et al. (1980) Automated analysis of rhythmicity of
+physiologically identi ﬁed hippocampal formation neurons. Exp.
+Brain Res. 38, 205 –219
+32. Fransen, A.M. et al. (2016) Distinct alpha and beta band rhythms
+over rat somatosensory cortex with similar properties as in
+humans. J. Neurophysiol 115, 3030 –3044
+33. Wiest, M.C. and Nicolelis, M.A.L. (2003) Behavioral detection of
+tactile stimuli during 7-12 Hz cortical oscillations in awake rats.
+Nat. Neurosci. 6, 913 –914
+34. Lowet, E. et al. (2016) Quantifying neural oscillatory synchroni-
+zation: a comparison between spectral coherence and phase-
+locking value approaches. PLoS One 11, e0146443
+35. Somers, D. and Kopell, N. (1993) Rapid synchronization through
+fast threshold modulation. Biol. Cybern. 68, 393 –407
+36. Lee, S. and Jones, S.R. (2013) Distinguishing mechanisms of
+gamma frequency oscillations in human current source signals
+using a computational model of a laminar neocortical network.
+Front. Hum. Neurosci. 7, 869
+37. van Driel, J. et al. (2015) Phase-clustering bias in phase –ampli-
+tude cross-frequency coupling and its removal. J. Neurosci.
+Methods 254, 60 –72
+38. Jones, S.R. (2016) When brain rhythms aren ’t ‘rhythmic’: impli-
+cation for their mechanisms and meaning. Curr. Opin. Neurobiol.
+40, 72 –80
+39. Amiri, M. et al. (2016) High frequency oscillations and spikes:
+separating real HFOs from false oscillations. Clin. Neurophysiol.
+127, 187 –196
+40. Siapas, A.G. et al. (2005) Prefrontal phase locking to hippocam-
+pal theta oscillations. Neuron 46, 141 –151
+41. Kramer, M.A. et al. (2008) Sharp edge artifacts and spurious
+coupling in EEG frequency comodulation measures. J. Neurosci.
+Methods 170, 352 –357
+42. Ray, S. and Maunsell, J.H.R. (2011) Different origins of gamma
+rhythm and high-gamma activity in macaque visual cortex. PLoS
+Biol. 9, e1000610
+43. Aru, J. et al. (2015) Untangling cross-frequency coupling in
+neuroscience. Curr. Opin. Neurobiol. 31, 51 –61
+44. Lozano-Soldevilla, D. et al. (2016) Neuronal oscillations with non-
+sinusoidal morphology produce spurious phase-to-amplitude
+coupling and directionality. Front. Comput. Neurosci. 10, 1 –17
+45. Gerber, E.M. et al. (2016) Non-sinusoidal activity can produce
+cross-frequency coupling in cortical signals in the absence of
+functional interaction between neural source. PLoS One 11,
+e0167351
+46. Vaz, A.P. et al. (2016) Dual origins of measured phase-amplitude
+coupling reveal distinct neural mechanisms underlying episodic
+memory in the human cortex. bioRxiv. Published online October
+28, 2016. http://dx.doi.org/10.1101/084194
+47. Sigurdsson, T. et al. (2010) Impaired hippocampal –prefrontal
+synchrony in a genetic mouse model of schizophrenia. Nature
+464, 763 –767
+48. Amiri, M. et al. (2016) Phase –amplitude coupling is elevated in
+deep sleep and in the onset zone of focal epileptic seizures.
+Front. Hum. Neurosci. 10, 1 –12
+49. Bullock, T.H. et al. (2003) Are the electroencephalograms mainly
+rhythmic? Assessment of periodicity in wide-band time series.
+Neuroscience 121, 233 –252
+50. Chandran, K.S.S. et al. (2016) Comparison of matching pursuit
+algorithm with other signal processing techniques for computa-
+tion of the time-frequency power spectrum of brain signals. J.
+Neurosci. 36, 3399 –3408
+51. Mäkinen, V.T. et al. (2005) The use of stationarity and nonsta-
+tionarity in the detection and analysis of neural oscillations. Neu-
+roimage 28, 389 –400
+52. Pittman-Polletta, B. et al. (2014) Detecting phase –amplitude
+coupling with high frequency resolution using adaptive decom-
+positions. J. Neurosci. Methods 226, 15 –32
+53. Yeh, C-H. et al. (2016) Spurious cross-frequency amplitude –
+amplitude coupling in nonstationary, nonlinear signals. Physica
+A 454, 143 –150
+54. Adrian, E.D. and Matthews, B.H.C. (1934) The interpretation of
+potential waves in the cortex. J. Physiol. 81, 440 –471
+55. Tort, A.B.L. et al. (2010) Cortical networks produce three distinct
+7-12 Hz rhythms during single sensory responses in the awake
+rat. J. Neurosci. 30, 4315 –4324
+56. Pineda, J.A. (2005) The functional signi ﬁcance of mu rhythms:
+translating ‘seeing’ and ‘hearing’ into ‘doing’. Brain Res. Rev. 50,
+57–68
+57. Stam, C.J. et al. (1999) Dynamics of the human alpha rhythm:
+evidence for non-linearity? Clin. Neurophysiol. 110, 1801 –1813
+58. Louis, R.P. et al. (2004) Design and validation of a computer-
+based sleep-scoring algorithm. J. Neurosci. Methods 133, 71 –
+80
+59. Berger, J.R. et al. (1962) The EEG, eye-movement and dreams of
+the blind. Q. J. Exp. Psychol. 14, 183 –186
+60. Pearl, P.L. et al. (2002) Sawtooth wave density analysis during
+REM sleep in normal volunteers. Sleep Med. 3, 255 –258
+61. Pavlov, a.N. et al. (2012) Wavelet analysis in neurodynamics.
+Uspekhi Fiz. Nauk 182, 905
+62. Fabricius, M. et al. (2008) Association of seizures with cortical
+spreading depression and peri-infarct depolarisations in the
+acutely injured brain. Clin. Neurophysiol. 119, 1973 –1984
+63. Coenen, A.M.L. and Van Luijtelaar, E.L.J.M. (2003) Genetic ani-
+mal models for absence epilepsy: a review of the WAG/Rij strain
+of rats. Behav. Genet.
+33, 635 –655
+64. Slaght, J. et al. (2004) On the activity of the corticostriatal net-
+works during spike-and-wave discharges in a genetic model of
+absence epilepsy. J. Neurosci. 24, 6816 –6825
+65. Fontanini, A. (2005) 7 to 12 Hz activity in rat gustatory cortex
+reﬂects disengagement from a ﬂuid self-administration task. J.
+Neurophysiol. 93, 2832 –2840
+66. Polack, P-O. et al. (2007) Deep layer somatosensory cortical
+neurons initiate spike-and-wave discharges in a genetic model of
+absence seizures. J. Neurosci. 27, 6590 –6599
+67. Buzsáki, G. et al. (1986) Laminar distribution of hippocampal
+rhythmic slow activity (RSA) in the behaving rat: current-source
+density analysis, effects of urethane and atropine.Brain Res. 365,
+125–137
+68. Montgomery, S.M. et al. (2009) Behavior-dependent coordina-
+tion of multiple theta dipoles in the hippocampus.J. Neurosci. 29,
+1381–1394
+69. Konopacki, J. et al. (1988) Carbachol-induced EEG ‘theta’ in
+hippocampal formation slices: evidence for a third generator of
+theta in CA3c area. Brain Res. 451, 33 –42
+12 Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy
+
+===== PAGE 13 =====
+
+TICS 1638 No. of Pages 13
+70. Hentschke, H. et al. (2007) Muscarinic blockade weakens inter-
+action of gamma with theta rhythms in mouse hippocampus.Eur.
+J. Neurosci. 26, 1642 –1656
+71. Pietersen, A.N.J. et al. (2009) Comparison between spontane-
+ous and kainate-induced gamma oscillations in the mouse hip-
+pocampus in vitro . Eur. J. Neurosci. 29, 2145 –2156
+72. Mazzoni, A. et al. (2015) Computing the local ﬁeld potential (LFP)
+from integrate-and-ﬁre network models. PLoS Comput. Biol. 11,
+1–38
+73. Sherman, M.A. et al. (2016) Neural mechanisms of transient
+neocortical beta rhythms: converging evidence from humans,
+computational modeling, monkeys, and mice. Proc. Natl. Acad.
+Sci. U. S. A. 113, E4885 –E4894
+74. Lewis, L.D. et al. (2012) Rapid fragmentation of neuronal net-
+works at the onset of propofol-induced unconsciousness. Proc.
+Natl. Acad. Sci. U. S. A. 109, E3377 –E3386
+75. Mazaheri, A. and Jensen, O. (2010) Rhythmic pulsing: linking
+ongoing brain activity with evoked responses. Front. Hum. Neu-
+rosci. 4, 177
+76. Mazaheri, A. and Jensen, O. (2008) Asymmetric amplitude mod-
+ulations of brain oscillations generate slow evoked responses. J.
+Neurosci. 28, 7781 –7787
+77. van Dijk, H. et al. (2010) Modulations in oscillatory activity with
+amplitude asymmetry can produce cognitively relevant event-
+related responses. Proc. Natl. Acad. Sci. U. S. A. 107, 900–905
+78. Nikulin, V.V. et al. (2007) A novel mechanism for evoked
+responses in the human brain. Eur. J. Neurosci. 25, 3146–3154
+79. Dowsett, J. and Herrmann, C.S. (2016) Transcranial alternating
+current stimulation with sawtooth waves: simultaneous stimula-
+tion and EEG recording. Front. Hum. Neurosci. 10, 1 –10
+80. Merritt, H. and Putnam, T. (1938) A new series of anticonvulsant
+drugs tested by experiments on animals. Arch. Neurol. Psychia-
+try
+39, 1003 –1015
+81. Abrams, R. (2002) Electroconvulsive Therapy, Oxford University
+Press
+82. Weiner, R.D. et al. (1986) Effects of electroconvulsive therapy
+upon brain electrical activity. Ann. N. Y. Acad. Sci. 462, 270–281
+83. Weiner, R.D. et al. (1986) Effects of stimulus parameters on
+cognitive side effects. Ann. N. Y. Acad. Sci. 462, 315 –325
+84. Nikulin, V.V. et al. (2010) Non-zero mean and asymmetry of
+neuronal oscillations have different implications for evoked
+responses. Clin. Neurophysiol. 121, 186 –193
+85. He, B.J. et al. (2010) The temporal structures and functional
+signiﬁcance of scale-free brain activity. Neuron 66, 353 –369
+86. Zakharov, A. and Jämsä-Jounela, S-L. (2014) Robust oscillation
+detection index and characterization of oscillating signals for
+valve stiction detection. Ind. Eng. Chem. Res. 53, 5973 –5981
+87. He, B.J. (2014) Scale-free brain activity: past, present, and future.
+Trends Cogn. Sci. 18, 480 –487
+88. Tort, A.B.L. et al. (2009) Theta–gamma coupling increases during
+the learning of item –context associations. Proc. Natl. Acad. Sci.
+U. S. A. 106, 20942 –20947
+89. van Wijk, B.C.M. et al. (2016) Subthalamic nucleus phase–ampli-
+tude coupling correlates with motor impairment in Parkinson's
+disease. Clin. Neurophysiol. 127, 2010 –2019
+90. Edakawa, K. et al. (2016) Detection of epileptic seizures using
+phase–amplitude coupling in intracranial electroencephalogra-
+phy. Sci. Rep. 6, 25422
+91. Kondylis, E.D. et al. (2016) Movement-related dynamics of corti-
+cal oscillations in Parkinson's disease and essential tremor.
+Brain
+139, 2211 –2223
+92. Swann, N.C. et al. (2015) Elevated synchrony in Parkinson dis-
+ease detected with electroencephalography. Ann. Neurol. 78,
+742–750
+93. Miller, K.J. et al. (2012) Human motor cortical activity is selectively
+phase-entrained on underlying rhythms. PLoS Comput. Biol. 8,
+e1002655
+94. Akam, T. and Kullmann, D.M. (2014) Oscillatory multiplexing of
+population codes for selective communication in the mammalian
+brain. Nat. Rev. Neurosci. 15, 111 –122
+95. Yanagisawa, T. et al. (2012) Regulation of motor representation
+by phase-amplitude coupling in the sensorimotor cortex. J.
+Neurosci. 32, 15467 –15475
+96. Qasim, S.E. et al. (2016) Electrocorticography reveals beta
+desynchronization in the basal ganglia –cortical loop during rest
+tremor in Parkinson's disease. Neurobiol. Dis. 86, 177 –186
+97. Palva, J.M. et al. (2005) Phase synchrony among neuronal oscil-
+lations in the human cortex. J. Neurosci. 25, 3962 –3972
+98. Isler, J.R. et al. (2008) Cross-frequency phase coupling of brain
+rhythms during the orienting response. Brain Res. 1232, 163 –
+172
+99. Scheffer-Teixeira, R. and Tort, A.B. (2016) Lack of evidence for
+cross-frequency phase –phase coupling between theta and
+gamma oscillations in the hippocampus. bioRxiv. Published
+online March 28, 2016. http://dx.doi.org/10.1101/045963
+100. Nikulin, V.V. and Brismar, T. (2006) Phase synchronization
+between alpha and beta oscillations in the human electroenceph-
+alogram. Neuroscience 137, 647 –657
+Trends in Cognitive Sciences, Month Year, Vol. xx, No. yy 13

@@ -1,0 +1,558 @@
+
+
+===== PAGE 1 =====
+
+High Gamma Power Is Phase-Locked
+to Theta Oscillations in
+Human Neocortex
+R. T. Canolty,1* E. Edwards, 1,2 S. S. Dalal, 3 M. Soltani, 1,2 S. S. Nagarajan, 3,4 H. E. Kirsch, 5
+M. S. Berger, 6 N. M. Barbaro, 5,6 R. T. Knight1,2,3,5,6
+We observed robust coupling between the high- and low-frequency bands of ongoing electrical
+activity in the human brain. In particular, the phase of the low-frequency theta (4 to 8 hertz)
+rhythm modulates power in the high gamma (80 to 150 hertz) band of the electrocorticogram, with
+stronger modulation occurring at higher theta amplitudes. Furthermore, different behavioral tasks
+evoke distinct patterns of theta/high gamma coupling across the cortex. The results indicate that
+transient coupling between low- and high-frequency brain rhythms coordinates activity in
+distributed cortical areas, providing a mechanism for effective communication during cognitive
+processing in humans.
+N
+euronal oscillations facilitate synaptic
+plasticity ( 1), influence reaction time
+(2), correlate with attention (3)a n dp e r -
+ceptual binding (4), and are proposed to play a
+role in transient, long-range coordination of
+distinct brain regions (5). Direct cortical record-
+ings reveal that ongoing rhythms encompass a
+wide range of spatial and temporal scales—
+ultraslow rhythms less than 0.05 Hz coexist
+with fast transient oscillations 500 Hz or greater
+(1), with spatial coherence between these os-
+cillations extending fr om several centimeters
+for the corticospinal tract (6)t ot h em i c r o m e t e r
+scale for subthreshold membrane oscillations in
+as i n g l en e u r o n(7). Exactly how these transient
+oscillations influence each other and coordinate
+processing at both the single-neuron and
+population levels remains unknown.
+Evidence for cross-frequency coupling, where
+one frequency band modulates the activity of a
+different frequency band, is more abundant in
+animal than human data. For example, the theta
+rhythm can modulate the firing rate and spike
+timing of a single neuron (8–11)a sw e l la st h e
+gamma power of the intracortical local field
+potential (8, 12, 13). Task-related changes in
+theta power have been observed in humans
+(14–16), and cross-frequency coupling at fre-
+quencies up to 40 Hz has been detected at the
+scalp (17, 18). However, given the difficulty in
+localizing electrical sources from scalp record-
+ings alone (19), subdural electrodes that record
+directly from the human cortex are needed to
+address this question. Furthermore, subdural
+electrodes are ideal for studying activity in
+the recently described human high gamma
+band (HG) at 80 to 150 Hz. HG activity is
+modulated by sensory, motor, and cognitive
+events ( 20), is functionally distinct from low
+gamma (30 to 80 Hz) with different physiolog-
+ical origins (21), and is correlated with the func-
+tional magnetic resonance imaging blood
+oxygen level–dependent (fMRI BOLD) signal
+(22–24). There have been no reports of coupling
+between any low-frequency rhythm and HG in
+signals recorded either at the scalp or directly
+from human sensory, motor, or association cor-
+tex. We therefore focus exclusively on theta/HG
+coupling in this report.
+We analyzed multichannel subdural electro-
+corticogram (ECoG) data from five patients
+undergoing neurosurgical treatment for epilepsy.
+Typically, the events of interest in behavioral
+paradigms are the stimulus onsets and motor
+responses that evoke frequency-specific changes
+in the electrical activity of the brain. In contrast,
+the events of interest in cross-frequency coupling
+are features of the ongoing oscillatory activity
+itself. That is, cross-frequency coupling refers to
+statistical dependence between distinct frequency
+bands of the ongoing ECoG rather than depen-
+dence between the ECoG and external stimulus
+events. The dependence between two frequen-
+cies f1 and f2 can assume many forms, including
+coupling between the amplitude envelopesA1(t)
+and A2(t), the phase time seriesf1(t)a n df2(t), or
+an amplitude-phase coupling betweenA1(t)a n d
+f2(t). We focus here on the last type of coupling
+and use an index of cross-frequency coupling that
+directly combines the amplitude envelope time
+series A1(t þ t)o fah i g h - f r e q u e n c yb a n dw i t h
+the phase time series f2(t)o fal o w - f r e q u e n c y
+band into one composite, complex-valued signal
+z(t, t). The (normalized) temporal mean of this
+composite signal provides a sensitive measure of
+the coupling strength and preferred phase be-
+tween the two frequencies (25).
+Animal evidence for theta phase modulation
+of single-unit firing and the strong connec-
+tion of theta to learning, attention, and memory
+(26, 27)s u g g e s t e dt ou st h a th i g h - f r e q u e n c y
+oscillations in human neocortex may be modu-
+lated by the theta rhythm. Accordingly, we
+analyzed the ECoG across a range of behavior-
+1Helen Wills Neuroscience Institute,2Department of Psychol-
+ogy, University of California, Berkeley, CA 94720, USA.
+3Department of Bioengineering, 4Department of Radiology,
+5Department of Neurology, 6Department of Neurosurgery,
+University of California, San Francisco, CA 94143, USA.
+*To whom correspondence should be addressed. E-mail:
+rcanolty@berkeley.edu
+Fig. 1. High gamma
+(80 to 150 Hz) power is
+modulated by theta (4 to
+8H z )p h a s e .(A)S t r u c -
+tural MRI showing posi-
+tion of 64-channel ECoG
+grid over frontal and
+temporal lobes in subject
+1. (B)E x a m p l eo fp h a s e -
+locked modulation of
+power in the ECoG sig-
+nal from an electrode
+over the anterior portion
+of the middle frontal
+gyrus (arrow in Fig. 1A).
+(Top) Time-frequency plot
+of mean power modula-
+tion time-locked to the
+theta trough. Outermost
+contour indicates statisti-
+cal significance ( P G
+0.001, corrected). Nor-
+malization permits com-
+parison across frequencies; red and blue indicate a power increase or decrease, respectively, relative to the
+mean power. (Bottom) Theta trough–locked average of raw ECoG signal. (C)B e s t - f i tg a m m ad i s t r i b u t i o n sf o r
+the high gamma analytic amplitude values that occurred at the peak (black, 0 radians) or the trough
+(red, p radians) of the theta waveform for the same electrode as in Fig. 1B. The difference in parameter
+values is significant ( P G 0.001). (D) The modulation index ( 25) as a function of analytic amplitude
+(5 to 200 Hz) and analytic phase (2 to 20 Hz) for the same electrode as in Fig. 1B. Outermost
+contour indicates statistical significance (P G 0.001, corrected). Larger values indicate stronger cross-
+frequency coupling. Maximal coupling for this electrode is 146.2 Hz amplitude and 5.6 Hz phase (see
+also fig. S4).
+high gamma analytic amplitude (µV)
+0 24 68 1 0
+0.1probabilty density
+0.4
+0.3
+0.2
+theta peak only
+theta trough only
+C
+frequency for amplitude (Hz)
+25
+50
+100
+150
+200
+75
+125
+175
+frequency for phase (Hz)
+2 4 6 8 10 12 14 16 18 20
+D
+26
+0
+modulation index
+50
+-50
+µV
+0 250 500-500 -250
+time (ms)
+frequency (Hz)
+0
+50
+100
+150
+200
+BA
+0.2
+-0.2
+arbitrary units
+15 SEPTEMBER 2006 VOL 313 SCIENCE www.sciencemag.org1626
+REPORTS
+ on September 20, 2007 www.sciencemag.orgDownloaded from 
+
+===== PAGE 2 =====
+
+al tasks (25). Figure 1B shows a time-frequency
+plot for data recorded from an electrode over
+the left middle frontal gyrus during an auditory
+language–related target detection task (Fig. 1A,
+arrow). Theta trough–locked averaging of the
+normalized time-frequency plane shows signif-
+icant coupling ( P G 0.001, corrected) between
+theta phase and high-frequency power, with an
+increase or decrease in power relative to base-
+line occurring at the theta trough or peak. Theta
+coupling was broadband from È20 to 200 Hz,
+with the strongest modulation occurring in the
+HG band. Fig. 1D and fig. S4, using the mod-
+ulation index discussed above, also show that
+coupling is strongest between theta phase and
+HG amplitude.
+Across all tasks and subjects, 252 out of 299
+tested electrodes (84. 3%) showed significant
+theta/gamma coupling (P G 0.001 for each elec-
+trode, corrected). Excluding the 60 electrodes
+over resected tissue (which includes both epi-
+leptic and healthy tissue) increases this percent-
+age to 88.7%, whereas only 66.7% of electrodes
+over resected tissue showed significant coupling.
+The largest HG amplitudes tended to occur at the
+trough of the theta waveform in electrodes with
+strong coupling (Figs. 1C and 2A). The coupling
+strength between the HG analytic amplitude
+time series AHG(t þ t)a n dt h e t aa n a l y t i cp h a s e
+fTH(t)s h o u l dd e c r e a s et oc h a n c el e v e l sa st h e
+magnitude of the time lag t increases. Figure
+3A, displaying all ECoG electrodes for one
+subject, shows that this i si n d e e dt h ec a s e( s e e
+fig. S8 for all subjects).
+The strength of theta/HG coupling depends
+on theta power as well as theta phase. We ob-
+served stronger coupling in electrodes with greater
+mean theta amplitude (Fig. 2B). That is, HG
+amplitudes have a stronger theta phase pref-
+erence at greater theta power, indicating that
+theta/HG coupling strength can be modulated by
+adjusting theta power in a local cortical region.
+This contrasts with the weak negative correla-
+tion observed between theta/HG coupling strength
+and mean HG amplitude (Fig. 2C and fig. S6).
+Thus, mean HG power and the strength of
+theta/HG coupling appear to reflect indepen-
+dent dimensions of cortical activity.
+Task-dependent modulation of theta power
+has been shown in humans (26), prompting the
+hypothesis that theta/HG coupling may be task-
+dependent. Two examples oft a s k - s p e c i f i cc h a n g e s
+in the spatial pattern of theta/HG coupling
+strength over all electrodes in one subject are
+shown in Fig. 3, B and C. Figure 3D shows that
+behavioral tasks evoke distinct and reproducible
+patterns of coupling in this subject, with similar
+tasks evoking similar coupling patterns whereas
+different tasks evoked alternate patterns. Spatial
+patterns associated w ith two runs of similar
+tasks were positively correlated, whereas runs
+Fig. 2. Theta/HG coupling strength is
+af u n c t i o no ft h e t aa m p l i t u d e .(A)
+Theta/HG coupling strength and pre-
+ferred theta phase. (Bottom) One theta
+cycle (schematic), from theta peak (0
+radians) to trough (p radians) to peak
+(2p radians). (Top) Modulation index
+(25) computed separately for all
+electrodes in all subjects for each task.
+Larger magnitudes indicate stronger
+coupling (vertical axis), whereas the
+horizontal axis indicates the theta
+phase at which larger HG amplitudes
+tend to occur. Most electrodes with
+strong theta/HG coupling have a pre-
+ferred theta phase of p,c o r r e s p o n d i n gt ot h et h e t at r o u g h( s e ea l s oF i g .1 C ) .
+The red dot indicates the electrode and recording block examined in Fig. 1. The
+red horizontal line corresponds to the significance threshold after correction for
+multiple comparisons. (B)M o d u l a t i o ni n d e xv e r s u sm e a nt h e t aa m p l i t u d ef o ra l l
+significant values from Fig. 2A (black dots) and best linear fit (red line),
+indicating their positive correlation. (C)M o d u l a t i o ni n d e xv e r s u sm e a nH G
+amplitude for all significant values from Fig. 2A (black dots) and best linear fit
+(red line), indicating their weak negative correlation (see also fig. S6).
+mean theta amplitude (µV)
+20 40
+10
+20
+30
+40
+1008060
+B    r = 0.44
+p < 0.001
+2468
+  r = -0.15
+p < 0.001
+10
+20
+30
+40
+mean high gamma amplitude (µV)
+C
+10
+20
+30
+40modulation index
+modulation index
+modulation index
+A
+0
+chance
+theta phase (radians)
+π0 2π
+Fig. 3. Task-specific
+changes in the spatial pat-
+tern of theta/HG coupling
+strength. (A)T h e t a / H Gc o u -
+pling strength falls to
+chance at large time lags.
+Modulation index (25)a sa
+function of lag for all
+electrodes over all tasks
+from subject 5. Electrodes
+are sorted by the time-lag
+tmax associated with maxi-
+mal coupling (black line).
+For ease of comparison,
+horizontal traces were re-
+normalized so that the
+peak value for each chan-
+nel is one (see also fig. S8).
+(B)T h ec h a n g ei nm o d u l a -
+tion index values from the
+mean for all electrodes in
+subject 2 during one task
+(passive listening to pre-
+dictable tones). (C)A si n
+(B), for a difficult working
+memory task. Subjects
+listened to a list of pho-
+nemes and responded
+when the current pho-
+neme and the phoneme
+presented two items earlier were identical. (D)S i m i l a rt a s k se v o k es i m i l a rs p a t i a lp a t t e r n so ft h e t a / H G
+coupling. Correlation matrix for all tasks in sub ject 2. Tasks: 1 to 4, passive listening to tones or
+phonemes; 5, mouth motor activation; 6, verb generation; 7, hand motor activation; 8 to 11 auditory
+working memory; 12 and 13, linguistic target detection; 14 to 17, auditory-vibrotactile target detection
+(see SOM text). ( E)M e a nc o r r e l a t i o na n ds t a n d a r de r r o rb e t w e e ns i m i l a rt a s k s( p o s i t i v e ,P G 0.01,
+corrected, 58 task pairs) as well as different tasks (not significant, 617 task pairs) for all electrodes in all
+subjects over all tasks.
+-1000
+time lag (ms)
+sorted electrode        number
+1
+64 A
+0.6
+-0.6
+correlation
+2 46 81 0 12 14 16
+task number
+2
+4
+6
+8
+10
+12
+14
+16task number
+D
+       All subjects
+and electrodes
+       for all tasks
+0
+0.1
+0.2
+-750 -550 -250 0 250 500 750 1000
+mean correlation
+similar
+ tasks
+different
+    tasks
+E
+B C
+passive listening to predictable tones 2-back phoneme working memory
+9
+-4
+1
+0
+www.sciencemag.org SCIENCE VOL 313 15 SEPTEMBER 2006 1627
+REPORTS
+ on September 20, 2007 www.sciencemag.orgDownloaded from 
+
+===== PAGE 3 =====
+
+of different tasks exhi bited a null or negative
+correlation. This trend held across all tasks and
+subjects, as shown by Fig. 3E. These results are
+consistent with the hypothesis that transient
+cross-frequency coupling modulates network
+engagement, enabling flexible control of cogni-
+tive processing.
+Oscillations are rhythmic fluctuations in
+neuronal excitability that modulate both output
+spike timing and sensitivity to synaptic input (5).
+Therefore, effective communication between
+neuronal populations requires precise match-
+ing of the relative phase of distinct rhythms to
+axonal conduction delays. An oscillatory hi-
+erarchy operating across multiple spatial and
+temporal scales could regulate this proposed
+long-range communication (13). Basal forebrain
+cortical-projecting GABAergic (g-aminobutyric
+acid–releasing) neurons are well positioned to
+control theta/HG coupling; these neurons pref-
+erentially synapse onto intracortical GABAergic
+neurons throughout the cortex, with disinhib-
+itory spike bursts causing a brief increase in
+gamma power at the theta trough ( 28). Our
+observations that (i) HG power is modulated by
+theta phase, (ii) an increase in theta power
+strengthens theta/HG coupling, and (iii) the
+topography of theta/HG coupling is task-
+dependent support the hypothesis that cross-
+frequency coupling between distinct brain
+rhythms facilitates the transient coordination
+of cortical areas requiredf o ra d a p t i v eb e h a v i o r
+in humans.
+References and Notes
+1. G. Buzsaki, A. Draguhn, Science 304, 1926 (2004).
+2. K. Linkenkaer-Hansen, V. V. Nikulin, S. Palva, R. J.
+Ilmoniemi, J. M. Palva, J. Neurosci. 24, 10186 (2004).
+3. T. Womelsdorf, P . Fries, P . P . Mitra, R. Desimone, Nature
+439, 733 (2006).
+4. J. P . Lachaux et al. , Neuroimage 25, 491 (2005).
+5. P . Fries, Trends Cogn. Sci. 9, 474 (2005).
+6. J. M. Schoffelen, R. Oostenveld, P . Fries, Science 308,
+111 (2005).
+7. E. M. Izhikevich, Neural Netw. 14, 883 (2001).
+8. A. Bragin et al. , J. Neurosci. 15, 47 (1995).
+9. G. Buzsaki et al. , Neuroscience 116, 201 (2003).
+10. A. G. Siapas, E. V. Lubenov, M. A. Wilson, Neuron 46, 141
+(2005).
+11. H. Lee, G. V. Simpson, N. K. Logothetis, G. Rainer, Neuron
+45, 147 (2005).
+12. J. J. Chrobak, G. Buzsaki, J. Neurosci. 18, 388 (1998).
+13. P . Lakatos et al. , J. Neurophysiol. 94, 1904 (2005).
+14. A. D. Ekstrom et al. , Hippocampus 15, 881 (2005).
+15. P . B. Sederberg, M. J. Kahana, M. W. Howard, E. J.
+Donner, J. R. Madsen, J. Neurosci. 23, 10809 (2003).
+16. J. Onton, A. Delorme, S. Makeig, Neuroimage 27, 341
+(2005).
+17. B. Schack, N. Vath, H. Petsche, H. G. Geissler, E. Moller,
+Int. J. Psychophysiol. 44, 143 (2002).
+18. J. M. Palva, S. Palva, K. Kaila, J. Neurosci. 25, 3962 (2005).
+19. P . L. Nunez, R. S. Srinivasan, Electric Fields of the Brain:
+The Neurophysics of EEG(Oxford Univ. Press, Oxford, 2005).
+20. N. E. Crone, D. L. Miglioretti, B. Gordon, R. P . Lesser,
+Brain 121, 2301 (1998).
+21. E. Edwards, M. Soltani, L. Y. Deouell, M. S. Berger,
+R. T. Knight, J. Neurophysiol. 94, 4269 (2005).
+22. N. K. Logothetis, J. Pauls, M. Augath, T. Trinath,
+A. Oeltermann, Nature 412, 150 (2001).
+23. R. Mukamel et al. , Science 309, 951 (2005).
+24. J. Niessing et al. , Science 309, 948 (2005).
+25. Materials and methods are available as supporting
+material on Science Online.
+26. M. J. Kahana, D. Seelig, J. R. Madsen, Curr. Opin.
+Neurobiol. 11, 739 (2001).
+27. R. Miller, Cortico-Hippocampal Interplay and the
+Representation of Contexts in the Brain (Springer-Verlag,
+New York, 1991).
+28. S. C. Lin, D. Gervasoni, M. A. L. Nicolelis, J. Neurophysiol.
+(2006); doi: 10.1152/jn.00524.2006.
+29. This work was supported by the Rauch family, National
+Institute of Neurological Disorders and Stroke grant
+NS21135, NSF Fellowship 2004016118, and National
+Institute on Deafness and Other Communication Disor-
+ders grant F31DC006762. The authors thank P . Garcia
+and D. Filippi of the Department of Neurology, University
+of California San Francisco, for their help on electrical
+stimulation mapping and localizing epileptic tissue.
+Supporting Online Material
+www.sciencemag.org/cgi/content/full/313/5793/1626/DC1
+Materials and Methods
+SOM Text
+Figs. S1 to S8
+30 March 2006; accepted 20 July 2006
+10.1126/science.1128115
+Caveolin-1 Is Essential for
+Liver Regeneration
+Manuel A. Ferna´ndez,1,2* Cecilia Albor,1* Mercedes Ingelmo-Torres,1 Susan J. Nixon, 2
+Charles Ferguson, 2 Teymuras Kurzchalia,3 Francesc Tebar,1 Carlos Enrich, 1
+Robert G. Parton, 2† Albert Pol 1†
+Liver regeneration is an orchestrated cellular response that coordinates cell activation, lipid
+metabolism, and cell division. We found that caveolin-1 gene–disrupted mice ( cav1j/j mice)
+exhibited impaired liver regeneration and low survival after a partial hepatectomy. Hepatocytes
+showed dramatically reduced lipid droplet accumulation and did not advance through the cell
+division cycle. Treatment of cav1j/j mice with glucose (which is a predominant energy substrate
+when compared to lipids) drastically increased survival and reestablished progression of the cell
+cycle. Thus, caveolin-1 plays a crucial role in the mechanisms that coordinate lipid metabolism with
+the proliferative response occurring in the liver after cellular injury.
+T
+he liver is pivotally positioned in the
+regulation of the body _s metabolic ho-
+meostasis of lipids, carbohydrates, and
+vitamins. In addition, it produces essential
+serum proteins, lipoproteins, enzymes, and co-
+factors. Paradoxically, the liver is also the main
+detoxifying organ in the body, being continu-
+ously exposed to the threat of cellular injury.
+Consequently, the liver has evolved complex
+regenerative mechanisms to respond to chemi-
+cal, traumatic, or infectious injuries ( 1–3).
+During regeneration, the liver continues to ac-
+complish its critical functions, such as glucose
+homeostasis, protein synthesis, and bile secre-
+tion. Liver regeneration does not require stem
+cells but instead occurs when differentiated and
+largely quiescent hepatic cells reenter the cell
+cycle to replace the lost functional mass.
+One of the most extensively characterized
+model systems to study liver regeneration is the
+partial hepatectomy in rodents. In this model, the
+left and medial lobes of the liver are excised,
+resulting in removal of 70% of the hepatic mass.
+Within minutes, hepatocytes then undergo a
+coordinated cellular activation termed the acute
+phase response. This highly regulated process is
+simultaneously mediated by different growth
+factors and cytokines that conduct the response
+signal into kinases and transcription factors. As a
+result of the acute response, the hepatocyte
+initiates the transcription of more than 100 early
+genes, accumulates triacylglycerol and choles-
+terol esters in intracellular lipid droplets (4), and
+progresses through the cell cycle. Lipid droplet
+formation is an essential part of the prolifer-
+ative response during liver regeneration ( 5).
+Lipids stored in lipid droplets are delivered into
+the bile or used in the production of new lipo-
+proteins and bile acids, for the synthesis of new
+membranes, or to supply the energy required
+for remnant hepatocytes to rebuild the liver. By
+compensatory hyperplasia, the regenerative
+process reestablishes the original liver mass in
+approximately 1 week, after which hepatocytes
+return to a quiescent state.
+Caveolae are distinct domains of the plasma
+membrane of most cells, where cellular processes
+such as signaling and membrane sorting occur
+in a highly regulated lipid and protein environ-
+ment ( 6). Caveolin, an essential component of
+caveolae, is a protein that has the distinct capa-
+bility to create these highly ordered domains at the
+cell surface. In addition, caveolin and caveolae are
+key elements in the regulation of the intracellular
+homeostasis of lipids, cell activation, and cell
+1Departament de Biologia Cellular, Facultat de Medicina,
+Institut d’Investigacions Biome `d i q ue s Au g us t P i i S u n y e r ,
+Universitat de Barcelona, Casanova 143, 08036 Barcelo-
+na, Spain. 2Institute for Molecular Bioscience, Centre for
+Microscopy and Microanalysis and School of Biomedical
+Sciences, University of Queensland, Brisbane, Queens-
+land 4072, Australia. 3Max-Plank-Institute of Molecular
+Cell Biology and Genetics, Pfotenhauerstrasse 108, 01307
+Dresden, Germany.
+*These authors contributed equally to this work.
+†To whom correspondence should be addressed. E-mail:
+R.Parton@imb.uq.edu.au (R.G.P .); apols@ub.edu (A.P .).
+15 SEPTEMBER 2006 VOL 313 SCIENCE www.sciencemag.org1628
+REPORTS
+ on September 20, 2007 www.sciencemag.orgDownloaded from 

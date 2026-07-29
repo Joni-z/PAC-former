@@ -1,0 +1,461 @@
+
+
+===== PAGE 1 =====
+
+Please cite this article in press as: Kramer MA, et al., Sharp edge artifacts and spurious coupling in EEG frequency comodulation measures, J
+Neurosci Methods (2008), doi:10.1016/j.jneumeth.2008.01.020
+ARTICLE IN PRESS
++Model
+NSM-4818; No. of Pages 6
+Journal of Neuroscience Methods xxx (2008) xxx–xxx
+Short communication
+Sharp edge artifacts and spurious coupling in EEG frequency
+comodulation measures
+Mark A. Kramer a,∗, Adriano B.L. Torta,b, Nancy J. Kopella
+a Department of Mathematics and Statistics & Center for BioDynamics, Boston University, Boston, MA 02215, USA
+b Department of Biochemistry, Institute for Basic Health Sciences, Federal University of Rio Grande do Sul, Porto Alegre, RS 90035, Brazil
+Received 15 November 2007; received in revised form 14 January 2008; accepted 18 January 2008
+Abstract
+Recent electroencephalogram (EEG), electrocorticogram (ECoG), and local ﬁeld potential (LFP) observations suggest that distinct frequency
+bands interact. Numerous measures have been proposed to analyze such interactions, including the amplitude envelope modulation of high frequency
+activity by the phase or signal of low frequency activity. In this short communication, we describe how abrupt increases or decreases in voltage
+data may produce spurious coupling in these measures and suggest techniques to detect these effects.
+© 2008 Elsevier B.V . All rights reserved.
+Keywords: Frequency comodulation; Nesting; Theta; Gamma; Hilbert transform
+1. Introduction
+Rhythms appear universal in neural population voltage activ-
+ity (Buzsaki, 2006) . For nearly 100 years researchers have
+divided these rhythms into discrete frequency bands often
+associated with physiologically distinct functions. Recent obser-
+vations suggest that oscillations of different frequency are not
+completely isolated, but instead interact (Jensen and Colgin,
+2007). In one type of interaction the phase of lower frequency
+rhythms modulates the amplitude envelope of higher frequency
+rhythms. This frequency comodulation – or nesting – appears
+to be a prominent characteristic of population voltage activ-
+ity; it has been reported to occur between theta (approximately
+4–12 Hz) and gamma (approximately 40–100 Hz) frequencies
+in rat and mouse (Bragin et al., 1995; Buzs ´aki et al., 2003;
+Hentschke et al., 2007) , and between theta and 30–50 Hz, and
+theta and 80–150 Hz rhythms in man (Canolty et al., 2006;
+Lakatos et al., 2005).
+In this short communication, we show that sharp edges
+in time series data (as observed in, for example, the sharp
+waves of epilepsy (Niedermeyer, 1999a) , slow wave oscil-
+lations (Contreras and Steriade, 1995) , and the mu rhythm
+∗ Corresponding author. Tel.: +1 617 353 1493.
+E-mail address: mak@bu.edu (M.A. Kramer).
+(Niedermeyer, 1999b)) produce artifactual frequency comod-
+ulation. To do so, we implement three frequency comodulation
+measures in current use and employ three simulated examples.
+We develop two examples to confuse the measures and pro-
+duce spurious coupling results, and a third to exhibit the most
+basic features of frequency comodulation. Our goal in this work
+is not to invalidate the results of previous analysis but to alert
+researchers to some pitfalls associated with frequency comodu-
+lation measures. We conclude by suggesting techniques to detect
+the occurrence of sharp edges in time series data. We also empha-
+size the utility of simulated data in testing new measures.
+2. Methods
+All comodulation measures typically involve three general
+steps. First, the data are bandpass ﬁltered into two frequency
+intervals: a low frequency band (e.g., theta 4–12 Hz) and a higher
+frequency band (e.g., gamma 40–100 Hz). Second, the instan-
+taneous phase is extracted from the low frequency ﬁltered data,
+and the instantaneous amplitude envelope is extracted from the
+high frequency ﬁltered data by applying the Hilbert transform.
+We note that the ﬁrst two steps are sometimes accomplished
+by wavelets (e.g., as in Lakatos et al. (2005) and Mormann et
+al. (2005)) and that the Hilbert and wavelet decompositions are
+equivalent (Bruns, 2004; Le Van Quyen et al., 2001). Third, the
+coupling between the low frequency phase and high frequency
+0165-0270/$ – see front matter © 2008 Elsevier B.V . All rights reserved.
+doi:10.1016/j.jneumeth.2008.01.020
+
+===== PAGE 2 =====
+
+Please cite this article in press as: Kramer MA, et al., Sharp edge artifacts and spurious coupling in EEG frequency comodulation measures, J
+Neurosci Methods (2008), doi:10.1016/j.jneumeth.2008.01.020
+ARTICLE IN PRESS
++Model
+NSM-4818; No. of Pages 6
+2 M.A. Kramer et al. / Journal of Neuroscience Methods xxx (2008) xxx–xxx
+amplitude envelope is determined. The method to compute this
+coupling and determine its statistical signiﬁcance often distin-
+guishes the different measures.
+We apply three comodulation measures in this manuscript.
+In the ﬁrst ( Figs. 1 b, 2b and 3b), we compute the mean and
+standard deviation of the instantaneous amplitude envelope for
+every 10
+◦ of the instantaneous phase and plot the result(Buzs´aki
+et al., 2003) . In the second ( Figs. 1c, 2c and 3c), we compare
+the high frequency amplitude envelope with the low frequency
+bandpass ﬁltered signal (Hentschke et al., 2007) . We note that
+this measure utilizes the low frequency signal, and not the phase
+(i.e., an envelope-to-signal correlation (Bruns and Eckhorn,
+2004)). To determine the statistical signiﬁcance of the peak
+cross-correlation between the amplitude envelope and signal,
+a shufﬂing procedure of the amplitude envelope is implemented
+with 100 surrogates(Hentschke et al., 2007). In the last measure
+(Figs. 1d, 2d and 3d), we compute the normalized modulation
+index of Canolty et al. (2006) . This measure requires that we
+create a composite signal consisting of the high frequency ampli-
+tude envelope and low frequency phase. We then determine the
+average length of this complex vector, and compare it to a sur-
+rogate distribution (200 surrogates) computed by shifting the
+amplitude of the composite signal by random amounts(Canolty
+et al., 2006).
+We apply the comodulation measures to three sets of simu-
+lated data: (i) sawtooth data, (ii) imperfect sinusoid data, and
+(iii) sinusoid + high frequency noise data. For each data set,
+we use a sampling interval of 1 ms and compute 12 s of
+simulated data. We bandpass ﬁlter the data using a two-way
+least-squares FIR ﬁlter (the eegﬁlt.m routine from the EEGLAB
+toolbox (Delorme and Makeig, 2004) ), and always eliminate
+the ﬁrst and last 1 s of the ﬁltered data to avoid ﬁltering arti-
+facts. For (i), we create a sawtooth wave of unit amplitude and
+with interval 166 ± 30 ms between successive peaks (Fig. 1a).
+The linear decrease in each cycle is not instantaneous; instead,
+this decrease requires from 1 to 20 ms, uniformly distributed
+across all cycles. For (ii), we ﬁrst create a 6 Hz sinusoid with
+unit amplitude (Fig. 2a). To each cycle of the sinusoid we add
+a sharp edge that linearly increases the amplitude of the 6 Hz
+oscillation by one after 1–5 ms (uniformly distributed over the
+cycles). The sharp edge begins at phase values uniformly dis-
+tributed between 212 and 233
+◦ (cosine phase), and the unit
+increase tapers to zero after 100 ms. For (iii), we ﬁrst con-
+struct a sinusoidal signal of unit amplitude and with random
+intervals of 166 ± 17 ms between successive peaks ( Fig. 3 a).
+To each cycle, we add 50 ms of high frequency noise (uni-
+formly distributed random numbers bandpass ﬁltered between
+50 and 150 Hz) tapered with a Hanning window and of maxi-
+mum amplitude 0.5. The onset of the noise begins at random
+phases uniformly distributed between 0 and approximately 20
+◦
+(cosine phase) for each cycle. To all three data sets we add nor-
+mally distributed random numbers with mean zero and standard
+deviation 0.1.
+We implement the simulated data and measures in MATLAB
+(Mathworks Inc., Natick, MA). The routines to generate and
+analyze the data, and produce all ﬁgures in this manuscript, are
+included in the Supplementary Material.
+3. Results
+In this section, we show the results of applying the three
+comodulation measures to the simulated data. We begin with
+the sawtooth example. In Fig. 1a we show one second of data
+in which the sharp edge reoccurs every 166 ± 30 ms. We ﬁl-
+ter the data between 4–8 Hz (middle gray trace) and 40–100 Hz
+(lower gray trace) and compute the low frequency phase (middle
+black trace) and high frequency amplitude envelope (lower black
+trace). To represent a sharp vertical edge requires many high fre-
+quency sinusoidal components and produces localized increases
+in the amplitude envelope. A close inspection ofFig. 1a suggests
+that these increases occur at a particular phase of the low fre-
+quency ﬁltered signal (near approximately 90
+◦ for the cosine
+phase). Thus, frequency comodulation occurs in this signal; the
+low frequency phase and high frequency amplitude envelope are
+coupled.
+To verify that the comodulation measures detect this cou-
+pling, we apply the three measures to the sawtooth data. We
+employ the broad bandpass ﬁltering of the data (low and high
+frequency bands from 4–8 Hz and 40–100 Hz, respectively) and
+plot the average envelope versus phase in Fig. 1b. We ﬁnd a
+large increase in this measure near 90
+◦, as expected. We also
+compute the envelope-to-signal measure, and show in Fig. 1c
+that the largest correlations for the unshufﬂed data (black curve)
+exceed those for the shufﬂed data (gray curves). We compute the
+z-score for the peak correlation compared to the surrogates and
+ﬁnd values greater than 5.5 ( p ≪ 0.0001). We conclude from
+these two measures that frequency comodulation occurs in the
+sawtooth wave between the low (4–8 Hz) and high (40–100 Hz)
+frequencies and that this coupling is statistically signiﬁcant.
+Using the broad bandpass ﬁltering we might overlook more
+focused comodulation features. For example, does the low fre-
+quency activity modulate the entire 40–100 Hz interval or a
+subset of this band? To answer this question, we follow the
+procedure in Canolty et al. (2006) and divide the signal into
+separate low frequency bands (with frequencies from 2 to 41 Hz
+in 1 Hz steps) and high frequency bands (with frequencies from
+5 to 205 Hz in 5 Hz steps). We then compute the modulation
+index for each pair of low and high frequency bands (a total
+of 1560 pairs) and show the results in Fig. 1d. Here we plot
+the z-score as a function of the phase and envelope frequen-
+cies and ﬁnd large intervals of statistically signiﬁcant coupling
+(with z ≥ 5, say). We make two observations about the structure
+of the results. First, the largest z-scores tend to occur at phase
+frequencies (vertical bands) equal to the fundamental oscilla-
+tion frequency (5–8 Hz) and its harmonics: near 10–14 Hz (2nd
+harmonic), 15–18 Hz (3rd harmonic), and 20–25 Hz (4th har-
+monic). The reason for this is that a ﬁxed phase of the harmonic
+signals also aligns with the sawtooth edge and co-occurs with
+the envelope increase. Second, an abrupt increase in z-scores
+occurs along a positively sloped line in Fig. 1d indicating that
+higher phase frequencies require higher envelope frequencies
+to exhibit signiﬁcant comodulation. This occurs because higher
+phase frequencies require sharper amplitude envelopes to exhibit
+signiﬁcant coupling. Consider for example a phase frequency
+of 15–16 Hz. During one sawtooth cycle, this phase undergoes
+
+===== PAGE 3 =====
+
+Please cite this article in press as: Kramer MA, et al., Sharp edge artifacts and spurious coupling in EEG frequency comodulation measures, J
+Neurosci Methods (2008), doi:10.1016/j.jneumeth.2008.01.020
+ARTICLE IN PRESS
++Model
+NSM-4818; No. of Pages 6
+M.A. Kramer et al. / Journal of Neuroscience Methods xxx (2008) xxx–xxx 3
+Fig. 1. Sawtooth wave data. (a) The simulated data (top) ﬁltered 4–8 Hz (middle gray) and ﬁltered 40–100 Hz (bottom gray). We extract the phase (middle b lack)
+from the lower frequencies and the amplitude envelope (bottom black) from the higher frequencies. (b) The average amplitude envelope (black solid) and standard
+deviation (gray dashed) vs. the phase. (c) The envelope-to-signal measure for the raw data (black curve) and 100 surrogates (gray curves). (d) For thecomodulation
+index we plot the z-score in grayscale as a function of the phase and envelope frequencies.
+Fig. 2. Imperfect sinusoid data. Careful inspection of the simulated data in (a) reveals a sharp edge and corresponding increase in the amplitude enve lope. (b) The
+average amplitude envelope vs. the phase. (c) The envelope-to-signal measure. (d) The modulation index.
+three complete revolutions (it is the 3rd harmonic of the funda-
+mental). If the amplitude envelope is too broad and not tightly
+localized to the sawtooth edge, then a nonzero envelope will
+appear at the many different phase values near the sawtooth
+edge. The result is an apparent lack of coupling. Conversely,
+when the amplitude envelope decays quickly around the saw-
+tooth edge (at fast enough envelope frequencies) only a narrow
+phase interval associates with the nonzero envelope. In this case,
+coupling between the phase and envelope occurs.
+The sawtooth data present an extreme example of artiﬁcial
+frequency comodulation resulting from a sharp edge. In these
+data, high frequency oscillations do not exist. Yet we require
+high frequency sinusoids to represent the sharp edge, and the
+amplitude envelopes of these high frequencies couple with the
+slower rhythms. As a more realistic example, we consider nearly
+sinusoidal data modiﬁed to include a steep increase between 212
+and 233
+◦ (cosine phase). We show one second of these data, the
+4–8 Hz bandpass ﬁltered data, and the 40–100 Hz bandpass ﬁl-
+tered data inFig. 2a. The sharp edges produce localized increases
+in the amplitude envelope, although to a lesser extent than for
+the sawtooth wave. We plot the average envelope versus phase
+in Fig. 2b and detect an increase for phases between −150 and
+−100
+◦(or equivalently between 210 and 260◦cosine phase). We
+compute the envelope-to-signal measure for the broad bandpass
+ﬁltered data ( Fig. 2 c) and detect a signiﬁcant peak correla-
+tion (z ≈ 2.5, p< 0.05). Finally, we plot the two-dimensional
+comodulation measure in Fig. 2d and ﬁnd regions of statisti-
+cally signiﬁcant coupling particularly at phase frequencies near
+the fundamental and its harmonics. We conclude that even a
+small imperfection in the sinusoid, resulting from a sharp edge,
+can produce spurious frequency comodulation results.
+Of course, not all frequency comodulation results from arti-
+fact. As a ﬁnal example, we consider simulated data constructed
+to possess true phase coupling: a low frequency (5–7 Hz) sinu-
+soid with high frequency (between 50 and 150 Hz) noise coupled
+to the low frequency phase. We show one second of the unﬁl-
+Fig. 3. Sinusoid + high frequency noise data. (a) During the falling phase of the sinusoid, an increase in high frequency activity occurs. (b) The amplitude envelope
+vs. the phase. (c) The envelope-to-signal measure. (d) The modulation index.
+
+===== PAGE 4 =====
+
+Please cite this article in press as: Kramer MA, et al., Sharp edge artifacts and spurious coupling in EEG frequency comodulation measures, J
+Neurosci Methods (2008), doi:10.1016/j.jneumeth.2008.01.020
+ARTICLE IN PRESS
++Model
+NSM-4818; No. of Pages 6
+4 M.A. Kramer et al. / Journal of Neuroscience Methods xxx (2008) xxx–xxx
+Fig. 4. Proposed methods to detect sharp edges in time series data. The event-related average for (a) the imperfect sinusoid and (b) the sinusoid + high frequency
+noise data. The average was triggered by the peaks of successive high frequency activity. The power spectra of (c) the imperfect sinusoid and (d) the sinusoid + high
+frequency noise data. Note the occurrence of harmonic spectral peaks of the fundamental 6 Hz activity in (c). The bicoherence of the imperfect sinusoid (e) and the
+sinusoid + high frequency noise data (f). The phase-locked harmonic activity produces a clear effect in the bicoherence of the imperfect sinusoid.
+tered and ﬁltered data inFig. 3a. For the broad bandpass ﬁltered
+data, we plot the average envelope versus phase ( Fig. 3b) and
+envelope-to-signal measures ( Fig. 3c) to ﬁnd statistically sig-
+niﬁcant coupling (peak correlation z> 5.5, p ≪ 0.0001). The
+modulation index – shown in Fig. 3d – also reveals signiﬁcant
+coupling at the expected phase and envelope frequencies.
+4. Discussion
+In this short communication we propose that data consisting
+of sharp edges may produce spurious frequency comodulation
+results. We show this by applying three comodulation measures
+in current use to three simulated data sets. We ﬁnd that even mod-
+erate sharp edges in the data can induce artifactual frequency
+comodulation. All three methods fail for the same reason: to
+represent a sharp edge requires high frequency sinusoids. Thus,
+although the original data do not possess high frequency oscil-
+lations, the ﬁltered data do exhibit high frequency components.
+An improved frequency comodulation measure would distin-
+guish between high frequency oscillations and sharp edges in
+the original data.
+We note that wavelets (rather than bandpass ﬁltering followed
+by a Hilbert transform) may also be used to extract the phase and
+amplitude envelope of low and high frequency signals, respec-
+tively (Lakatos et al., 2005; Mormann et al., 2005) .W eh a v e
+applied the same analysis described above using the complex
+Morlet wavelet to ﬁlter the data and again ﬁnd spurious fre-
+quency comodulation (data not shown). We note that, for the
+examples considered here, phase coupling measures (e.g., n:m
+phase coupling (Palva et al., 2005; Tass et al., 1998) ) are not
+
+===== PAGE 5 =====
+
+Please cite this article in press as: Kramer MA, et al., Sharp edge artifacts and spurious coupling in EEG frequency comodulation measures, J
+Neurosci Methods (2008), doi:10.1016/j.jneumeth.2008.01.020
+ARTICLE IN PRESS
++Model
+NSM-4818; No. of Pages 6
+M.A. Kramer et al. / Journal of Neuroscience Methods xxx (2008) xxx–xxx 5
+appropriate. The coupling occurs between the low frequency
+phase and high frequency amplitude envelope, not between the
+signal phases.
+To ameliorate the potential problem of spurious frequency
+comodulation, we recommend careful inspection of the unﬁl-
+tered data to distinguish between sharp edges and true high
+frequency oscillations. This inspection is usually difﬁcult; the
+high frequency activity of EEG, ECoG, and LFP data are typ-
+ically weak and hidden by noise. Moreover, the amplitude
+envelopes of true and artifactual high frequency activity can be
+quite similar (compare the lower traces ofFigs. 2a and3a). Mea-
+sures that display the modulation results without normalization
+(such as the average envelope versus phase measure shown in
+Figs. 2b and 3b) help distinguish the magnitude of the effects;
+very small values may result from subtle imperfections in sinu-
+soidal activity and require a careful inspection of the data. From
+the normalized envelope-to-signal and comodulation results we
+cannot deduce the magnitude of the amplitude envelope. There-
+fore, even weak high frequency activity – perhaps resulting from
+brief sharp edges – could produce signiﬁcant coupling effects in
+these normalized measures.
+We conclude by suggesting four techniques to detect sharp
+edges in data. First, we recommend visual inspection of the
+unﬁltered data at times corresponding to increases in the ampli-
+tude envelope of the high frequency activity. At these times, do
+the unﬁltered data exhibit high frequency oscillations or sharp
+edges? To help visualize the high frequency activity, we rec-
+ommend a second technique: an event related average of the
+unﬁltered data triggered by the peaks of successive high fre-
+quency waves(Bragin et al., 1995). We illustrate this suggestion
+in Fig. 4, where we plot the event related averages of the imper-
+fect sinusoid (Fig. 4a) and sinusoid+ high frequency noise data
+(Fig. 4b). The distinction between high frequency activity result-
+ing from sharp edges or oscillations becomes clear in these
+average results.
+Third, we recommend computing the power spectrum of the
+raw data and searching for harmonic peaks of the dominant
+low frequency oscillation. We show the power spectra for the
+imperfect sinusoid and sinusoid + high frequency noise data
+in Fig. 4c and d, respectively. The sharp edges in the former
+result in numerous peaks at harmonics of the fundamental fre-
+quency (in this case, integer multiples of 6 Hz.) Such a power
+spectrum implies sharp edges may be impacting the frequency
+comodulation results.
+Of course, multiple peaks in the power spectrum do not nec-
+essarily indicate harmonic activity. For example, theta (near 6
+Hz) and alpha (near 12 Hz) rhythms often appear in the human
+EEG. Therefore, we recommend a fourth technique: computing
+the bicoherence of the raw data. The bicoherence is a normalized
+measure (ranging from 0 to 1) that reaches a maximum when
+three frequencies ( f
+1, f2, and their sum f1 + f2) maintain a
+constant phase relationship (Barnett et al., 1971). We illustrate
+the bicoherence for the simulated data in Fig. 4 and ﬁnd dis-
+tinct results. The imperfect sinusoid ( Fig. 4e) exhibits strong
+bicoherence for many frequency pairs compared to the bico-
+herence of the sinusoid + high frequency noise data ( Fig. 4f).
+The numerous pairs of strong bicoherence for the imperfect
+sinusoid occur at the fundamental oscillation frequency (near
+6 Hz) and its phase locked harmonics (12, 18, 24 Hz, etc.). For
+the sinusoid + high frequency noise data, the high frequency
+activity always begins at approximately the same low frequency
+phase (near 0
+◦). In this sense, the high and low frequency phases
+are related, and it is this relationship that produces the ver-
+tical and horizontal bands of strong bicoherence in Fig. 4 f.
+We conclude that the bicoherence – which indicates interact-
+ing frequency triplets – distinguishes these two data sets while
+the frequency comodulation measures do not. A similar strat-
+egy may be employed for the characteristic two-dimensional
+pattern of frequency comodulation shown in Fig. 1 d. In this
+two-dimensional measure, we ﬁnd the effects of coupling due to
+sharp edges more apparent. These types of measures may facil-
+itate detection of spurious results. We note that the bicoherence
+utilizes the phase and amplitude values from three distinct fre-
+quencies. We would prefer a measure focused on the quantities
+of interest, namely the phase and amplitude envelope of the low
+and high frequency data, respectively. In addition, more sophis-
+ticated coupling measures (e.g., synchronization or causality
+measures (Pereda et al., 2005) ) might help eliminate spurious
+detection of coupling while still revealing true phase-envelope
+correlations.
+Acknowledgments
+The authors would like to thanks Erik Edwards and Ryan
+T. Canolty for comments on a preliminary version of this
+manuscript. ABLT is indebted to CAPES, Brazil and the Bur-
+roughs Wellcome Fund, USA for ﬁnancial support. MAK and
+NJK thank the Burroughs Wellcome Fund and an NSF Research
+Training Grant for ﬁnancial support.
+Appendix A. Supplementary data
+Supplementary data associated with this article can be found,
+in the online version, at doi:10.1016/j.jneumeth.2008.01.020.
+References
+Barnett TP, Johnson LC, Naitoh P, Hicks N, Nute C. Bispectrum analy-
+sis of electroencephalogram signals during waking and sleeping. Science
+1971;172:401–2.
+Bragin A, Jando G, Nadasdy Z, Hetke J, Wise K, Buzsaki G. Gamma
+(40–100 Hz) oscillation in the hippocampus of the behaving rat. J Neurosci
+1995;15:47–60.
+Bruns A. Fourier-, Hilbert- and wavelet-based signal analysis: are they really
+different approaches? J Neurosci Methods 2004;137:321–32.
+Bruns A, Eckhorn R. Task-related coupling from high- to low-frequency signals
+among visual cortical areas in human subdural recordings. Int J Psychophys
+2004;51:97–116.
+Buzsaki G. Rhythms of the brain. New York: Oxford University Press; 2006.
+Buzs´aki G, Buhl DL, Harris KD, Csicsvari J, Cz´eh B, Morozov A. Hippocampal
+network patterns of activity in the mouse. Neuroscience 2003;116:201–11.
+Canolty RT, Edwards E, Dalal SS, Soltani M, Nagarajan SS, Kirsch HE, et al.
+High gamma power is phase-locked to theta oscillations in human neocortex.
+Science 2006;313:1626–8.
+Contreras D, Steriade M. Cellular basis of EEG slow rhythms: a study of dynamic
+corticothalamic relationships. J Neurosci 1995;15:604–22.
+
+===== PAGE 6 =====
+
+Please cite this article in press as: Kramer MA, et al., Sharp edge artifacts and spurious coupling in EEG frequency comodulation measures, J
+Neurosci Methods (2008), doi:10.1016/j.jneumeth.2008.01.020
+ARTICLE IN PRESS
++Model
+NSM-4818; No. of Pages 6
+6 M.A. Kramer et al. / Journal of Neuroscience Methods xxx (2008) xxx–xxx
+Delorme A, Makeig S. EEGLAB: an open source toolbox for analysis of single-
+trial EEG dynamics including independent component analysis. J Neurosci
+Methods 2004;134:9–21.
+Hentschke H, Perkins MG, Pearce RA, Banks MI. Muscarinic blockade weak-
+ens interaction of gamma with theta rhythms in mouse hippocampus. Eur J
+Neurosci 2007;26:1642–56.
+Jensen O, Colgin LL. Cross-frequency coupling between neuronal oscillations.
+Trends Cogn Sci 2007;11:267–9.
+Lakatos P, Shah A, Knuth K, Ulbert I, Karmos G, Schroeder C.
+An oscillatory hierarchy controlling neuronal excitability and stimu-
+lus processing in the auditory cortex. J Neurophysiol 2005;94:1904–
+11.
+Le Van Quyen M, Foucher J, Lachaux J, Rodriguez E, Lutz A, Mar-
+tinerie J, et al. Comparison of Hilbert transform and wavelet methods
+for the analysis of neuronal synchrony. J Neurosci Methods 2001;111:83–
+98.
+Mormann F, Fell J, Axmacher N, Weber B, Lehnertz K, Elger CE, et al.
+Phase/amplitude reset and theta–gamma interaction in the human medial
+temporal lobe during a continuous word recognition memory task. Hip-
+pocampus 2005;15:890–900.
+Niedermeyer E. Abnormal EEG patterns: epileptic and paroxysmal. In: Nie-
+dermeyer E, Lopes Da Silva F, editors. Electroencephalography: basic
+principles, clinical applications and related ﬁelds. Fourth ed Baltimore:
+Lippincott Williams and Wilkins; 1999a.
+Niedermeyer E. The normal EEG of the waking adult. In: Niedermeyer E, Lopes
+Da Silva F, editors. Electroencephalography: basic principles, clinical appli-
+cations and related ﬁelds. Fourth ed Baltimore: Lippincott Williams and
+Wilkins; 1999b.
+Palva JM, Palva S, Kaila K. Phase synchrony among neuronal oscillations in the
+human cortex. J Neurosci 2005;25:3962–72.
+Pereda E, Quiroga RQ, Bhattacharya J. Nonlinear multivariate analysis of neu-
+rophysiological signals. Prog Neurobiol 2005;77:1–37.
+Tass P, Rosenblum M, Weule J, Kurths J, Pikovsky A, V olkmann J, et al.
+Detection of n:m phase locking from noisy data: application to magnetoen-
+cephalography. Phys Rev Lett 1998;81:3291.

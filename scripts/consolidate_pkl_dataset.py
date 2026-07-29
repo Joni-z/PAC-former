@@ -27,7 +27,7 @@ import pickle
 import numpy as np
 
 
-def consolidate_tuab_format(split_dir, out_dir, out_name):
+def consolidate_tuab_format(split_dir, out_dir, out_name, exclude_substring=None):
     """{"X": (16,2000) float64, "y": int} -- TUAB/TUEP/TUSZ all use this.
 
     Writes the signals array via a disk-backed memmap (np.lib.format.open_memmap)
@@ -36,7 +36,15 @@ def consolidate_tuab_format(split_dir, out_dir, out_name):
     32GB job when held fully in memory. memmap keeps peak RAM to ~one
     sample at a time regardless of split size.
     """
-    files = sorted(os.listdir(split_dir))
+    files = sorted(
+        f for f in os.listdir(split_dir)
+        if not exclude_substring or exclude_substring not in f
+    )
+    if not files:
+        raise ValueError(
+            f"no files remain in {split_dir} after excluding "
+            f"{exclude_substring!r}"
+        )
     n = len(files)
     with open(os.path.join(split_dir, files[0]), 'rb') as fh:
         sample_shape = pickle.load(fh)['X'].shape
@@ -56,10 +64,18 @@ def consolidate_tuab_format(split_dir, out_dir, out_name):
           f'+ {out_name}_labels.npy')
 
 
-def consolidate_tuev_format(split_dir, out_dir, out_name):
+def consolidate_tuev_format(split_dir, out_dir, out_name, exclude_substring=None):
     """{"signal": (16,1250) float64, "label": array([1..6])} -- TUEV.
     memmap-backed, see consolidate_tuab_format docstring for why."""
-    files = sorted(os.listdir(split_dir))
+    files = sorted(
+        f for f in os.listdir(split_dir)
+        if not exclude_substring or exclude_substring not in f
+    )
+    if not files:
+        raise ValueError(
+            f"no files remain in {split_dir} after excluding "
+            f"{exclude_substring!r}"
+        )
     n = len(files)
     with open(os.path.join(split_dir, files[0]), 'rb') as fh:
         sample_shape = pickle.load(fh)['signal'].shape
@@ -133,6 +149,11 @@ def main():
                      help='subdirectory names under processed_dir to read (not used for tuev-split)')
     ap.add_argument('--out_names', nargs='+', default=None,
                      help='output basename per split (defaults to --splits)')
+    ap.add_argument(
+        '--exclude_substring', default=None,
+        help='skip source filenames containing this text; use _add when building '
+             'an unlabeled SSL pool to remove label-driven seizure oversampling',
+    )
     args = ap.parse_args()
 
     if args.format == 'tuev-split':
@@ -147,7 +168,10 @@ def main():
     fn = consolidate_tuab_format if args.format == 'tuab' else consolidate_tuev_format
     for split, out_name in zip(args.splits, out_names):
         split_dir = os.path.join(args.processed_dir, split)
-        fn(split_dir, args.processed_dir, out_name)
+        fn(
+            split_dir, args.processed_dir, out_name,
+            exclude_substring=args.exclude_substring,
+        )
 
 
 if __name__ == '__main__':

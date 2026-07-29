@@ -1,0 +1,4 @@
+inherits: pacformer_base.yaml
+# Direction control: hide the bottom half instead of the top half.
+structured_mask_mode: lowfreq
+output_dir: checkpoints/foundation-pacformer-base-lowfreq

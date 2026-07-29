@@ -16,7 +16,7 @@ import pickle
 import numpy as np
 import torch
 from scipy.signal import resample
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler, get_worker_info
 
 
 # --------------------------------------------------------------------------- #
@@ -120,7 +120,8 @@ class SyntheticPACDataset(Dataset):
         self.n, self.n_channels = n, n_channels
         self.seq_len, self.fs = seq_len, sample_rate
         self.f_phase, self.f_amp = f_phase, f_amp
-        self.rng = np.random.default_rng(seed)
+        self.seed = int(seed)
+        self._worker_rng = None
         self.labels = self.rng.integers(0, 2, size=n)
 
     def __len__(self):
@@ -320,12 +321,105 @@ class PooledPretrainDataset(Dataset):
                 f"{self.crop_len}; lower pool_crop_len or drop that member"
             )
         if T > self.crop_len:
-            off = int(self.rng.integers(0, T - self.crop_len + 1))
+            # Dataset objects are copied into DataLoader workers.  Constructing a
+            # Generator in __init__ would clone identical RNG state into every
+            # worker, correlating crop offsets.  Seed lazily from PyTorch's unique
+            # worker seed instead.
+            if self._worker_rng is None:
+                info = get_worker_info()
+                worker_seed = info.seed if info is not None else torch.initial_seed()
+                self._worker_rng = np.random.default_rng(
+                    (self.seed + worker_seed) % (2**63 - 1)
+                )
+            off = int(self._worker_rng.integers(0, T - self.crop_len + 1))
             X = X[..., off:off + self.crop_len]
         return X, m
 
 
-def build_pretrain_pool(cfg: dict):
+class DatasetMixtureBatchSampler(Sampler):
+    """Homogeneous, temperature-balanced batches for a pooled EEG corpus.
+
+    A normal shuffled ``ConcatDataset`` samples datasets in direct proportion to
+    their number of windows.  At foundation-model scale that makes the largest
+    corpus define most optimiser steps and lets dataset identity become a useful
+    shortcut.  This sampler chooses a dataset with probability
+
+        p(dataset=i) proportional to len(dataset_i) ** alpha
+
+    and then samples one complete batch from that dataset.  ``alpha=1`` is
+    proportional sampling, ``alpha=0`` is uniform over datasets, and the default
+    foundation recipe uses ``alpha=0.5``.
+
+    Keeping every batch dataset-homogeneous also makes variable channel layouts
+    possible: the model can use one coordinate table for the whole batch rather
+    than padding unrelated montages into a fake common channel axis.
+    """
+
+    def __init__(self, dataset, batch_size, alpha=0.5, n_batches=None,
+                 seed=0, rank=0, world_size=1):
+        self.dataset = dataset
+        self.batch_size = int(batch_size)
+        self.alpha = float(alpha)
+        requested_batches = n_batches
+        self.n_batches = int(
+            requested_batches if requested_batches is not None
+            else max(1, len(dataset) // self.batch_size)
+        )
+        self.seed = int(seed)
+        self.rank = int(rank)
+        self.world_size = int(world_size)
+        self.epoch = 0
+        if self.batch_size < 1:
+            raise ValueError("batch_size must be positive")
+        if self.world_size < 1 or not 0 <= self.rank < self.world_size:
+            raise ValueError(f"invalid distributed rank {self.rank}/{self.world_size}")
+        if requested_batches is None:
+            # Drop at most world_size-1 global batches so every DDP rank executes
+            # exactly the same number of collectives. Corpus sizes need not be a
+            # lucky multiple of batch_size*world_size.
+            self.n_batches -= self.n_batches % self.world_size
+            if self.n_batches == 0:
+                raise ValueError(
+                    "pooled corpus is too small for one batch on every DDP rank"
+                )
+        elif self.n_batches % self.world_size:
+            raise ValueError(
+                f"pool_batches_per_epoch={self.n_batches} must be divisible by "
+                f"world_size={self.world_size}"
+            )
+        sizes = np.asarray(dataset.sizes, dtype=np.float64)
+        if np.any(sizes <= 0):
+            raise ValueError(f"pooled datasets must be non-empty, got {sizes.tolist()}")
+        weights = np.power(sizes, self.alpha)
+        self.probabilities = weights / weights.sum()
+
+    def set_epoch(self, epoch):
+        self.epoch = int(epoch)
+
+    def __len__(self):
+        return self.n_batches // self.world_size
+
+    def __iter__(self):
+        # One deterministic RNG stream defines the global batch schedule.  Each
+        # DDP rank consumes a disjoint strided subset, so all ranks take exactly
+        # the same number of optimiser steps.
+        rng = np.random.default_rng(self.seed + 1_000_003 * self.epoch)
+        member_ids = rng.choice(
+            len(self.dataset.sets), size=self.n_batches,
+            p=self.probabilities,
+        )
+        for batch_id, member in enumerate(member_ids):
+            local = rng.integers(
+                0, self.dataset.sizes[int(member)],
+                size=self.batch_size,
+            )
+            if batch_id % self.world_size != self.rank:
+                continue
+            base = int(self.dataset.offsets[int(member)])
+            yield (base + local).tolist()
+
+
+def build_pretrain_pool(cfg: dict, rank=0, world_size=1):
     """DataLoader over the pooled corpus described by ``cfg['pretrain_pool']``.
 
         pretrain_pool:
@@ -340,6 +434,13 @@ def build_pretrain_pool(cfg: dict):
     members = []
     for spec in cfg["pretrain_pool"]:
         name, root = spec["name"], spec["data_root"]
+        train_name = spec.get("train_name")
+        if train_name and name == "tuev":
+            members.append((name, TUEVNpyLoader(root, train_name, rate)))
+            continue
+        if train_name and name in ("tuab", "tuep", "tusz", "chbmit"):
+            members.append((name, TUABNpyLoader(root, train_name, rate)))
+            continue
         if name == "tuev":
             sets, _ = _tuev_sets(root, rate)
         elif name in ("tuab", "tuep", "tusz", "chbmit"):
@@ -350,11 +451,28 @@ def build_pretrain_pool(cfg: dict):
         members.append((name, sets[0]))          # TRAIN split only
     ds = PooledPretrainDataset(members, crop, seed=cfg.get("seed", 0))
     nw = cfg.get("num_workers", 4)
-    loader = DataLoader(
-        ds, batch_size=cfg.get("batch_size", 32), shuffle=True, drop_last=True,
-        num_workers=nw, pin_memory=True,
-        persistent_workers=nw > 0, prefetch_factor=4 if nw > 0 else None,
-    )
+    if "pool_sampling_alpha" in cfg or world_size > 1:
+        sampler = DatasetMixtureBatchSampler(
+            ds,
+            batch_size=cfg.get("batch_size", 32),
+            alpha=cfg.get("pool_sampling_alpha", 0.5),
+            n_batches=cfg.get("pool_batches_per_epoch"),
+            seed=cfg.get("seed", 0),
+            rank=rank,
+            world_size=world_size,
+        )
+        loader = DataLoader(
+            ds, batch_sampler=sampler, num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0, prefetch_factor=4 if nw > 0 else None,
+        )
+    else:
+        # Backward-compatible path: every existing pooled smoke/config keeps the
+        # original proportional, sample-level shuffle unless it opts in.
+        loader = DataLoader(
+            ds, batch_size=cfg.get("batch_size", 32), shuffle=True, drop_last=True,
+            num_workers=nw, pin_memory=True,
+            persistent_workers=nw > 0, prefetch_factor=4 if nw > 0 else None,
+        )
     return loader, ds
 
 

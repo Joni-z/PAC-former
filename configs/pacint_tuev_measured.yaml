@@ -1,0 +1,34 @@
+# Gauge-invariant PAC interaction tokenizer. High-band tokens have no raw path:
+# token_j = amplitude_j * sum_{i<j} aligned_phase_i.
+arch: triaxial
+freq_mixer: attention
+tokenizer_mode: pac_interaction
+pac_token_mode: measured
+spatial_pe: xyz
+band_pe: index
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 6
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+n_heads: 4
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+epochs: 20
+eval_every: 1
+patience: 20
+lr: 0.0001
+weight_decay: 0.00001
+augmentations: []
+wandb_run_name: pacint-tuev-measured
+

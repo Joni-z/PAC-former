@@ -1,0 +1,824 @@
+
+
+===== PAGE 1 =====
+
+TYPE Original Research
+PUBLISHED /zero.tnum/two.tnum May /two.tnum/zero.tnum/two.tnum/three.tnum
+DOI /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+OPEN ACCESS
+EDITED BY
+Yang Zhan,
+Chinese Academy of Sciences (CAS), China
+REVIEWED BY
+Gary Marsat,
+West Virginia University, United States
+Hao Jia,
+University of Vic-Central University of
+Catalonia, Spain
+*CORRESPONDENCE
+Yu Qi
+qiyu@zju.edu.cn
+RECEIVED /two.tnum/nine.tnum January /two.tnum/zero.tnum/two.tnum/three.tnum
+ACCEPTED /zero.tnum/six.tnum April /two.tnum/zero.tnum/two.tnum/three.tnum
+PUBLISHED /zero.tnum/two.tnum May /two.tnum/zero.tnum/two.tnum/three.tnum
+CITATION
+Li J, Qi Y and Pan G (/two.tnum/zero.tnum/two.tnum/three.tnum) Phase-amplitude
+coupling-based adaptive ﬁlters for neural signal
+decoding. Front. Neurosci. /one.tnum/seven.tnum:/one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum.
+doi: /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+COPYRIGHT
+© /two.tnum/zero.tnum/two.tnum/three.tnum Li, Qi and Pan. This is an open-access
+article distributed under the terms of the
+Creative Commons Attribution License (CC BY) .
+The use, distribution or reproduction in other
+forums is permitted, provided the original
+author(s) and the copyright owner(s) are
+credited and that the original publication in this
+journal is cited, in accordance with accepted
+academic practice. No use, distribution or
+reproduction is permitted which does not
+comply with these terms.
+Phase-amplitude coupling-based
+adaptive ﬁlters for neural signal
+decoding
+Jiajun Li/one.tnum,/two.tnum, Yu Qi /one.tnum,/three.tnum* and Gang Pan /one.tnum,/two.tnum
+/one.tnumState Key Lab of Brain-Machine Intelligence, Zhejiang Univers ity, Hangzhou, China, /two.tnumCollege of
+Computer Science and T echnology, Zhejiang University, Hangzhou, Ch ina, /three.tnumAﬃliated Mental Health
+Center and Hangzhou Seventh Peoples Hospital, MOE Frontier Scien ce Center for Brain Science and
+Brain-Machine Integration, Zhejiang University School of Medici ne, Hangzhou, China
+Bandpass ﬁlters play a core role in ECoG signal processing. Com monly used
+frequency bands such as alpha, beta, and gamma bands can reﬂect the n ormal
+rhythm of the brain. However, the universally predeﬁned bands might not be
+optimal for a speciﬁc task. Especially the gamma band usually cove rs a wide
+frequency span (i.e., /three.tnum/zero.tnum–/two.tnum/zero.tnum/zero.tnum Hz) which can be too coarse to capture features that
+appear in narrow bands. An ideal option is to ﬁnd the optimal fr equency bands for
+speciﬁc tasks in real-time and dynamically. T o tackle this probl em, we propose
+an adaptive band ﬁlter that selects the useful frequency band in a data-driven
+way. Speciﬁcally, we leverage the phase-amplitude coupling (PAC) of the coupled
+working mechanism of synchronizing neuron and pyramidal neurons in neuronal
+oscillations, in which the phase of slower oscillations modulate s the amplitude
+of faster ones, to help locate the ﬁne frequency bands from the ga mma range,
+in a task-speciﬁc and individual-speciﬁc way. Thus, the inform ation can be more
+precisely extracted from ECoG signals to improve neural decodi ng performance.
+Based on this, an end-to-end decoder (PACNet) is proposed to co nstruct a
+neural decoding application with adaptive ﬁlter banks in a unifo rm framework.
+Experiments show that PACNet can improve neural decoding perf ormance
+universally with diﬀerent tasks.
+KEYWORDS
+electrocorticography (ECoG), phase-amplitude coupling, deep learning, band-pass ﬁlter,
+brain-computer interface
+/one.tnum. Introduction
+Electrocorticography (ECoG) has been widely used for clinical diagnoses and brain-
+computer interfaces (BCIs) ( Wolpaw et al., 2002 ; Miller et al., 2010a ). Compared with
+electroencephalography (EEG), which mostly reﬂects spectral activities below 50 Hz, ECoG
+contains high-frequency activities (up to 200 Hz), which encodes rich information for motor
+and cognitive behaviors. The rich information in the ECoG signals has enabled various
+applications, such as the decoding of motor behaviors (
+Pan et al., 2018 ; Wang et al., 2018 ;
+Xie et al., 2018 ; Qi et al., 2022 ) and synthesis of spoken words or sentences ( Chakrabarti
+et al., 2015 ), demonstrating great potential in rehabilitation and neuroprosthesis ( Miller
+et al., 2010b).
+To extract frequency domain features in ECoG signals, bandpass ﬁlters are widely used
+to focus on the neural activity in a certain frequency band. Commonly used frequency bands
+such as delta (0.1–4 Hz), theta (4–8 Hz), alpha (8–12 Hz), beta (12–30 Hz), and gamma
+(above 30 Hz) bands can reﬂect the normal rhythm of the brain. However, the universally
+predeﬁned bands might not be optimal for a speciﬁc task. Especially the gamma band
+usually covers a wide frequency span (i.e., 30–200 Hz). Existing studies further divide the
+Frontiers in Neuroscience /zero.tnum/one.tnum frontiersin.org
+
+===== PAGE 2 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+gamma band into low-gamma (30–70 Hz) and high-gamma (70–
+200 Hz), however, it is also too coarse to capture features that
+appear in narrow bands. Studies have shown that the sub-frequency
+bands in the gamma band contain useful information (
+Miller et al.,
+2009). Therefore, how to make better use of the abundant high-
+frequency components in ECoG signals is a very important but
+thorny problem. To select informative frequency bands from the
+high-gamma band, eﬀorts have been made in previous studies. One
+widely used way to locate useful frequency bands in ECoG signals
+is brute force search. These decoders usually use Fourier transform
+or wavelet transforms to extract the power of certain frequency
+bands as the features and evaluate the features in a task-driven
+manner to select the eﬀective narrow bands (
+Y anagisawa et al., 2011;
+Chestek et al., 2013 ; Bleichner et al., 2016 ; Branco et al., 2017 ; Li
+et al., 2017; Zhu et al., 2021 ; Qi et al., 2019 ). The other widely used
+way is using end-to-end decoders via deep learning technology.
+Deep learning decoders have recently gained prevalence in ECoG
+signal studies due to their capacity to directly learn with raw data.
+These decoders, such as CNNs and RNNs have a strong learning
+ability to automatically locate the eﬀective frequency domains (
+Pan
+et al., 2018 ; Xie et al., 2018 ). The last few years have seen the
+emergence of some very eﬃcient deep learning models for EEG
+signals, such as EEGNet (
+Lawhern et al., 2018 ), DeepConvNet,
+and ShallowConvNet ( Schirrmeister et al., 2017 ). Although deep
+learning models have made progress in designing end-to-end brain
+signal decoders, these methods still have some limitations. On the
+one hand, the training of deep models requires a large amount of
+data which is usually impractical for brain signals; on the other
+hand, frequency band selection using these models mostly lacks
+explainability.
+From the perspective of neuroscience, studies have shown
+the coupled working mechanism of synchronizing neurons and
+pyramidal neurons in neuronal oscillations (
+Bragin et al., 1995 ;
+Canolty et al., 2006 ; Canolty and Knight, 2010 ), which can
+provide guidance for eﬀective frequency band selection. Miller
+et al. (2010a) proposed that rhythms may also play a role
+in suppressing local cortical computation, with the cortically
+suppressed (disengaged) state one in which widespread populations
+of cortical neurons are phase-coupled to the rhythm. These
+neuronal mechanisms, collectively known as Cross-frequency
+coupling (CFC) is widely used to coordinate neural dynamics
+across spatial and temporal scales (
+Bleichner et al., 2016 ), but
+both types of decoders ignored this mechanism. There are three
+forms of coupling neural dynamics: phase-amplitude coupling
+(PAC;
+Canolty et al., 2006 ), phase-phase coupling (PPC; Canolty
+et al., 2007 ), and amplitude-amplitude coupling (AAC; Bruns and
+Eckhorn, 2004 ; Voytek et al., 2010 ). Especially PAC, where the
+phase of the low-frequency component modulates the amplitude
+of the high-frequency activity, plays an important role in neural
+information processing and cognition, for example, in learning
+and memory.
+These ﬁndings inspire us to ask whether PAC can help ﬁnd
+inﬂuential frequency bands adaptively in a task-speciﬁc way? In
+this paper, we propose a PAC-based adaptive band ﬁlter for
+neural signals. Leveraging the PAC mechanisms of synchronizing
+oscillations, in which the phase of slower oscillations modulates
+the amplitude of faster ones, we can use low-frequency bands to
+locate the sub-frequency bands from the high-gamma range in a
+task-speciﬁc and individual-speciﬁc way. Thus, the information can
+be more precisely extracted from ECoG signals to improve neural
+decoding performance. Based on this, an end-to-end decoder
+(PACNet) is proposed to construct a neural decoding application
+with adaptive ﬁlter banks in a uniform framework. The proposed
+approach achieves higher decoding performance improvement
+over previous decoders.
+/two.tnum. Materials and methods
+Here we will present the proposed method in detail. Firstly,
+we will introduce the dataset we used and the preprocessing
+method. Then we will present our data-driven band ﬁlter in detail.
+Finally, we propose the PACNet that constructs a neural decoding
+application with PAC-based ﬁlter banks in a uniform framework.
+Figure 1 shows framework of the proposed method, including
+the ﬂow chart of our kernel module: Event-related PAC based
+frequency band selection algorithm which is represented in Section
+2.2 and PACNet in Section 2.3. We will open our source core code
+of Event-related PAC based frequency band selection algorithm and
+PACNet on GitHub, our code can be found at:
+https://github.com/
+PuddingZJU/PACNet.
+/two.tnum./one.tnum. Electrocorticography dataset
+Two publicly available ECoG datasets are adopted in our study,
+including a motor task and a visual task. These public data can be
+found at
+Miller (2019).
+/two.tnum./one.tnum./one.tnum. Motor dataset
+We used KJM’s FingerFlex dataset ( Miller et al., 2012 ), which
+is based on ﬁnger movement. During the ﬁnger movement task,
+subjects were cued with a word displayed on a bedside monitor
+indicating which ﬁnger to move during 2 s movement trials. The
+subject performed self-paced movements in response to each of
+these cues, and they typically moved each ﬁnger 2–5 times during
+each trial, but some trials included many more movements. A 2
+s rest trial (blank screen) followed each movement trial. There
+were 30 movement cues for each ﬁnger, and trials were interleaved
+randomly. Finger positions were recorded using a 5-degree-of-
+freedom dataglove sensor (5 dt, Irvine, CA). Since the original
+data is a study on the ﬁtting of ﬁnger bending trajectory, we
+here transform it into a classiﬁcation problem of ﬁnger motion
+through the maximum threshold of bending, that is, which ﬁnger
+moves in this movement. This is a ﬁve-classiﬁcation problem, so
+we need the decoding performance of multi-classiﬁcation in the
+test period. Through the pre-processing of the data, we ﬁnally
+found that there were nine subjects in the data set, and the total
+number of eﬀective trials reached 7,150, among which 406 were
+the subjects with the least trial and 1,682 were the subjects with
+the most.
+Frontiers in Neuroscience /zero.tnum/two.tnum frontiersin.org
+
+===== PAGE 3 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+FIGURE /one.tnum
+Framework of the PACNet, including the ﬂow chart of our kernel mod ule: Event-related PAC based frequency band selection algorith m (ERPAC-FBS)
+and the proposed deep network structure. First, we use ERPAC-FB S to get two best sub-bands in the high-gamma range based on each
+low-frequency band, and then these two sub-bands are used to ca rry out band-pass ﬁltering on the high-gamma signal, and the corres ponding
+target signal is obtained. Finally, we put these mixed correspond ing target signals into the proposed decoder.
+Frontiers in Neuroscience /zero.tnum/three.tnum frontiersin.org
+
+===== PAGE 4 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+/two.tnum./one.tnum./two.tnum. Visual dataset
+Face-House discrimination task Subjects performed a basic
+face and house stimulus discrimination task ( Miller et al., 2016 ).
+They were presented with grayscale pictures of faces and houses
+(luminance- and contrast-matched) that were displayed in random
+order for 400 ms each, with 400 ms blank screen inter-stimulus
+interval (ISI) between the pictures. The 10 cm-wide pictures were
+displayed at 1 m from the patients while they were seated at the
+bedside. There were three experimental runs with each patient, with
+50 house pictures and 50 face pictures in each run (for a total of 300
+stimuli). In order to maintain ﬁxation on the stimuli, patients were
+asked to verbally report a simple target (an upsidedown house),
+which appeared once during each run (1/100 stimuli). There were
+a few errors in reporting the upside-down target house in any run
+(∼2–3 across all 21 experimental runs).
+/two.tnum./two.tnum. PAC-based adaptive band ﬁlter design
+/two.tnum./two.tnum./one.tnum. Event-related PAC based frequency band
+selection
+Here we divide the ECoG signal into two components:
+low-frequency narrowband signal and high-frequency broadband
+signal. Based on previous researches (
+Miller et al., 2010a ), low-
+frequency narrowband signals contain ﬁve bands:δ (1–3 Hz), θ (4–8
+Hz), α (8–12 Hz), β (12–20 Hz) and “ Canonical γ ” (30–50 Hz).
+While the high-frequency broadband frequency band (above 50
+Hz) has not been ﬁnely divided. We propose a Phase-amplitude
+coupling (PAC)-based method to infer the relevant high-frequency
+band from the known low-frequency band for adaptive ﬁltering
+of ECoG signal, and combine some frequency bands with similar
+carriers (low-frequency bands) to synthesize a new composite
+frequency band signal, to act as the band ﬁlter.
+/two.tnum./two.tnum./one.tnum./one.tnum. Computing of instantaneous phases and
+amplitudes
+The ﬁrst step is to extract instantaneous phases from low-
+frequency bands and amplitudes from high-frequency signals.
+Speciﬁcally, we use the Hilbert transform and a bandpass
+Butterworth ﬁlter to separate the original signal low-frequency
+phase signal and high-frequency amplitude signal from the original
+data. First we put xraw[t] into bandpass Butterworth ﬁlters, to
+generate low-frequency time series xδ [t], xθ [t], xα [t], xβ [t] and high
+frequency time series xγ [t]. Then the Hilbert transform (
+Pilcher
+and Rusyniak, 1993)
+y[t] = H(x[t]) = 1
+π
+∫ −∞
+∞
+x[τ ]
+t − τ (1)
+is applied to each ﬁltered time series to convert the cosine wave
+into a sine wave which delays the original signal by π
+2 at each
+frequency band. After that, we can compute the instantaneous
+phase by the original and transformed signal. Finally, we can apply
+the transform on two paired low-high frequency time series to make
+them become analytic signals, for example, we compute alpha band
+and high-gamma band signals as
+zα [t] = xα [t] + iyα [t] = aα [t]eiφ α [t] (2)
+zγ [t] = xγ [t] + iyγ [t] = aγ [t]eiφ γ [t] (3)
+where φ α [t] and φ γ [t] are the instantaneous phases, and aα [t]
+and aγ [t] are the instantaneous amplitudes of the Xα [t] and Xγ [t]
+time series. These instantaneous phases and amplitudes are used to
+compute phase-amplitude coupling.
+/two.tnum./two.tnum./one.tnum./two.tnum. Computing of event-related PAC
+Most techniques for calculating PAC provide a numerical
+index that represents an average value across an arbitrarily
+long time period. But our datasets are usually event-based and
+need to respond to mutation events. Here we use event-related
+phase/amplitude coupling (ERPAC) (
+Voytek et al., 2013 ) designed
+to capture the temporal evolution of task-related changes in PAC
+across events or between distant brain regions that is applicable to
+human or animal electromagnetic recording. The ERPAC is based
+on a circular-linear correlation (
+Zar, 1999 ) which evaluates the
+Pearson correlation, across trials, of the amplitude α t and with the
+sine and cosine of the phase φ t. We denote by c(x, y) the Pearson
+correlation between two variables x and y, rsx = c[sin(φ t), α t], rcx =
+c[cos(φ t), α t], and rsc = c[sin(φ t), cos(φ t)] hence, the circular-linear
+correlation pcl is deﬁned as
+pcl =
+√
+r2sx + r2cx − 2rsxrcxrsc
+1 − r2sc
+(4)
+Thus, we can obtain PAC signiﬁcance on the time scale. We
+used the implementation of ERPAC in tensorpac ( Combrisson
+et al., 2020 ). After that, we get a matrix representing the PAC
+intensity in the temporal dimension, in order to select the eﬀective
+frequency band, we use the maximum PAC intensity of each
+frequency in the temporal dimension to turn the matrix into a
+one-dimensional vector. Then we use the Savitzky-Golay ﬁlter to
+compute the local maximum value as the eﬀective frequency, We
+sorted the intensity values of these frequency points, taking the
+frequency with high intensity as the center point of the target
+frequency band ﬁrst, and ﬁnally taking these center points plus
+width BW as the eﬀective frequency band, the value of BW we used
+is 10.
+The event-related phase-amplitude coupling-based frequency
+band selector is presented in
+Algorithm 1. According to the
+previous work ( Aru et al., 2015 ), if /Delta1f2 < 2f1, it will cause false
+negative results. We drop the “ Canonical γ , ” and just use four
+low-frequency bands to calculate the results. After obtaining the
+optimal high-frequency band corresponding to each low-frequency
+band through screening, we ﬁrst apply band-pass ﬁltering to
+the original signal using each sub-high-frequency band and then
+superimpose them together to obtain the most relevant mixed high-
+frequency band signal in this low-frequency band. However, there
+is a question of whether the original low-frequency signal should be
+added to the newly obtained mixed-frequency signal. At present, we
+have not found a ﬁxed answer, so we conducted experiments in both
+cases to verify the role of low-frequency signals in the decoding
+process.
+Frontiers in Neuroscience /zero.tnum/four.tnum frontiersin.org
+
+===== PAGE 5 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+Input: Input single channel raw signal vector x containing N trials,
+the shape of x is (N, samplerate × time).
+Output: A list of mixed adaptive sub-bands in high-gamma band
+named as Band_result
+1: Step 0: Initialization
+2: Initialize Erpac_results as an empty list
+3: Initialize Band_results as an empty list
+4: Step 1: Calculate Event-related phase-amplitude
+coupling of each low-frequency band (LB) phase
+with high-gamma band amplitude
+5: for each LB in [delta, theta, alpha, beta] do
+6: PAC_Weight ← EventRelatedPac(x, phase_band = LB,
+amplitude_band = high-gamma )
+7: Put PAC_Weight into Erpac_results for temporary
+storage
+8: Step 2: Frequency band selection
+9: for each E in Erpac_result do
+10: E is two-dimensional matrix (time × frequency),
+compress the time axis using the mean, got a
+vector on frequency axis f
+11: use Savitzky-Golay filter to calculate local
+maximum value of f named as f_peaks
+12: sort f_peaks by its f value, the order in which
+the larger the value is, the higher the priority
+is, finally chose top 2 peaks.
+13: for each p in f_peaks do
+14: best_band ← [p-10,p+10]
+15: Put best_band into Band_results for storage
+16: return Band_results
+Algorithm /one.tnum. Event-related phase-amplitude coupling based frequency
+band selection.
+/two.tnum./three.tnum. PACNet: a deep neural network
+architecture with the PAC-based band ﬁlter
+PACNet is an example of integrating this ﬁlter with existing
+deep-learning decoders. Here, the basic deep learning model we
+choose is EEGNet, a trendy model. Its advantages are compact
+design, few parameters, and less demand for computing resources.
+On the other hand, EEGNet can process Raw data without
+manually extracting features, such as power spectrum in the
+frequency domain, which reduces information loss. At the same
+time, it can better reﬂect the impact of input data noise on the
+deep learning network decoder, indicating the role of the ﬁlter we
+designed (
+Lawhern et al., 2018). For PACNet, As mentioned above,
+the input data became four signals of diﬀerent frequency bands
+after ﬁltering, which were independent of each other. Therefore,
+we divided the ﬁrst sequential winding layer into four layers
+and carried out the separate one-dimensional winding operation
+on the four signals to extract independent features to prevent
+mutual interference between diﬀerent frequency bands. We have
+represented that PACNet is an end-to-end decoder proposed to
+construct a neural decoding application with adaptive ﬁlter banks
+in a uniform framework. So PACNet can have more than one
+version introduced in this paper. It can quickly build another
+PACNet based on other decoders with an independent temporal
+module and split them into four parts for four signals of diﬀerent
+frequency bands after ﬁltering, and we think this is a uniform
+framework. The PACNet is developed using Python 3.9 and
+Tensorﬂow 2.5, and runs on a computer with NVIDIA GeForce
+RTX 3090 graphics cards. We will release PACNet based on other
+models in the future on our GitHub repository.
+/three.tnum. Results
+/three.tnum./one.tnum. Neural decoding performance and
+comparison
+In this section, we will introduce the process and results of our
+decoding performance test on ﬁlter and PACNet in detail. First, we
+detail the existing algorithms and test methods we compare. After
+that, we present and analyze the results.
+/three.tnum./one.tnum./one.tnum. Approaches in comparison
+To reveal the performance of adaptive band ﬁlters and PACNet,
+we used 100 times repeated k-fold cross-validations and paired t-
+test for each competitor on the ECoG dataset to test a decoder that
+has been popular recently. Because our ﬁlter is based on the ﬁltering
+of raw data, the decoder that can best reﬂect its eﬀectiveness is the
+one that can directly process raw data, so we choose the currently
+commonly used deep learn-based decoder for a comparison test,
+and the decoders for comparison including three representative
+neural network-based models of EEGNet (
+Lawhern et al., 2018 ),
+DeepConvNet, and ShallowConvNet ( Schirrmeister et al., 2017 ).
+The common feature of these three decoders is that they do not
+need to extract features in advance and can directly accept raw data
+input for feature extraction and classiﬁcation of signals.
+We tested the approaches with two data sets, one from the
+motor task and the other from the visual task. We all use all data
+sets with the subject of the test method. In each type of data on
+the classiﬁcation test, the test accuracy calculation method adopted
+10-fold cross-validation 100 times. Then we used paired t-test for
+each competitor to evaluate the signiﬁcance of the results, and our
+only hypothesis is that our model has better decoding performance
+than other models. In 10-fold cross-validation, the data according
+to the label equal proportion randomly into 10 portions, take turns
+to take nine serving for training and validation steps, 1 for testing
+steps, turns 10 times. The ﬁnal accuracy value is the average result
+of the 10 training tests 100 times.
+/three.tnum./one.tnum./two.tnum. Performance and analysis
+The overall results are shown in
+Table 1, and the results of each
+subject are shown in Tables 2, 3. Table 2 represents the results of
+the accuracy in ﬁngerﬂex dataset. Compared with the EEGNet,
+our method is improved by about 6.2%. Compared with the
+DeepConvNet, the accuracy of our method is improved by about
+9.4%. Compared with the ShallowConvNet, The accuracy of our
+method is improved by about 11.4%. In paired t-test, the overall
+p-value is smaller than 0.05, so the improvement of our method
+compared to other methods is signiﬁcant.
+Frontiers in Neuroscience /zero.tnum/five.tnum frontiersin.org
+
+===== PAGE 6 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+TABLE /one.tnum Overall decoding performance on ﬁngerﬂex dataset and facehouse dataset.
+Fingerﬂex dataset Facehouse dataset
+Methods Accuracy P-value Accuracy P-value
+Ours 0.6258 ± 0.1502 – 0.9781 ± 0.0184 –
+EEGNet 0.5678 ± 0.1402 0.0170∗∗ 0.9390 ± 0.0338 0.0104∗∗
+DeepConvNet 0.5315 ± 0.1612 0.0004∗∗∗ 0.9476 ± 0.0301 0.0243∗∗
+ShallowConvNet 0.5118 ± 0.1699 0.0008∗∗∗ 0.9507 ± 0.0455 0.0750∗
+∗P < 0.05, ∗∗0.01 < P < 0.05, ∗∗∗P < 0.01.
+TABLE /two.tnum Decoding performance on ﬁngerﬂex dataset of each subject, the best results in each domain are bolded.
+Subject ID Ours EEGNet DeepConvNet ShallowConvNet
+1 0.5391 ± 0.0204 0.5184 ± 0.0135 0.4813 ± 0.0157 0.4463 ± 0.0140
+2 0.4772 ± 0.0052 0.4592 ± 0.0061 0.3800 ± 0.0065 0.3653 ± 0.0063
+3 0.7716 ± 0.0093 0.7782 ± 0.0060 0.7709 ± 0.0041 0.7796 ± 0.0078
+4 0.5657 ± 0.0110 0.4992 ± 0.0107 0.4356 ± 0.0081 0.3654 ± 0.0081
+5 0.4605 ± 0.0046 0.4537 ± 0.0061 0.3896 ± 0.0063 0.3900 ± 0.0057
+6 0.7581 ± 0.0154 0.6135 ± 0.0261 0.6175 ± 0.0240 0.5218 ± 0.0122
+7 0.8633 ± 0.0080 0.6834 ± 0.0113 0.7131 ± 0.0124 0.7490 ± 0.0374
+8 0.4870 ± 0.0161 0.3930 ± 0.0095 0.3334 ± 0.0105 0.3467 ± 0.0101
+9 0.7098±0.0163 0.7120 ± 0.0121 0.6617 ± 0.0158 0.6425 ± 0.0091
+Average 0.6258 ± 0.0118 0.5678 ± 0.0113 0.5315 ± 0.0115 0.5118 ± 0.0123
+TABLE /three.tnum Decoding performance on facehouse dataset of each subject, the best results in each domain are bolded.
+Subject ID Ours EEGNet DeepConvNet ShallowConvNet
+1 0.9820 ± 0.0014 0.9180 ± 0.0054 0.9373 ± 0.0016 0.9245 ± 0.0029
+2 0.9915 ± 0.0020 0.8927 ± 0.0053 0.9175 ± 0.0050 0.8787 ± 0.0052
+3 0.9725 ± 0.0015 0.9372 ± 0.0048 0.9195 ± 0.0008 0.9703 ± 0.0017
+4 0.9640 ± 0.0011 0.9573 ± 0.0047 0.9693 ± 0.0033 0.9677 ± 0.0025
+5 0.9618 ± 0.0057 0.9550 ± 0.0055 0.9710 ± 0.0035 0.9732 ± 0.0025
+6 0.9867 ± 0.0027 0.9662 ± 0.0026 0.9803 ± 0.0031 0.9712 ± 0.0013
+7 0.9885 ± 0.0016 0.9467 ± 0.0054 0.9388 ± 0.0028 0.9700 ± 0.0011
+Average 0.9781 ± 0.0023 0.9390 ± 0.0048 0.9477 ± 0.0029 0.9508 ± 0.0024
+We also conducted experiments with the facehouse dataset,
+the results are in Table 3, compared with EEGNet, DeepConvNet,
+and ShallowConvNet, the performance improvement is about 3.9,
+3.1, and 2.8%, respectively. In paired t-test, the results show
+the improvement of our method compared to other methods is
+signiﬁcant.
+/three.tnum./one.tnum./three.tnum. Ablation experiments on ﬁngerﬂex dataset
+In order to verify the inﬂuence of the PAC ﬁlter on the
+results, we designed an ablation experiment using 2 PACNets
+with consistent parameters for training and testing, one of which
+removed the adaptive ﬁlter, which means it only had high-gamma
+(70–200 Hz) band, to test its inﬂuence on the network, we used
+10-fold cross-validation for each subject of the ﬁngerﬂex dataset
+with more than 7,000 trials in total. The ﬁnal test results are shown
+in
+Table 4. Our method has about 2% higher than the control
+group in the total average value. In the test of a single subject,
+the vast majority of the test results are higher accuracy using our
+data-driven ﬁlter. So our adaptive ﬁlter is adequate. In paired t-test,
+the p-value is 0.0068, which shows that the improvement of the PAC
+ﬁlter compared to the non-PAC ﬁlter is signiﬁcant.
+/three.tnum./two.tnum. Analysis of the PAC-based frequency
+band selection
+Firstly, an aforementioned ablation experiment is designed to
+verify the eﬀectiveness of band selection. This experiment compares
+Frontiers in Neuroscience /zero.tnum/six.tnum frontiersin.org
+
+===== PAGE 7 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+TABLE /four.tnum Ablation experiment on ﬁngerﬂex dataset.
+Subject ID With PAC Without PAC
+1 0.6009 ± 0.0566 0.5885 ± 0.0850
+2 0.5005 ± 0.0357 0.4824 ± 0.0301
+3 0.7918 ± 0.0482 0.7763 ± 0.0325
+4 0.6251 ± 0.0362 0.6219 ± 0.0486
+5 0.4672 ± 0.0373 0.4696 ± 0.0206
+6 0.8073 ± 0.0933 0.7642 ± 0.0528
+7 0.8867 ± 0.0363 0.8771 ± 0.0289
+8 0.5413 ± 0.0625 0.5115 ± 0.0716
+9 0.7432 ± 0.0439 0.7387 ± 0.0361
+Average 0.6627 ± 0.0500 0.6478 ± 0.0451
+the results of whether our ﬁlter is used. The results with PAC are
+better than those without PAC. Therefore, we believe that the ﬁlter
+is adequate. For further analysis, we visualized our data-driven
+ﬁlter selection weights. As shown in
+Figures 2A, B are in motion
+and rest states, respectively. In each sub-graph, the vertical axis
+represents the high frequency, and the horizontal axis represents
+the four low-frequency bands: delta, theta, alpha, and beta. Due
+to space limitations, we randomly selected two subjects in the
+ﬁngerﬂex dataset for display. There are four columns in
+Figures 2A,
+B, and each column represents a subject. At the same time, we
+show the speciﬁc situation of each ﬁnger of the subject. There are
+ﬁve rows in
+Figures 2A, B, and each row represents a ﬁnger. In
+Figure 2A, we can ﬁnd that in the condition of movement, each
+has had signiﬁcant PAC weights in the low-frequency band, it
+shows that the motion between high-frequency and low-frequency
+signals have a signiﬁcant coupling, but from the point of view of
+diﬀerent subjects, not between subjects in the movement of high-
+frequency coupling is diﬀerent, this also shows each subject’s signals
+are unique. It can be found in
+Figure 2B that in the resting state, a
+small amount of PAC weight is generated in some low-frequency
+bands, which indicates that there is some coupling between low-
+frequency signals and high-frequency signals at rest. However, the
+performance of these coupling quantities is much less than that
+in motion. This phenomenon shows that our ﬁlter can ﬁnd some
+inﬂuential strong coupling frequency bands in motion and ﬁlter
+them out, thus improving the decoding accuracy.
+/three.tnum./three.tnum. Analysis of channel selection
+Array electrodes collect ECoG signals. The electrode of each
+channel not only has its temporal property but also has spatial
+property in its position. Electrodes spatial properties represent
+the actual active regions of the cerebral cortex in the activity, so
+the practical analysis of electrode spatial properties can help the
+understanding of the working mechanism of the brain, in other
+words, through the known brain work mechanism of electrode
+space attribute veriﬁes the consistency, can reﬂect the decoder will
+make it successful in avoiding noise, and whether the truly valid
+signal is analyzed and decoded to achieve its target function.
+In this case, since we are using deep learning decoders,
+these decoders are somewhat uninterpretable initially, but as
+the technology develops, we can use the DeepLIFT algorithm
+(
+Schirrmeister et al., 2017 ) to interpret our model. We export the
+trained model in the motor dataset, calculate the contribution of
+each electrode’s inputs through the DeepLIFT algorithm, and ﬁnally
+map it back to the actual brain model through rendering. As shown
+in
+Figure 3A, the right column is EEGNet, and the left column is
+our model. It can be seen intuitively that the model trained by
+our method can accurately hit the electrode in the motor cortex
+area near the central such of each subject. It is very concentrated,
+while the electrode activation distribution of the model trained
+by EEGNet is relatively scattered, and some electrodes on other
+cortexes are also activated, which may be one of the reasons for
+the low decoding performance of the decoder. The essence may
+lead the decoder to overﬁt some noises during the training step.
+To verify the actual validity of the channel contribution, we also
+designed a controlled experiment of 10-fold cross-validation on
+each subject in the ﬁngerﬂex dataset, and the statistical analysis
+was conducted by paired t-test. As shown in
+Figure 3B, we tested
+the decoding performance of PACNet under diﬀerent channel
+choices. We chose the top-1 and top-3 contribution channels and
+randomly selected 1 and 3 channels as controls for comparison.
+For further analysis, we add the test results of EEGNet using top-
+1 and top-3 channels from PACNet as a non-PAC comparison.
+Finally, we added the decoding performance of all channels as
+the baseline. It can be seen from
+Figure 3B that the selected
+top-1 and top-3 contribution channels are signiﬁcantly better
+than randomly selected channels. In addition, top-3 contribution
+channels sometimes have higher decoding performance in baseline
+comparison, and the improvement of the decoding performance
+of Top-3 channels selection PACNet compared to EEGNet was
+signiﬁcant (p = 0.0004).
+/four.tnum. Discussion
+In this work, we propose an adaptive band ﬁlter that selects the
+proper frequency sub-bands in the high-gamma band in a data-
+driven way. Speciﬁcally, we leverage the phase-amplitude coupling
+(PAC) of the coupled working mechanism of synchronizing neuron
+and pyramidal neurons in neuronal oscillations, in which the
+phase of slower oscillations modulates the amplitude of faster
+ones, to help locate the ﬁne frequency bands from the high-
+gamma range, in a task-speciﬁc and individual-speciﬁc way.
+Thus, the information can be more precisely extracted from
+ECoG signals to improve neural decoding performance. Based on
+this, an end-to-end decoder (PACNet) is proposed to construct
+a neural decoding application with adaptive ﬁlter banks in a
+uniform framework. The test results show two phenomena. On
+the one hand, when compared to the results in this, in which
+the input of EEGNet, DeepConvNet, and ShallowConvNet is the
+original raw ECoG recordings, We can see that these models
+cannot process a wide range of signals, this defect is evident
+in the test, so our method is very eﬀective in dealing with
+this situation.
+Frontiers in Neuroscience /zero.tnum/seven.tnum frontiersin.org
+
+===== PAGE 8 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+FIGURE /two.tnum
+Comparison diagram of ﬁlter weight on two subjects in the ﬁngerﬂex d ataset, (A, B), are in motion and rest states, respectively. In each sub-graph ,
+the vertical axis represents the high-frequency in the high-gam ma band, and the horizontal axis represents the four low-frequenc y bands: delta,
+theta, alpha, and beta. There are four columns in (A, B), and each column represents a subject. At the same time, we show the speciﬁc situation of
+each ﬁnger of the subject. There are ﬁve rows in (A, B), and each row represents a ﬁnger.
+On the other hand, we can see the phenomenon in Tables 2,
+3. When other methods show poor decoding performance, our
+method can sometimes show a considerable improvement in
+decoding performance. While other methods show better decoding
+performance than ours, the decoding performance of our method
+is almost the same as other methods. From this phenomenon, we
+propose a hypothesis that due to the uneven quality of ECoG signal
+acquisition, our method can eliminate the inﬂuence brought by
+Frontiers in Neuroscience /zero.tnum/eight.tnum frontiersin.org
+
+===== PAGE 9 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+FIGURE /three.tnum
+Channel contribution analysis: (A) T o analyze three subjects in the ECoG electrodes channel contri bution of visualization in the actual network
+model, the image is divided into two columns, the left is the use of our ﬁlter, ﬁlter is not used on the right is, network model after the tr aining, each
+channel’s contribution to the classiﬁcation results of diﬀeren t weights are obtained. (B) Our electrode with high contribution for our elected the
+decoding performance tests of diﬀerent method.
+these data with poor quality and much noise. The above gives us a
+new way of thinking, combining traditional methods with the latest
+machine learning methods, which may lead to some breakthroughs
+in current research. However, our approach is only a simple
+combination of PAC and EEGNet, which is a shortcoming of our
+approach. In the future, we will design a more integrated model to
+improve decoding performance better. In Section 3.3, compared to
+PAC and non-PAC methods, we can see that EEGNet can achieve a
+considerable performance improvement after data noise reduction.
+However, the performance of our method is still a little bit low. This
+Frontiers in Neuroscience /zero.tnum/nine.tnum frontiersin.org
+
+===== PAGE 10 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+phenomenon proved that our ﬁlter could help the deep learning
+decoders more accurately and automatically locate the electrodes
+on the corresponding cortex related to the task and achieve a better
+noising canceling eﬀect to obtain higher decoding performance. It
+is an exciting discovery for us, and in future work, we will take
+advantage of this feature to make the decoder more automatic
+and precise.
+/five.tnum. Conclusion
+This paper proposes a new adaptive band ﬁlter driven by phase-
+amplitude coupling for ECoG signals. We also propose a new
+general decode pipeline for current decoders to ﬁt. Our method
+can use the existing mechanism of neuronal activity in the brain
+to dynamically calibrate the inﬂuential band in an unsupervised
+manner without a large number of data tags and can simply be
+combined with the existing classiﬁer to improve the performance
+of the entire decoder. From the experiments in Section 3, we
+can conclude that our ﬁlter can help the deep learning decoders
+more accurately and automatically locate the electrodes on the
+corresponding cortex related to the task and achieve a better
+noise-canceling eﬀect to obtain higher decoding performance,
+and to toward the big vision of cyborg intelligence (
+Wu et al.,
+2013).
+Data availability statement
+The original contributions presented in the study are included
+in the article/supplementary material, further inquiries can be
+directed to the corresponding author.
+Author contributions
+JL designed the methods and experiments, conducted the
+experiments, performed data analysis, made ﬁgures, and wrote the
+paper. YQ designed the experiments, made ﬁgures, and wrote the
+paper. GP supervised the projects. All authors contributed to the
+article and approved the submitted version.
+Funding
+This work was partly supported by grants from the China
+Brain Project (2021ZD0200400), Natural Science Foundation of
+China (U1909202, 61925603, and 62276228), the Key Research
+and Development Program of Zhejiang Province in China
+(2020C03004), and the Lingang Laboratory (LG-QS-202202-04).
+Conﬂict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be
+construed as a potential conﬂict of interest.
+Publisher’s note
+All claims expressed in this article are solely those of the
+authors and do not necessarily represent those of their aﬃliated
+organizations, or those of the publisher, the editors and the
+reviewers. Any product that may be evaluated in this article, or
+claim that may be made by its manufacturer, is not guaranteed or
+endorsed by the publisher.
+References
+Aru, J., Aru, J., Priesemann, V., Wibral, M., Lana, L., Pipa, G., et al. (2015).
+Untangling cross-frequency coupling in neuroscience. Curr. Opin. Neurobiol . 31,
+51–61. doi: 10.1016/j.conb.2014.08.002
+Bleichner, M., Freudenburg, Z., Jansma, J., Aarnoutse, E., V ansteensel, M., and
+Ramsey, N. (2016). Give me a sign: decoding four complex hand ges tures based
+on high-density ECoG. Brain Struct. Funct . 221, 203–216. doi: 10.1007/s00429-014-
+0902-x
+Bragin, A., Jandó, G., Nádasdy, Z., Hetke, J., Wise, K., and Bu zsáki, G. (1995).
+Gamma (40-100 Hz) oscillation in the hippocampus of the behaving r at. J. Neurosci .
+15, 47–60. doi: 10.1523/JNEUROSCI.15-01-00047.1995
+Branco, M. P., Freudenburg, Z. V., Aarnoutse, E. J., Bleichne r, M. G.,
+V ansteensel, M. J., and Ramsey, N. F. (2017). Decoding hand ge stures from
+primary somatosensory cortex using high-density ECoG. NeuroImage 147, 130–142.
+doi: 10.1016/j.neuroimage.2016.12.004
+Bruns, A., and Eckhorn, R. (2004). Task-related coupling from h igh-to low-
+frequency signals among visual cortical areas in human subdur al recordings. Int. J.
+Psychophysiol. 51, 97–116. doi: 10.1016/j.ijpsycho.2003.07.001
+Canolty, R. T., Edwards, E., Dalal, S. S., Soltani, M., Nagarajan , S. S.,
+Kirsch, H. E., et al. (2006). High gamma power is phase-locked to t heta
+oscillations in human neocortex. Science 313, 1626–1628. doi: 10.1126/science.112
+8115
+Canolty, R. T., and Knight, R. T. (2010). The functional role of cross-frequency
+coupling. Trends Cogn. Sci. 14, 506–515. doi: 10.1016/j.tics.2010.09.001
+Canolty, R. T., Soltani, M., Dalal, S. S., Edwards, E., Dronkers, N. F., Nagarajan, S. S.,
+et al. (2007). Spatiotemporal dynamics of word processing in the human brain. Front.
+Neurosci. 1, 14. doi: 10.3389/neuro.01.1.1.014.2007
+Chakrabarti, S., Sandberg, H. M., Brumberg, J. S., and Krusi enski, D. J. (2015).
+Progress in speech decoding from the electrocorticogram. Biomed. Eng. Lett. 5, 10–21.
+doi: 10.1007/s13534-015-0175-1
+Chestek, C. A., Gilja, V., Blabe, C. H., Foster, B. L., Shenoy, K. V., Parvizi,
+J., et al. (2013). Hand posture classiﬁcation using electrocort icography signals in
+the gamma band over human sensorimotor brain areas. J. Neural Eng . 10, 026002.
+doi: 10.1088/1741-2560/10/2/026002
+Combrisson, E., Nest, T., Brovelli, A., Ince, R. A., Soto, J. L., Guillot, A., et al. (2020).
+Tensorpac: an open-source python toolbox for tensor-based phase-amplitude coupling
+measurement in electrophysiological brain signals. PLoS Comput. Biol . 16, e1008302.
+doi: 10.1371/journal.pcbi.1008302
+Lawhern, V. J., Solon, A. J., Waytowich, N. R., Gordon, S. M., Hu ng, C. P., and
+Lance, B. J. (2018). EEGNet: a compact convolutional neural net work for EEG-based
+brain-computer interfaces. J. Neural Eng. 15, 056013. doi: 10.1088/1741-2552/aace8c
+Li, Y., Zhang, S., Jin, Y., Cai, B., Controzzi, M., Zhu, J., et al. (2017). Gesture
+decoding using ECoG signals from human sensorimotor cortex: a pilot study. Behav.
+Neurol. 2017, 3435686. doi: 10.1155/2017/3435686
+Miller, K. J. (2019). A library of human electrocorticographic data and analyses. Nat.
+Hum. Behav. 3, 1225–1235. doi: 10.1038/s41562-019-0678-3
+Miller, K. J., Hermes, D., Honey, C. J., Hebb, A. O., Ramsey, N. F., Knight, R. T., et al.
+(2012). Human motor cortical activity is selectively phase-en trained on underlying
+rhythms. PLoS Comput. Biol. 8, e1002655. doi: 10.1371/journal.pcbi.1002655
+Miller, K. J., Hermes, D., Honey, C. J., Sharma, M., Rao, R. P., D en Nijs, M.,
+et al. (2010a). Dynamic modulation of local population activity by rhythm phase in
+human occipital cortex during a visual search task. Front. Hum. Neurosci . 4, 197.
+doi: 10.3389/fnhum.2010.00197
+Frontiers in Neuroscience /one.tnum/zero.tnum frontiersin.org
+
+===== PAGE 11 =====
+
+Li et al. /one.tnum/zero.tnum./three.tnum/three.tnum/eight.tnum/nine.tnum/fnins./two.tnum/zero.tnum/two.tnum/three.tnum./one.tnum/one.tnum/five.tnum/three.tnum/five.tnum/six.tnum/eight.tnum
+Miller, K. J., Schalk, G., Fetz, E. E., Den Nijs, M., Ojemann, J. G., and Rao, R. P.
+(2010b). Cortical activity during motor execution, motor i magery, and imagery-based
+online feedback. Proc. Natl. Acad. Sci. 107, 4430–4435. doi: 10.1073/pnas.0913697107
+Miller, K. J., Schalk, G., Hermes, D., Ojemann, J. G., and Rao, R. P. (2016).
+Spontaneous decoding of the timing and content of human objec t perception
+from cortical surface recordings reveals complementary infor mation in the event-
+related potential and broadband spectral change. PLoS Comput. Biol . 12, e1004660.
+doi: 10.1371/journal.pcbi.1004660
+Miller, K. J., Zanos, S., Fetz, E., Den Nijs, M., and Ojemann, J. (2009).
+Decoupling the cortical power spectrum reveals real-time represen tation
+of individual ﬁnger movements in humans. J. Neurosci . 29, 3132–3137.
+doi: 10.1523/JNEUROSCI.5506-08.2009
+Pan, G., Li, J.-J., Qi, Y., Yu, H., Zhu, J.-M., Zheng, X.-X., et al. (2018). Rapid
+decoding of hand gestures in electrocorticography using recu rrent neural networks.
+Front. Neurosci. 12, 555. doi: 10.3389/fnins.2018.00555
+Pilcher, W., and Rusyniak, W. (1993). Complications of epilepsy surgery. Neurosurg.
+Clin. N. Am. 4, 311–325. doi: 10.1016/S1042-3680(18)30597-7
+Qi, Y., Liu, B., Wang, Y., and Pan, G. (2019). “Dynamic ensemble modeling
+approach to nonstationary neural decoding in brain-computer i nterfaces, ” in
+Advances in Neural Information Processing Systems, Vol. 32 (V ancouver, BC).
+Available online at: https://proceedings.neurips.cc/paper_ﬁles/paper/2019/ﬁle/
+3f7bcd0b3ea822683bba8fc530f151bd-Paper.pdf
+Qi, Y., Zhu, X., Xu, K., Ren, F., Jiang, H., Zhu, J., et al. (2022 ). Dynamic ensemble
+bayesian ﬁlter for robust control of a human brain-machine in terface. IEEE Trans.
+Biomed. Engg. 69, 3825–3835.
+Schirrmeister, R. T., Springenberg, J. T., Fiederer, L. D. J. , Glasstetter, M.,
+Eggensperger, K., Tangermann, M., et al. (2017). Deep learning with convolutional
+neural networks for EEG decoding and visualization.Hum. Brain Mapp. 38, 5391–5420.
+doi: 10.1002/hbm.23730
+Voytek, B., D’Esposito, M., Crone, N., and Knight, R. T. (2013 ). A
+method for event-related phase/amplitude coupling. Neuroimage 64, 416–424.
+doi: 10.1016/j.neuroimage.2012.09.023
+Voytek, B., Secundo, L., Bidet-Caulet, A., Scabini, D., Stiv er, S. I., Gean, A. D., et al.
+(2010). Hemicraniectomy: a new model for human electrophysiology with high spatio-
+temporal resolution. J. Cogn. Neurosci. 22, 2491–2502. doi: 10.1162/jocn.2009.21384
+Wang, Y., Lin, K., Qi, Y., Lian, Q., Feng, S., Wu, Z., et al. (201 8). Estimating brain
+connectivity with varying-length time lags using a recurrent neural network. IEEE
+Trans. Biomed. Engg. 65, 1953–1963.
+Wolpaw, J. R., Birbaumer, N., McFarland, D. J., Pfurtscheller, G.,and V aughan, T. M.
+(2002). Brain-computer interfaces for communication and co ntrol. Clin. Neurophysiol.
+113, 767–791. doi: 10.1016/S1388-2457(02)00057-3
+Wu, Z., Pan, G., and Zheng, W. (2013). Cyborg intelligence. IEEE Intell. Syst. 28,
+31–33.
+Xie, Z., Schwartz, O., and Prasad, A. (2018). Decoding of ﬁng er trajectory from
+ECoG using deep learning. J. Neural Eng . 15, 036009. doi: 10.1088/1741-2552/
+aa9dbe
+Y anagisawa, T., Hirata, M., Saitoh, Y., Goto, T., Kishima, H. , Fukuma, R., et al.
+(2011). Real-time control of a prosthetic hand using human elec trocorticography
+signals. J. Neurosurg. 114, 1715–1722. doi: 10.3171/2011.1.JNS101421
+Zar, J. H. (1999). Biostatistical Analysis. India: Pearson Education India.
+Zhu, Y., Li, C., Jin, H., and Sun, L. (2021). Classifying motio n intention of step
+length and synchronous walking speed by functional near-infra red spectroscopy.
+Cyborg. Bionic. Syst. 2021, 9821787. doi: 10.34133/2021/9821787
+Frontiers in Neuroscience /one.tnum/one.tnum frontiersin.org

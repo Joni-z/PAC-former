@@ -92,10 +92,17 @@ class SpatialPE(nn.Module):
             )
             self.emb = None
 
-    def forward(self, C: int, device) -> torch.Tensor:
+    def forward(self, C: int, device, coords=None) -> torch.Tensor:
         if self.mlp is None:
             return self.emb(torch.arange(C, device=device))     # (C, D)
-        return self.mlp(self.coords[:C].to(device))             # (C, D)
+        if coords is None:
+            coords = self.coords
+        coords = torch.as_tensor(coords, dtype=torch.float32, device=device)
+        if coords.shape[0] != C:
+            raise ValueError(
+                f"spatial coordinates have {coords.shape[0]} channels, input has {C}"
+            )
+        return self.mlp(coords)                                 # (C, D)
 
 
 def rope(x: torch.Tensor) -> torch.Tensor:

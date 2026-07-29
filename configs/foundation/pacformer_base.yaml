@@ -1,0 +1,69 @@
+# PAC-Former base foundation pretraining recipe.
+#
+# Story: PAC-inspired asymmetric cross-frequency masked modeling on a
+# tri-axial electrode x frequency x time representation.  Half the batches use
+# standard random masking for broad coverage; half hide the high-frequency
+# amplitude tokens and reconstruct them from visible low-frequency and
+# spatio-temporal context.  This is a directional PAC prior in the MASK
+# DISTRIBUTION, not a claim that an explicit MVL operator is beneficial.
+#
+# Set PACFORMER_DATA_ROOT on the destination cluster, then launch with torchrun.
+
+# The downstream-style fields instantiate the shared 16-channel xyz coordinate
+# table. Phase 1 ignores labels and uses only pretrain_pool.
+dataset: tuab
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+
+pretrain_pool:
+  - {name: tuab, data_root: "${PACFORMER_DATA_ROOT}/tuab/processed"}
+  - {name: tuev, data_root: "${PACFORMER_DATA_ROOT}/tuev"}
+  # ssl_train arrays exclude the label-driven overlapping "_add" windows.
+  - {name: tusz, data_root: "${PACFORMER_DATA_ROOT}/tusz/processed", train_name: ssl_train}
+  - {name: chbmit, data_root: "${PACFORMER_DATA_ROOT}/chbmit/processed", train_name: ssl_train}
+pool_crop_len: 1000
+pool_sample_rate: 200
+# sqrt-size sampling: large corpora matter more, but cannot monopolise updates.
+pool_sampling_alpha: 0.5
+
+# Architecture chosen by the completed scratch and co-design ablations.
+arch: triaxial
+freq_mixer: attention
+spatial_pe: xyz
+band_pe: index
+n_bands: 8
+d_model: 256
+depth: 8
+n_heads: 8
+dropout: 0.1
+kernel_size: 201
+patch_len: 200
+
+# PAC-inspired cross-frequency masking + ordinary MAE coverage.
+pretrain_task: mae
+mask_mode: mixed
+mixed_p: 0.5
+mask_ratio: 0.5
+crossfreq_frac: 0.5
+crossfreq_density: 1.0
+# Equal contribution per reconstructed band; robust to heterogeneous amplitude
+# scales while retaining absolute log-amplitude as the target.
+recon_loss: band_balanced_smooth_l1
+
+# 8 GPUs x 16 samples x accumulation 2 = effective batch 256.
+batch_size: 16
+gradient_accumulation: 2
+num_workers: 8
+pretrain_epochs: 50
+lr: 0.0002
+betas: [0.9, 0.95]
+weight_decay: 0.05
+warmup_steps: 10000
+gradient_clip: 1.0
+precision: bf16
+log_every_steps: 50
+seed: 0
+output_dir: checkpoints/foundation-pacformer-base

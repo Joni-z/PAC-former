@@ -1,0 +1,656 @@
+
+
+===== PAGE 1 =====
+
+Classifying epileptic
+phase-amplitude coupling in SEEG
+using complex-valued
+convolutional neural network
+Chunsheng Li 1*, Shiyue Liu 1, Zeyu Wang 1,2 and Guanqian Yuan 3
+1Department of Biomedical Engineering, School of Electrical Engineering, Shenyang University of
+Technology, Shenyang, China, 2Department of Electrical Engineering and Information Systems, University of
+Pannonia, Veszprem, Hungary, 3Department of Neurosurgery, General Hospital of Northern Theater
+Command, Shenyang, China
+EEG phase-amplitude coupling (PAC), the amplitude of high-frequency oscillations
+modulated by the phase of low-frequency oscillations (LFOs), is a useful biomarker to
+localize epileptogenic tissue. It is commonly represented in a comodulogram of
+coupling strength but without coupled phase information. The phase-amplitude
+coupling is also found in the normal brain, and it is dif ﬁcult to discriminate
+pathological phase-amplitude couplings from normal ones. This study proposes a
+novel approach based on complex-valued phase-amplitude coupling (CV-PAC) for
+classifying epileptic phase-amplitude coupling. The CV-PAC combines both the
+coupling strengths and the coupled phases of low-frequency oscillations. The
+complex-valued convolutional neural network (CV-CNN) is then used to classify
+epileptic CV-PAC. Stereo-electroencephalography (SEEG) recordings from nine
+intractable epilepsy patients were analyzed. The leave-one-out cross-validation is
+performed, and the area-under-curve (AUC) value is used as the indicator of the
+performance of different measures. Our result shows that the area-under-curve
+value is .92 for classifying epileptic CV-PAC using CV-CNN. The area-under-curve
+value decreases to .89, .80, and .88 while using traditional convolutional neural
+networks, support vector machine, and random forest, respectively. The phases of
+delta (1–4 Hz) and alpha (8–10 Hz) bands are different between epileptic and normal
+CV-PAC. The phase information of CV-PAC is important for improving classi ﬁcation
+performance. The proposed approach of CV-PAC/CV-CNN promises to identify
+more accurate epileptic brain activities for potential surgical intervention.
+KEYWORDS
+epilepsy, SEEG, complex-valued phase-amplitude coupling, complex-valued convolutional
+neural network, epileptogenic zone
+1 Introduction
+Epilepsy is the most common chronic disease in neurology. About 70% of patients with
+epilepsy can be cured by taking antiepileptic drugs, and other patients may develop drug-
+resistance epilepsy (DRE) ( Kwan and Brodie, 2000 ). The epileptogenic zone (EZ) is the brain
+region responsible for seizure generation (Rosenow and Luders., 2001). Some patients with DRE
+can be treated by surgical intervention on EZ ( Engel, 2019 ). Scalp electroencephalography
+(EEG) is one of these techniques which is fundamental for de ﬁning the EZ, frequently as a
+precursor to invasive recordings. Intracranial EEG (iEEG) signal provides anatomically precise
+information about the selective engagement of neuronal populations at the millimeter scale and
+about the temporal dynamics of their engagement at the millisecond scale ( Parvizi and Kastner,
+OPEN ACCESS
+EDITED BY
+Lisheng Xu,
+Northeastern University, China
+REVIEWED BY
+Chien-Hung Yeh,
+Beijing Institute of Technology, China
+Qingyun Wang,
+Beihang University, China
+Yangsong Zhang,
+Southwest University of Science and
+Technology, China
+*CORRESPONDENCE
+Chunsheng Li,
+lichunsheng@sut.edu.cn
+SPECIALTY SECTION
+This article was submitted to
+Computational Physiology and Medicine,
+a section of the journal
+Frontiers in Physiology
+RECEIVED 31 October 2022
+ACCEPTED 20 December 2022
+PUBLISHED 05 January 2023
+CITATION
+Li C, Liu S, Wang Z and Yuan G (2023),
+Classifying epileptic phase-amplitude
+coupling in SEEG using complex-valued
+convolutional neural network.
+Front. Physiol. 13:1085530.
+doi: 10.3389/fphys.2022.1085530
+COPYRIGHT
+© 2023 Li, Liu, Wang and Yuan. This is an
+open-access article distributed under the
+terms of the Creative Commons
+Attribution License (CC BY) . The use,
+distribution or reproduction in other
+forums is permitted, provided the original
+author(s) and the copyright owner(s) are
+credited and that the original publication in
+this journal is cited, in accordance with
+accepted academic practice. No use,
+distribution or reproduction is permitted
+which does not comply with these terms.
+Frontiers in Physiology frontiersin.org01
+TYPE Original Research
+PUBLISHED 05 January 2023
+DOI 10.3389/fphys.2022.1085530
+
+===== PAGE 2 =====
+
+2018). Stereo-electroencephalography (SEEG) is one kind of iEEG and
+is widely used to study the spatiotemporal oscillatory dynamics of
+brain networks engaged in epileptogenic processes ( Bartolomei et al.,
+2017). Some EEG features provide promise biomarkers for EZ, such as
+phase-amplitude coupling (PAC) (Weiss et al., 2015; Amiri et al., 2016;
+Jiang et al., 2019 ; Liu et al., 2021 ), and high-frequency oscillations
+(Worrell and Gotman, 2011 ). Currently, there is still a gap between
+those studies and their applications in the clinical setting. Machine
+learning can be used to close the gap in supporting clinical
+applications.
+EEG PAC, where the amplitude of high-frequency oscillations
+(HFOs) is modulated by the phase of low-frequency oscillations
+(LFOs), is a useful biomarker to identify the activities of
+epileptogenic tissue ( Guirgis et al., 2015 ). Cross-frequency push-
+pull dynamics contributed to the secondary generalization of focal
+seizures and potentially re ﬂected impaired excitation-inhibition
+interactions of the epileptic network ( Jiang et al., 2019 ). PAC
+feature of ictal EEG is used to determine the region of interest in
+epilepsy (Guirgis et al., 2015). The coupling phase was suggested as an
+interictal marker of the seizure-onset zone (SOZ) ( Amiri et al., 2016 ).
+The PAC in the inter- and pre-seizure periods was weak and
+paroxysmal, and strong PAC channels were con ﬁned more to the
+SOZ and resection region ( Ma et al., 2021 ). The theta —gamma PAC
+within the electrodes in the seizure region increased during the ictal
+period (Liu et al., 2021). In Parkinson’s disease, the HFO (100–300 Hz)
+was found modulated by beta (13 –30 Hz), and beta and gamma
+amplitudes were further modul ated by their low-frequency
+components ( Jin et al., 2022 ). Some studies have shown that
+cross-frequency coupling (CFC) plays a functional role in
+physiological functions, such as memory, and task performing
+(Lisman and Idiart, 1995 ; Canolty and Knight, 2010 ). It is
+difﬁcult to apply those coupling patterns for identifying
+pathological brain tissues. To identify pathological PAC is critical
+for further applications in the clinical setting ( von Ellenrieder et al.,
+2016). A multistage classi ﬁer based on the random forest was applied
+to classify CFC features and it successfully predicted seizures ( Jacobs
+et al., 2018 ). Different kinds of algor ithms have been applied in
+investigating epilept ic EEG, such as principal component analysis
+(PCA) ( Villar et al., 2017 ), Wavelet analysis ( Wang et al., 2018 ),
+support vector machines (SVM), fuzzy logic systems ( Jiang et al.,
+2016), and connectivity ( Qin et al., 2020 ).
+Convolutional neural networks (CNN) becomes more popular in
+neuroscience research after its success in some other ﬁelds, such as
+image recognition ( Krizhevsky et al., 2012 ) and EEG analysis ( Pan
+et al., 2022
+). CNN achieves automatic extraction of local features
+through its key component convolutional kernel and obtains high-
+level abstract features after a series of hierarchical processing. It may
+also avoid the problems of manual optimizing of traditional signal
+processing algorithms. In our preliminary study, a three-layer CNN
+was trained to identify pathological PAC in SEEG recordings ( Wang
+and Li, 2020 ). The result showed that the area-under-curve (AUC)
+value reached .88 for classifying pathological PACs from normal ones
+(Wang and Li, 2020 ). However, the representation and operation of
+CNN in real values limit their applications in the ﬁeld of complex-
+valued datasets. Complex-valued CNN (CV-CNN) has been
+developed and applied to various ﬁelds ( Hirose, 2013 ; Tygert et al.,
+2016). Some studies have demonstrated that CV-CNN outperforms
+real-valued CNN after making full use of phase information in
+complex-valued data, such as magnetic resonance imaging (MRI)
+(Cole et al., 2021 ), steady-state visually evoked potentials (SSVEP)
+(Ravi et al., 2020 ).
+In this study, we propose a novel approach for identifying
+pathological PAC in SEEG from patients with epilepsy. We ﬁrst
+provide a method for generating complex-valued PAC (CV-PAC)
+with both the coupling strength and the coupled phase of LFO. The
+CV-CNN is then trained to discriminate the pathological PACs from
+normal ones. SEEG recordings from nine intractable epilepsy patients
+were further analyzed to validate our proposed approach.
+2 Materials and methods
+2.1 Data and subject description
+SEEG data of 23 seizures from nine patients were used in this
+study. All patients had undergone surgery and achieved seizure-free
+outcomes (General hospital of northern theater command). The
+regions of surgical resection were used as the epileptogenic zone in
+this study. Informed consent was obtained from each patient, and the
+ethics committee of the hospital approved the study. The clinical
+information of each patient is outlined in Table 1 . A neurologist
+marked the SEEG onset and termination of all seizures. To eliminate
+TABLE 1 Clinical information of patients studied in this work.
+Patients Age/Sex Duration (years) Seizure (s) MRI Findings Pathology Surgery
+P1 16M 10 66, 61, 48 Left hippocampal abnormality FCD/HS Left: T
+P2 37M 17 74, 76, 77 Normal FCD Left: T
+P3 36M 23 75, 84 Normal Gliosis Right: T
+P4 31M 30 42, 64, 120 Multiple region abnormality Gliosis Right: T
+P5 25F 17 65, 97, 67 Normal HS Right: T
+P6 38M 32 71 Left occipital abnormality — Left: O*
+P7 11M 7 44, 54, 55 Left parietal and right occipital abnormality Gliosis/FCD Right: O
+P8 54M 32 59, 60, 82 Right temporal abnormality FCD Right: FT
+P9 22M 3 76, 80 both hippocampal abnormality HS Left: T
+F, frontal; T, temporal; O, occipital; *, radio-frequency thermo-coagulation; —, unknown; FCD, focal cortical dysplasia; HS, hippocampal sclerosis.
+Frontiers in Physiology frontiersin.org02
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 3 =====
+
+the reference effect, we transform the SEEG recordings into a bipolar
+montage. Channels with obvious artifacts are removed based on visual
+inspection. EEG is a non-linear and non-stationary signal. It could be
+treated as a stable state within a short duration. A 10 s window was
+suggested for computing PAC (Guirgis et al., 2015; Shi et al., 2019). We
+used a 10 s sliding window on seizure with a step size of 2 s. The
+duration of each seizure is listed in Table 1. There are 38,751 CV-PACs
+generated. Each CV-PAC is represented as a complex-valued image.
+The CV-PAC is labeled as a pathological pattern if the corresponding
+SEEG channel resides in the surgical resection. Otherwise, the CV-
+PAC is labeled as normal. There are 10,289 CV-PACs marked as
+pathological, and the other 28,462 CV-PACs are marked as normal.
+FIGURE 1
+The ictal SEEG segment and the CV-PAC patterns from patient P1.(A) 10 s SEEG segment with selected channels 16 s after seizure onset. The labels of the
+SEEG channel in surgical resection are marked in red color. (B) The coupling strength of CV-PAC of channel A4-A3 in surgical resection. Red and blue colors
+indicate strong and weak coupling strengths, respectively. The value is between 0 and 1.(C) The coupled phase of CV-PAC of channel A4-A3 corresponding to
+(B). The range of phase is between −π and π rad. (D) The coupling strength of CV-PAC of channel D4-D3 in the normal brain region. Red and blue colors
+indicate strong and weak coupling strengths, respectively. (E) The coupled phase of CV-PAC of channel D4-D3 corresponding to (D). The range of phase is
+between −π and π rad.
+Frontiers in Physiology frontiersin.org03
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 4 =====
+
+2.2 Complex-valued phase-amplitude
+coupling
+The CV-PAC is generated based on the PAC measure (Guirgis et al.,
+2015). In this study, the low-frequency range is chosen as 1–10 Hz, and
+the high-frequency range is chosen as 30–1 6 0 H z .B o t hl o w -a n dh i g h -
+f r e q u e n c yr a n g e sa r ef u r t h e rd i v i d e dinto 10 intervals equally in log space.
+We denote the selected low- and high-frequency signals as xfP (t) and
+xfA (t) (i.e.,AfA (t)) and the instantaneous phase ofxfP (t) (i.e.,ΦfP (t))i s
+extracted by using continuous wa velet transformation (CWT) in
+MATLAB (MathWorks, Natick, USA). The phases ΦfP (t) are binned
+and the mean of AfA over each phase bin is calculated, which denotes as
+< AfA > ΦfP
+(j). The mean amplitude is then normalized by the sum of all
+mean amplitudes in each phase bin j, as follows
+Pj() /equals
+< AfA > ΦfP
+j()
+∑
+N
+k/equals1
+< AfA > ΦfP
+k()
+, (1)
+where N = 18, and j is chosen from 1 to 18. The Kullback-Leibler (KL)
+distance between amplitude distribution p and uniform distribution U
+(U(j)=1 / N for all bins j) is measured by following equation (Tort et al.,
+2010):
+DKL P, U() /equals∑
+N
+j/equals1Pj() *log Pj()
+Uj()[] .( 2 )
+The strength of CV-PAC at low- and high-frequency pair is
+calculated as follows
+SPAC /equalsDKL P, U()
+log N() .( 3 )
+The phase bin at the peak of P(j) is extracted as the coupling phase
+of the corresponding high and low frequency pair
+ψ PAC /equalsarg max
+j
+Pj() *π
+9.( 4 )
+The SPAC is also called modulation index (MI) ( Tort et al., 2010 ).
+The strength SPAC and phase ψPAC are then used as the module and
+phase angle of complex-valued vector
+CPAC /equalsSPAC* cos ψ PAC() + i*SPAC* sin ψ PAC() (5)
+where i is the imaginary number. CPAC forms one pixel in CV-PAC
+image.
+The surrogate-tested CV-PAC (ST-CV-PAC) is also generated.
+The phases in each low frequency are shuf ﬂed 100 times. If the
+coupling strength of CPAC in ST-CV-PAC is lower than the
+maximum 5% of the corresponding shuf ﬂed values, the CPAC will
+be set to 0. The CV-PAC and CV-PAC-SA in 10 × 10 resolution are
+used in this study since our preliminary study shows that it is a good
+balance between performance and computational load ( Wang and Li,
+2020).
+A 10 s SEEG segment during seizure is shown in Figure 1A . The
+coupling strengths and coupled phases of CV-PACs for pathological
+and normal activities are shown in Figures 1B –E, respectively. To
+compare the performance of CV-CNN with traditional CNN, SVM,
+and random forest, the real part of CV-PAC and the imaginary part of
+CV-PAC are used as two-layer images when using CNN to classify
+PAC patterns. The PAC with only coupling strength is also used to
+train traditional CNN for comparison.
+2.3 Complex-valued convolutional neural
+network
+In this study, we use CV-CNN to classify CV-PAC patterns.
+The structure of CV-CNN is shown in Figure 2 . The activation
+function of CV-CNN is implemented using the recti ﬁed linear
+function (ReLU) in our study. The ReLU is applied on the real and
+the imaginary feature maps separately. In each complex-valued
+convolutional layer, the weights of the convolution kernel are
+complex values, and complex mu ltiplication be tween weights
+and feature maps is implemented. To speed up the training
+convergence of the model and reduce the impact of the
+variation of the input, we de ﬁne a complex batch normalization
+(BN) layer. The maximum number of iterations epoch set for
+training is 800, the batch size is 128, and the learning rate is
+.0025. In addition, the learning rate decays by a factor of .5 when
+the epoch is an integer multiple of 250. A dropout with a value of
+FIGURE 2
+Complex-valued convolutional neural network (CV-CNN) with complex-valued phase-amplitude coupling (CV-PAC). There are three complex-valued
+convolutional layers and four complex-valued fully connected layers.
+Frontiers in Physiology frontiersin.org04
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 5 =====
+
+.2 is used in the ﬁrst layer of the fully connected layer, and the
+weights of all the complex convolution layers are regularized using
+L2 with λ = .004. The cross-entropy loss function is used to quantify
+the loss, and the stochastic grad ient descent (SGD) algorithm is
+chosen as the optimization function. The training and testing of
+dataset are implemented using the PyTorch package.
+3 Result
+3.1 Identifying channel with pathological
+CV-PAC
+We use the AUC value to evaluate the performance of
+classi ﬁcation. To classify one channe la sp a t h o l o g i c a lo rn o r m a l
+is based on all CV-PAC generated f rom the channel. In the receiver
+operating characteristic (ROC) curve, if the percentage of
+pathological CV-PAC from one channel is higher than the
+optimal threshold, the channel will be classi ﬁed as pathological.
+The leave-one-out cross-valida tion is performed. CV-PACs of
+eight patients are used as the training set to train the CNN
+model, and the remaining patient is used as a test. A total of
+nine rounds of training and veri ﬁcation are performed. By
+c o m p a r i n gw i t ht h eg r o u n dt r u t ho fe a c hC V - P A C ,t h eR O C
+curve is obtained, as shown in Figure 3A .T h eA U Cv a l u e so fa l l
+patients are listed in the ﬁrst column of Table 2 . The average AUC
+value is .92 when applying CV-C NN on the CV-PAC dataset. The
+sensitivity and speci ﬁcity are .82 and .83, respectively.
+To further investigate the effects of each low-frequency band,
+the PAC is divided into four regions, as shown in Figure 3F .T h e
+FIGURE 3
+ROC curves of CV-CNN on CV-PAC dataset. (A) CV-PAC with full low-frequency band. (B) CV-PAC without slow delta. (C) CV-PAC without fast delta. (D)
+CV-PAC without theta (E) CV-PAC without alpha. (F) PAC regions are divided into four low-frequency bands. (G) CV-PAC with LFO-gamma. (H) CV-PAC with
+LFO-HFO. (I) PAC is divided into LFO-gamma and LFO-HFO regions.
+Frontiers in Physiology frontiersin.org05
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 6 =====
+
+low-frequency bands include slow delta (1 —2 Hz), fast delta
+(2—4H z ) , t h e t a ( 4—8H z ) , a n d a l p h a ( 8—10 Hz). Each time we
+replace one of the CV-PAC regio ns with random values with the
+same mean and variance. The ROC curves are drawn in Figures
+3B–E. The AUC values decrease to .882, .895, .890, and .898 for the
+slow delta, delta, theta, and alpha re gion replaced, respectively. The
+high-frequency band is then divided into gamma (30 –80 Hz) and
+HFO (80 —160 Hz), as shown in Figure 3I . The result shows that the
+AUC values decrease to .80 and .84 for using LFO-gamma and
+LFO-HFO regions ( Figures 3G, H ; Table 2 ), respectively. It is also
+interesting to notice that the test on original CV-PACs achieves the
+best performance on patient P4 only.
+TABLE 2 AUC values using CV-CNN on CV-PAC.
+Patients CV-
+PAC
+CV-PAC without
+slow delta
+CV-PAC without
+fast delta
+CV-PAC without
+theta
+CV-PAC without
+alpha
+CV-PAC with
+LFO-gamma
+CV-PAC with
+LFO-HFO
+P1 .93182 .90125 .94886 .93845 .91667 .87879 .89015
+P2 .97083 .96667 .98333 .94167 .99167 .86667 .82292
+P3 .93143 .93782 .90480 .95197 .90523 .79674 .88250
+P4 .96591 .90584 .94805 .90260 .93506 .83117 .91234
+P5 .93088 .92059 .93309 .86544 .90882 .76397 .81544
+P6 .93529 .89706 .88824 .95441 .90735 .76324 .81912
+P7 .98701 .99351 .96753 .98701 .98701 .84091 .95455
+P8 .91277 .88830 .92766 .91915 .92128 .91915 .91915
+P9 .82394 .76169 .82119 .84730 .81174 .73345 .73345
+Average .92236 .88277 .89524 .89041 .89823 .79801 .84375
+Optimal values at each row are shown in bold.
+FIGURE 4
+Phase distribution of low-frequency bands. (A) The quiver map of averaged strength and phase of CV-PACs in non-resected regions. Note that the length
+and angle of each gray arrow represent the coupling strength and coupled phase at each high- and low-frequency pair, respectively. (B) The quiver map of
+averaged strength and phase of CV-PACs in resected regions. The length and angle of each arrow represent the coupling strength and coupled phase,
+respectively. (C) The coupling with phases in slow-delta (1 –2 Hz). The blue and red arrows indicate the coupling in the non-resected and resected
+regions, respectively. (D) The coupling with phases in delta (2 –4 Hz). (E) The coupling with phases in theta (4 –8 Hz). (F) The coupling with phases in alpha
+(8–10 Hz).
+Frontiers in Physiology frontiersin.org06
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 7 =====
+
+The CV-PACs from non-resected regions and resected regions are
+averaged separately. The coupling strengths and coupled phases of
+pathological and normal CV-PAC are plotted in Figures 4A, B ,
+respectively. The two patterns are different. The coupled phases in
+low-frequency bands are plotted in Figures 4C–F. The coupled phases
+in non-resected and resected regions are separable for slow delta, fast
+delta, and alpha bands. The phases in the non-resected and resected
+regions are overlapped for theta band, but the coupling strengths in the
+resected regions are stronger than the ones in non-resected regions.
+These features contribute to the capability of identifying pathological
+CV-PAC in the resected regions.
+3.2 Comparison with CNN, SVM, and RF
+We use traditional CNN, SVM, and random forest (RF) to train
+the model. The leave-one-out cross-validation is also performed. The
+real part and imaginary part of CV-PAC are extracted to form images
+with two layers. The obtained three-dimensional vectors are used as
+the features of the RF classi ﬁer. The number of trees searched is from
+50 to 300. Since the performance does not improve after 100 trees, the
+number of trees is set to 100 in the remaining tests. The features used
+for SVM are the same as the RF. The SEEG of patient P1 is ﬁrst trained
+and tested using the SVM method. A grid search over the parametersC
+(2
+2,2 6, ... ,2 20) and γ(2–10,2 –8, ... ,2 10) is performed to ﬁnd optimal
+values. The parameter C is set to 2 18, and the parameter γ is set to 2 2.
+Those values of parameter C and γ are used for further analysis. The
+ROC curves are plotted in Figures 5A–C, and the AUC values are .890,
+.795, and .880 for traditional CNN, SVM, and RF, respectively. The
+performances of the above methods are lower than CV-CNN, as
+shown in Table 3. The PACs (without the coupled phases) are used to
+train the traditional CNN. The ROC curves are plotted in Figure 5D,
+and the AUC value is .88 ( Table 3). We use the ST-CV-PAC to train
+the CV-CNN model with leave-one-out cross validation. The ROC
+curves are plotted in Figure 5E , and the averaged AUC value is .83
+(Table 3 ).
+4 Discussion
+The PAC is commonly used to localize the epileptic tissue ( Weiss
+et al., 2015 ; Liu et al., 2021 ), but the coupled phase of LFO in PAC is
+seldom used due to the complexity of the pattern. The proposed CV-
+PAC contains both the coupling strengths and the coupled phases.
+FIGURE 5
+ROC curves of classiﬁcation using CNN, SVM, random forest, and CV-CNN. (A) ROC curves using CNN. (B) ROC curves using SVM. (C) ROC curves using
+random forest. (D) ROC curves using CNN and PAC. (E) ROC curves using CV-CNN and ST-CV-PAC.
+TABLE 3 Comparisons of AUC values by using CNN, SVM, RF, CNN(PAC), and CV-
+CNN(ST).
+Patient CNN SVM RF CNN(PAC) CV -CNN(ST)
+P1 .94318 .95833 .91667 .95833 .90152
+P2 .93750 .74583 .92500 .98333 .95833
+P3 .94082 .94082 .92024 .86664 .86440
+P4 .95779 .78247 .89610 .9513 .92857
+P5 .90000 .68162 .91250 .87059 .86618
+P6 .92647 .69265 .87059 .86618 .96296
+P7 .97204 .97727 .98052 .99026 .99320
+P8 .91915 .73617 .85745 .86809 .91136
+P9 .78953 .75379 .83182 .79751 .79112
+Average .89081 .79543 .88006 .88082 .83454
+Optimal values at each row are shown in bold.
+Frontiers in Physiology frontiersin.org07
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 8 =====
+
+Our result shows that the CV-PAC/CV-CNN approach outperforms
+PAC/CNN approach. The AUC values of the two approaches are
+.92 and .88, respectively ( Tables 2 , 3). When the real part and
+imaginary part of CV-PAC are extracted as two-layer input feature
+maps for traditional CNN, the AUC value decreases to .88. The
+performance will not improve if we just feed the CNN with real-
+value features. It implies that the coupling strengths and the coupled
+phases are correlated, and the complex-value operation in CV-CNN
+extracts the correlated information for identifying pathological PAC.
+The coupled phases of LFOs are important in localizing the
+epileptogenic tissues ( Amiri et al., 2016 ; Li et al., 2016 ). In our
+study, the delta band is divided into slow delta and fast delta
+(Amiri et al., 2016 ). Our result showed that the coupled phases of
+both slow delta and fast delta are different in pathological and normal
+PACs, as shown in Figures 4C, D . If the coupling in slow delta region
+was replaced by random values, the performance of classi ﬁcation
+dropped the most, as shown in Table 2. Our result also showed that the
+coupling in alpha region also contributes to the improvement of
+performance ( Table 2 ; Figure 4F ). The coupled phases in theta
+band are overlapped in pathological and normal PAC ( Figure 4E ).
+The coupling strengths of pathological PACs in delta band are
+stronger than the coupling strengths of normal PACs ( Figures 4A,
+B). We infer that it is the main reason why the traditional PAC or MI
+can help us discriminate pathological brain tissues.
+Some studies focused on the PAC in either LFO-gamma
+(30–80 Hz) or LFO-HFO ( > /equals80) ( Amiri et al., 2016 ; Liu et al.,
+2021). Our result shows that the AUC values scored only .80 and
+.84 when using CV-PAC of LFO-gamma (30 –80 Hz) and LFO-HFO
+(80–160 Hz), respectively. Our result suggests that the CV-PAC of
+LFO-HFO (80–160 Hz) is more important than the CV-PAC of LFO-
+gamma (30 –80 Hz) in classifying pathological patterns.
+In our study, the PAC in the form of two-layer feature maps was
+used to train the SVM and RF. The performance of RF is comparable
+to PAC/CNN approach ( Table 3 ). The AUC value of CV-PAC/CV-
+CNN approach is higher than all other methods, as listed in Table 3,
+which emphasizes the importance of the correlation between the
+coupling strength and coupled phase. The coupled phase is
+important, and it is more meaningful when combined with
+coupling strength. Since there are dif ﬁculties in analyzing the phase
+patterns of PAC, our proposed approach provides a tool for the
+classiﬁcation of pathological PAC and normal PAC by introducing
+a complex-value image classiﬁcation measure. Surrogate testing can be
+used to remove the spurious coupling in EEG signals ( Shi et al., 2019 ;
+Li et al., 2021 ). In our study, the averaged AUC value using ST-CV-
+PAC is lower than the value using CV-PAC. Here, we adopt the image
+recognition measure by using CNN and CV-CNN. The ST-CV-PAC
+may become more complex and discontinuous due to removing some
+non-signiﬁcant values. We think that is the main reason why the
+performance on ST-CV-PAC is lower than CV-PAC.
+There are some limitations in this study. The ictal dataset is
+analyzed, and it still needs more study to extend it to inter-and pre-
+seizure data. Since the subdural is another widely used measure for
+recording brain electrical activity, it is necessary to include those types of
+data. In our study, most patients had temporal lobe epilepsy, and the
+location of SEEG implemented varied from patient to patient. It should
+be cautious to apply our method to all candidates for epilepsy surgery.
+Some studies have shown that PAC can be used to identify channels in
+SOZ, which is often much smaller than the area surgically removed.
+Comparing our results with traditional SOZ classi ﬁcation results still
+needs to be further explored. The non-linear decomposition methods
+for generating PAC may potentially improve the classi
+ﬁcation
+performance, which will be addressed in our future work.
+5 Conclusion
+The PAC pattern is a useful biomarker for identifying SEEG
+channels with pathological brain activities, and it is critical for
+presurgical evaluation of DRE patients. The proposed CV-PAC
+represents richer pathological patterns than PAC, which can be
+further analyzed by using image recognition measure. The CV-CNN
+achieves better performance than traditional machine learning measures
+in classiﬁcation of pathological and normal PAC patterns. This study
+provides a new approach for localizing epileptogenic brain tissues.
+Data availability statement
+The raw data supporting the conclusion of this article will be made
+available by the authors, without undue reservation.
+Ethics statement
+The studies involving human participants were reviewed and
+approved by General Hospital of Northern Theater Command,
+Shenyang, China. Written informed consent to participate in this
+study was provided by the participants ’ legal guardian/next of kin.
+Author contributions
+CL and ZW contributed to design of the study. SL and ZW
+performed the data analysis. CL, SL, and ZW wrote the ﬁrst draft
+of the manuscript. GY organized the dataset and interpreted the SEEG
+data. All authors approved the submitted version.
+Funding
+This work was supported by the National Natural Science
+Foundation of China (61771323) and Research Fund of Liaoning
+Provincial Natural Science (2021-KF-12-11), Program for Liaoning
+Innovative Talents in University, Research project of Liaoning
+Provincial Department of Education (LJGD20200012).
+Acknowledgments
+We would like to thank Dandan Gao for her help with
+collecting data.
+Conﬂict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be
+construed as a potential con ﬂict of interest.
+Frontiers in Physiology frontiersin.org08
+Li et al. 10.3389/fphys.2022.1085530
+
+===== PAGE 9 =====
+
+Publisher’s note
+All claims expressed in this article are solely those of the
+authors and do not necessarily represent those of their af ﬁliated
+organizations, or those of the publisher, the editors and the
+reviewers. Any product that may be evaluated in this article, or
+claim that may be made by its manufacturer, is not guaranteed or
+endorsed by the publisher.
+References
+Amiri, M., Frauscher, B., and Gotman, J. (2016). Phase-amplitude coupling is elevated in
+deep sleep and in the onset zone of focal epileptic seizures. Front. Hum. Neurosci. 10, 387.
+doi:10.3389/fnhum.2016.00387
+Bartolomei, F., Lagarde, S., Wendling, F., McGonigal, A., Jirsa, V., Guye, M., et al. (2017).
+Deﬁning epileptogenic networks: Contribution of SEEG and signal analysis. Epilepsia 58
+(7), 1131 –1147. doi:10.1111/epi.13791
+Canolty, R. T., and Knight, R. T. (2010). The functional role of cross-frequency coupling.
+Trends Cogn. Sci. 14 (11), 506 –515. doi:10.1016/j.tics.2010.09.001
+Cole, E., Cheng, J., Pauly, J., and Vasanawala, S. (2021). Analysis of deep complex-valued
+convolutional neural networks for MRI reconstruction and phase-focused applications.
+Magn. Reson. Med. 86, 1093 –1109. doi:10.1002/mrm.28733
+Engel, J., Jr. (2019). Evolution of concepts in epilepsy surgery. Epileptic Disord. 21,
+391–409. doi:10.1684/epd.2019.1091
+G u i r g i s ,M . ,C h i n v a r u n ,Y . ,d e lC a m p o ,M . ,C a r l e n ,P .L . ,a n dB a r d a k j i a n ,B .L .
+(2015). De ﬁning regions of interest using cross-frequency coupling in
+extratemporal lobe epilepsy patients. J. Neural Eng. 12, 026011. doi:10.1088/
+1741-2560/12/2/026011
+Hirose, A. (2013). Complex-valued neural networks: Advances and applications .
+Hoboken: Wiley-IEEE Press.
+J a c o b s ,D . ,H i l t o n ,T . ,D e lC a m p o ,M . ,C a r l e n ,P .L . ,a n dB a r d a k j i a n ,B .L .( 2 0 1 8 ) .
+Classiﬁcation of pre-clinical seizure states using scalp EEG cross-frequency coupling
+features. IEEE Trans. Biomed. Eng. 65 (11), 2440 –2449. doi:10.1109/TBME.2018.
+2797919
+Jiang, H., Cai, Z., Worrell, G. A., and He, B. (2019). Multiple oscillatory push-pull
+antagonisms constrain seizure propagation. Ann. Neurol. 86, 683 –694. doi:10.1002/ana.
+25583
+Jiang, Y., Deng, Z., Chung, F. L., Wang, G., Qian, P., Choi, K. S., et al. (2016). Recognition
+of epileptic EEG signals using a novel multiview TSK fuzzy system. IEEE Trans. Fuzzy.
+Syst. 25 (1), 3 –20. doi:10.1109/TFUZZ.2016.2637405
+Jin, L., Shi, W., Zhang, C., and Yeh, C. H. (2022). Frequency nesting interactions in the
+subthalamic nucleus correlate with the step phases for Parkinson ’s disease. Front. Physiol.
+13, 890753. doi:10.3389/fphys.2022.890753
+Krizhevsky, A., Sutskever, I., and Hinton, G. (2012). ImageNet classi ﬁcation with deep
+convolutional neural networks. Commun. ACM 60 (6), 84 –90. doi:10.1145/3065386
+Kwan, P., and Brodie, M. J. (2000). Early identi ﬁcation of refractory epilepsy. N. Engl.
+J. Med. 342, 314 –319. doi:10.1056/NEJM200002033420503
+L i ,C . ,J a c o b s ,D . ,H i l t o n ,T . ,d e lC a m p o ,M . ,C h i n v a r u n ,Y . ,C a r l e n ,P .L . ,e ta l .
+(2016). Epileptogenic source imaging usin g cross-frequency coupled signals from
+scalp EEG. IEEE Trans. Biomed. Eng. 63, 2607 –2618. doi:10.1109/TBME.2016.
+2613936
+L i ,C . ,S o h r a b p o u r ,A . ,J i a n g ,H . ,a n dH e ,B .( 2 0 2 1 ) .H i g h - f r e q u e n c yh u b so ft h ei c t a l
+cross-frequency coupling n etwork predict surgical out come in epilep sy patients.
+IEEE Trans. Neural Syst. Rehabil. Eng. 29, 1290 –1299. doi:10.1109/TNSRE.2021.
+3093703
+Lisman, J. E., and Idiart, M. A. (1995). Storage of 7 +/- 2 short-term memories in
+oscillatory subcycles. Science 267, 1512 –1515. doi:10.1126/science.7878473
+Liu, X., Han, F., Fu, R., Wang, Q., and Luan, G. (2021). Epileptogenic zone location of
+temporal lobe epilepsy by cross-frequency coupling analysis. Front. Neurol. 12, 764821.
+doi:10.3389/fneur.2021.764821
+Ma, H., Wang, Z., Li, C., Chen, J., and Wang, Y. (2021). Phase-amplitude coupling and
+epileptogenic zone localization of frontal epilepsy based on intracranial EEG. Front.
+Neurol. 12, 718683. doi:10.3389/fneur.2021.718683
+Pan, Y., Chen, J., Zhang, Y., and Zhang, Y. (2022). An ef ﬁcient CNN-LSTM network
+with spectral normalization and label smoothing technologies for SSVEP frequency
+recognition. J. Neural Eng. 19 (5), 056014. doi:10.1088/1741-2552/ac8dc5
+Parvizi, J., and Kastner, S. (2018). Promises and limitations of human intracranial
+electroencephalography. Nat. Neurosci. 21, 474 –483. doi:10.1038/s41593-018-0108-2
+Qin, Y., Zhang, N., Chen, Y., Zuo, X., Jiang, S., Zhao, X., et al. (2020). Rhythmic network
+modulation to thalamocortical couplings in epilepsy. Int. J. Neural Syst. 30 (11), 2050014.
+doi:10.1142/S0129065720500148
+Ravi, A., Beni, N. H., Manuel, J., and Jiang, N. (2020). Comparing user-dependent and
+user-independent training of CNN for SSVEP BCI. J. Neural Eng. 17 (2), 026028. doi:10.
+1088/1741-2552/ab6a67
+Rosenow, F., and Luders, H. (2001). Presurgical evaluation of epilepsy. Brain 124,
+1683–1700. doi:10.1093/brain/124.9.1683
+Shi, W., Yeh, C. H., and Hong, Y. (2019). Cross-frequency transfer entropy characterize
+coupling of interacting nonlinear oscillators in complex systems. IEEE Trans. Biomed. Eng.
+66 (2), 521 –529. doi:10.1109/TBME.2018.2849823
+Tort, A. B., Komorowski, R., Eichenbaum, H., and Kopell, N. (2010). Measuring phase-
+amplitude coupling between neuronal oscillations of different frequencies. J. Neurophysiol.
+104 (2), 1195 –1210. doi:10.1152/jn.00106.2010
+Tygert, M., Bruna, J., Chintala, S., LeCun, Y., Piantino, S., and Szlam, A. (2016). A
+mathematical motivation for complex-valued convolutional networks. Neural comput. 28,
+815–825. doi:10.1162/NECO_a_00824
+Villar, J. R., Menendez, M., de la Cal, E., Sedano, J., and Gonzalez, V. M. (2017).
+Identiﬁcation of abnormal movements with 3D accelerometer sensors for seizure
+recognition. J. Appl. Log. 24, 54 –61. doi:10.1016/j.jal.2016.11.024
+von Ellenrieder, N., Frauscher, B., Dubeau, F., and Gotman, J. (2016). Interaction with
+slow waves during sleep improves discrimination of physiologic and pathologic high-
+frequency oscillations (80-500 Hz). Epilepsia 57, 869 –878. doi:10.1111/epi.13380
+Wang, D., Ren, D., Li, K., Feng, Y., Ma, D., Yan, X., et al. (2018). Epileptic seizure
+detection in long-term EEG recordings by using Wavelet-based directed transfer function.
+IEEE Trans. Biomed. Eng. 65 (11), 2591 –2599. doi:10.1109/tbme.2018.2809798
+Wang, Z., and Li, C. (2020). Classifying cross-frequency coupling pattern in
+epileptogenic tissues by convolutional neural network. Annu. Int. Conf. IEEE Eng.
+Med. Biol. Soc. 2020, 3440 –3443. doi:10.1109/EMBC44109.2020.9175273
+Weiss, S. A., Lemesiou, A., Connors, R., Banks, G. P., McKhann, G. M., Goodman, R. R.,
+et al. (2015). Seizure localization using ictal phase-locked high gamma: A retrospective
+surgical outcome study. Neurology
+84, 2320–2328. doi:10.1212/WNL.0000000000001656
+Worrell, G., and Gotman, J. (2011). High-frequency oscillations and other
+electrophysiological biomarkers of epilepsy: Clinical studies. Biomark. Med. 5,
+557–566. doi:10.2217/bmm.11.74
+Frontiers in Physiology frontiersin.org09
+Li et al. 10.3389/fphys.2022.1085530

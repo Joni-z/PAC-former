@@ -1,0 +1,790 @@
+
+
+===== PAGE 1 =====
+
+SleepPACNet: new convolutional 
+neural network considering 
+phase-amplitude coupling 
+for automatic sleep stage 
+classification using single-channel 
+electroencephalogram
+Taegyeong Lee1, Hyerin Nam2, JangJay Sohn1 & Chang-Hwan Im1,2,3
+Automatic sleep stage classification (ASSC) using single-channel electroencephalogram (EEG) 
+signals is an essential technology for developing wearable EEG devices for sleep monitoring. 
+Deep learning (DL)-based methods, although effective in automatically extracting features, often 
+overlook significant EEG characteristics containing domain-specific knowledge relevant to particular 
+sleep stages, such as cross-frequency phase-amplitude coupling (PAC) phenomena. To address this 
+limitation, we proposed SleepPACNet, a novel convolutional neural network (CNN) architecture 
+specifically designed to effectively extract PAC-related features from single-channel EEG signals to 
+enhance ASSC performance. Central to our proposed model is a PAC feature extraction module, which 
+employs a CNN layer explicitly designed to integrate the phase information from low-frequency EEG 
+components, obtained using the Hilbert transform, with amplitude information from high-frequency 
+EEG components. The performance of SleepPACNet was evaluated using single-channel (Fp1–Fp2) 
+sleep EEG data extracted from the Dreem dataset to simulate conditions of a portable EEG device 
+measuring prefrontal bipolar EEG signals. SleepPACNet outperformed conventional CNN models, 
+including SleepCNN, achieving the highest classification accuracy of 75.7%. It significantly improved 
+REM stage classification, validating PAC’s effectiveness in REM detection. These findings highlight the 
+potential of automated PAC feature extraction in DL for improving the overall performance of ASSC 
+systems utilizing single-channel EEG.
+Keywords Automatic sleep stage classification (ASSC), Electroencephalography (EEG), Phase-amplitude 
+coupling, Hilbert transform, Convolutional neural network (CNN)
+Sleep is an important human activity for maintaining both physical and mental health in humans 1,2. During 
+sleep, the stages of sleep change according to the brain’s state 3. Sleep stages are generally classified into the 
+following five stages: wake (W), rapid eyes movements (REM), and three non-REM stages (referred to as N1, N2, 
+and N3)4. Identifying these sleep stages is essential for the diagnosis of sleep disorders and measurement of sleep 
+quality5,6. Sleep experts typically perform manual scoring of the sleep stages based on established guidelines, such 
+as the Rechtschaffen and Kales (R&K) and the American Academy of Sleep Medicine (AASM), typically using 
+polysomnography (PSG), which encompasses various biomedical signals, including electroencephalography 
+(EEG), electromyography (EMG), and electrooculography (EOG) 7,8. However, this manual scoring method 
+requires considerable effort and time investment from sleep experts, and the excessive workload can sometimes 
+reduce the accuracy and reliability of sleep stage scoring9,10. In addition, attaching a large number of sensors and 
+sleeping in an unfamiliar environment can cause discomfort for participants, and the measurement procedure 
+1Department of Electronic Engineering, Hanyang University, 222 Wangsimni-ro, Seongdong- gu, Seoul 04763, 
+Republic of Korea. 2Department of Artificial Intelligence, Hanyang University, 222 Wangsimni-ro, Seongdong-gu, 
+Seoul 04763, Republic of Korea. 3Department of Biomedical Engineering, Hanyang University, 222 Wangsimni-ro, 
+Seongdong-gu, Seoul 04763, Republic of Korea. email: jjaysohn@hanyang.ac.kr; ich@hanyang.ac.kr
+OPEN
+Scientific Reports |        (2026) 16:17317 1| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports
+
+
+===== PAGE 2 =====
+
+itself may disrupt sleep11. To address these issues, automatic sleep stage classification (ASSC) using fewer sensors 
+has been investigated. The advancement of such techniques is anticipated to facilitate the development of wearable 
+devices capable of conveniently diagnosing sleep disorders or assessing sleep quality in home environments.
+Among the biomedical signals utilized in PSG, EEG is considered the most critical modality for sleep-stage 
+scoring due to its rich neurophysiological information 12. This characteristic has prompted numerous ASSC 
+studies to focus exclusively on EEG signals. Specifically, since scalp electrodes attached to hairy area may interfere 
+with natural sleep13, ASSC based on traditional machine learning (ML) methods using single-channel prefrontal 
+EEG recordings has attracted considerable attention as a means to minimize the number of required electrodes. 
+For instance, Liang et al. 14 employed linear discriminant analysis (LDA) to classify sleep stages by extracting 
+handcrafted features, including autoregressive coefficients and multiscale entropy. Handcrafted features used 
+for traditional ML-based ASSC are advantageous because they can explicitly incorporate domain knowledge 15, 
+thereby making the classification process interpretable 16. However, the use of handcrafted features may limit 
+classification performance due to potential loss of information necessary for classification17.
+Recently, many studies have demonstrated the potential of deep learning (DL)-based ASSC using single-
+channel EEG, which can automatically extract features from raw EEG signals with minimal information loss. 
+Particularly, most DL-based ASSC studies have employed convolutional neural networks (CNNs), which showed 
+exceptional performance in feature extraction from EEG. For instance, Goshtasbi et al. 18 introduced a CNN 
+architecture that integrates a feature extraction module with a temporal sequence learning module. Mousavi et 
+al.19 developed the SleepEEGNet, consisting of CNN for extracting features from time-frequency information 
+of EEG and a sequence-to-sequence model for recognizing contextual dependencies between continuous 
+EEG signals. Additionally, the TinySleepNet, proposed by Supratak et al. 20, also includes a CNN-based feature 
+extraction module. However, while CNN-based feature extractors effectively capture patterns from raw EEG 
+data, they often underperform due to limited generalization and insufficient domain knowledge. With recent 
+advancements in large language models, large-scale foundation models for EEG, such as EEGPT21, NeuroGPT22, 
+LaBram23, and BCINetV124, have been developed to improve generalization through pre-training on extensive 
+datasets. Alongside these foundation models, recent multidomain frameworks have also been proposed to achieve 
+cross-discipline adaptability and robust generalization 25. Despite their enhanced generalization, these models 
+may not fully leverage some domain knowledge that was successfully embedded in conventional handcrafted 
+features15,16, highlighting the need for further model development in this regard. Therefore, incorporation of 
+specific domain knowledge into DL-based ASSC has the potential to increase classification performance, as 
+shown in previous DL-based EEG studies that attempted to incorporate handcrafted features into DL in other 
+EEG classification problems26–28.
+Among the diverse handcrafted EEG features employed for traditional ML-based ASSC using single-channel 
+EEG, cross-frequency phase-amplitude coupling (PAC) has shown potential as an effective EEG feature for 
+ASSC. PAC is typically quantified using diverse metrics, such as envelope-to-signal (ESC), Modulation Index 
+(MI), and cross-frequency coherence (CFC) 29–31. Specifically, ESC measures the correlation between the low-
+frequency signal and the high-frequency envelope, while MI is calculated as the mean of a composite complex 
+signal formed by the low-frequency phase and high-frequency amplitude envelope. Additionally, CFC quantifies 
+the coherence between the high-frequency energy and the raw low-frequency signal. In the physiological aspect, 
+the phase of the delta wave in the prefrontal cortex synchronizes with the amplitude of the spindle wave in the 
+thalamus during sleep32,33. Manasova et al.34 found that delta-alpha PAC, which implies synchronization of delta 
+wave phase and sleep spindle wave amplitude, significantly increases in the N2 and N3 stages compared to other 
+sleep stages. Based on this phenomenon, Dimitriadis et al. 34 employed the delta-alpha PAC, calculated using 
+various metrics including MI, as one of the key features for ML-based ASSC, applying traditional classifiers such 
+as k-nearest neighbor, the Naïve Bayesian, linear discriminant analysis, and support vector machines to achieve 
+enhanced classification performance.
+Given the considerable potential of PAC, incorporating PAC information into DL is expected to enhance 
+the overall performance of ASSC. Nevertheless, PAC presents challenges in its direct application to DL-based 
+classification. First, using calculated PAC features directly for DL-based classification may yield varying 
+performances due to the diverse methods to calculate the PAC measures 36. Second, the process of computing 
+PAC features may result in information loss, potentially omitting critical characteristics of the original raw EEG 
+signals. To address these problems, Formoso et al. recently employed a parallel frequency-band DL architecture 
+to automatically extract the PAC-related information without human intervention; however, this approach 
+implicitly provides the network with phase information in a low-frequency signal. To more effectively capture 
+PAC-related information, it is necessary to explicitly represent the low-frequency phase, thereby facilitating the 
+utilization of phase information by the DL model.
+In this study, we attempted to automatically extract PAC features using specially designed DL architecture 
+incorporating the Hilbert transform. Specifically, we propose SleepPACNet, a novel CNN-based DL architecture 
+for ASSC, which was designed to effectively extract PAC features by leveraging phase information revealed 
+through the Hilbert transform from a prefrontal single-channel EEG signal. SleepPACNet consists of two 
+parallel components: the conventional feature extraction module and PAC feature extraction module. To enable 
+CNN in SleepPACNet to capture the PAC information, we employed Hilbert transform to reveal the phase 
+information in low-frequency EEG signal37, and the low-frequency phase information was integrated with the 
+high-frequency amplitude information. To validate the classification performance of SleepPACNet, a bipolar 
+prefrontal single-channel EEG signal was generated from the Dreem Open Datasets (DOD)38. Furthermore, to 
+show the potential contribution of the PAC feature extraction module in SleepPACNet in classifying sleep stages, 
+we compared the classification performance of the SleepPACNet with that of the CNN model containing only 
+the conventional feature extraction module as well as those of state-of-the-art DL models for ASSC. To the best 
+Scientific Reports |        (2026) 16:17317 2| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 3 =====
+
+of our knowledge, SleepPACNet is the first DL model developed to utilize phase information extracted via the 
+Hilbert transform for the automatic extraction of PAC features from EEG.
+Overall, the contributions of our study are as follows:
+• We propose a novel DL architecture in which Hilbert-transformed low-frequency EEG signal and high-fre -
+quency EEG signal jointly pass through CNN layers to extract features that incorporate PAC information, un-
+der the assumption that the Hilbert-transformed EEG signal includes phase information, while the raw EEG 
+signal contains amplitude information. This extraction strategy facilitates the extraction of features embed -
+ding meaningful domain knowledge while minimizing information loss, thereby addressing the limitations 
+of traditional ML and DL approaches.
+• Our results suggest the possibility that our model could be utilized with a home-based portable EEG device, 
+as demonstrated by the validation using a bipolar prefrontal single-channel EEG signal for sleep stage classifi-
+cation. Through the extensive analyses, we demonstrate that our model outperformed state-of-the-art models 
+for ASSC as well as our model without the PAC feature extraction module.
+Materials and methods
+This section first provides a comprehensive overview of the experimental data utilized to assess the classification 
+performance of DL models. Then, it presents the detailed architecture of SleepPACNet, including the function 
+of each component, as depicted in Fig.  1. The detailed architectural specifications and hyperparameters 
+of SleepPACNet are provided in Supplementary information to ensure the reproducibility of the study 
+(Supplementary Table 1).
+Experimental data
+Previous research32,33 has demonstrated that single-channel EEG signals recorded from the prefrontal region 
+can benefit significantly from incorporating PAC features. Additionally, for implementing portable EEG devices 
+intended for home use, bipolar prefrontal EEG channels obtained from the forehead region are typically preferred 
+due to lower noise levels and greater ease of measurement. Consequently, we aimed to utilize a bipolar prefrontal 
+EEG signal recorded via a single bipolar channel (Fp1–Fp2). However, most publicly available EEG databases 
+do not contain such bipolar EEG recordings. Although the DOD38 also lacks direct Fp1–Fp2 signals, it provides 
+prefrontal and frontal EEG channels such as Fp1–F3, Fp2–F4, and F3–F4, as detailed in the Supplementary 
+information. These available channels allow simulation of bipolar prefrontal EEG signals suitable for portable 
+EEG devices. Accordingly, we generated a bipolar prefrontal EEG signal, Fp1–Fp2, by combining Fp1–F3, Fp2–
+F4, and F3–F4 channels, as follows:
+ Fp 1 − Fp 2= Fp 1 − F 3 − Fp 2 − F 4+ F 3 − F 4 (1)
+The PSG data in the DOD were recorded at a sampling rate of 250 Hz from 25 healthy participants. Sleep stages 
+were manually scored into W ake (W), N1, N2, N3, REM, and ‘Not-scored’ at 30-s intervals by trained experts 
+in accordance with the AASM scoring guidelines. The transformed Fp1–Fp2 EEG signals were segmented into 
+non-overlapping 30-s intervals to correspond with the identified sleep stages, with segments classified as ‘Not-
+scored’ being excluded from subsequent analyses. Each segment was then down-sampled to 100  Hz prior to 
+z-score normalization to enhance overall computational efficiency.
+Architecture of proposed model
+SleepPACNet is composed of two parallel modules: the PAC feature extraction module and conventional raw 
+EEG feature extraction module. The PAC feature extraction module captures PAC information by leveraging 
+the phase of low-frequency EEG signals in conjunction with the amplitude of high-frequency EEG signals. In 
+contrast, the raw EEG feature extraction module is designed to extract both temporal and frequency-domain 
+information from unprocessed EEG signals.
+ 1. PAC feature extraction module
+Fig. 1. The overall architecture of SleepPACNet.
+ 
+Scientific Reports |        (2026) 16:17317 3| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 4 =====
+
+To extract PAC features from EEG signals, it is necessary to use both the amplitude information, which is 
+inherently present in the raw EEG signal, and the phase information, which is not explicitly observable. In 
+this paper, to extract the phase information from the low-frequency EEG signal, raw EEG signal was bandpass 
+filtered using a 6th-order zero-phase Butterworth infinite impulse response (IIR) filter with passband of 0.5–
+8  Hz, and then Hilbert transform was applied to the filtered EEG data. The high-frequency EEG signal was 
+obtained by applying a 6th-order zero-phase Butterworth IIR filter with passband of 8–30 Hz. These frequency 
+bands were selected to take into account the frequency ranges for delta waves (0.5–4 Hz) and spindle waves (12–
+15 Hz). These two inputs were concatenated along the feature axis, allowing the CNN to explore the interaction 
+between the phase of the low-frequency signal and the amplitude of the high-frequency signal. However, direct 
+feature concatenation of the two inputs was not feasible, as the low-frequency signal was a complex value 
+owing to the Hilbert transform. Therefore, feature concatenation was performed on the high-frequency signal 
+with both the real part and imaginary part of the Hilbert-transformed low-frequency signal. As a result, two 
+CNN input features were obtained: Fr , representing the real part, Fi, representing the imaginary part, where 
+F r =( f1,f 2, ..., f T ) ∈ R2×T  and F i =( f1,f 2, ..., f T ) ∈ R2×T , where T represents the number of 
+time points.
+Figure 2 illustrates the detailed architecture used to extract PAC features from the obtained features Fr  and 
+Fi. T o investigate the relationship between the phase of low-frequency components and the amplitude of high-
+frequency components by integrating them, three procedures were conducted on the features Fr  and Fi. First, a 
+2D CNN layer with a kernel size of (2 × 1) and stride size of (1 × 1) was employed for each feature to capture 
+the simultaneous relationship between the phase of low frequency EEG and the amplitude of high frequency 
+EEG. Second, the following 2D CNN layer with kernel size of 100, to account for the PAC cycle locked to the 
+delta wave, was applied to each feature map that was obtained in the first step. The utilized CNN layers employed 
+the Gaussian Error Linear Unit (GELU) function 39 as the activation function. Finally, to integrate the feature 
+maps derived from Fr  and Fi, the real and imaginary parts of the extracted feature maps, denoted by ˆFr  and ˆFi, 
+respectively, were reconstructed into complex-valued representations as F complex = ˆF r + iˆF i. The complex 
+norm of the Fcomplex was then computed to obtain the integrated feature maps. Additionally, the dropout layer 
+with a rate of 0.5, followed by a max pooling layer with a pool size of 4 and a stride of 2, was applied as the final 
+step.
+ 2. Raw EEG feature extraction module
+Fig. 2. Detailed architecture of PAC feature extraction module after concatenation of Hilbert-transformed 
+low-frequency signal and high-frequency signal. Fr , features obtained by concatenating real part of Hilbert-
+transformed low-frequency signal and high-frequency signal; Fi, features obtained by concatenating imaginary 
+part of Hilbert-transformed low-frequency signal and high-frequency signal; Conv, 2D convolutional neural 
+networks; GELU, Gaussian Error Linear Unit.
+ 
+Scientific Reports |        (2026) 16:17317 4| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 5 =====
+
+It was assumed that PAC features would augment the capacity of the deep learning network to classify raw 
+EEG signals. Therefore, the network architecture for the extraction of raw EEG features was not modified from 
+conventional architectures. To extract these features, we employed a structure analogous to that utilized in 
+various previous studies on ASSC, as illustrated in Fig.  318,19,40,41. This module is composed of two parallel 
+blocks and a subsequent block: a CNN-based temporal feature extraction block with narrow kernels, a CNN-
+based frequency feature extraction block with wide kernels, and a refinement block. Each feature extraction 
+block comprises identical components, including the first 1D CNN layer, followed by a max-pooling layer and a 
+dropout layer with a rate of 0.5, the second 1D CNN layer, and the third 1D CNN layer, which is also followed by 
+a max-pooling layer. These CNN layers used the GELU function as an activation function. The wide kernel size 
+of the first 1D CNN layer was set to 200, considering the input signal’s sampling rate of 100. Similarly, the narrow 
+kernel size of the first 1D CNN layer was set to 50. Subsequently, the feature maps obtained from each module 
+were concatenated along the time axis. To filter unnecessary information from the concatenated feature maps, 
+refinement was conducted. In the refinement block, the concatenated feature maps were fed into a dropout layer 
+with a rate of 0.5, followed by two additional 1D CNN layers to reduce the number of parameters. The activation 
+function employed in these CNN layers was the Rectified Linear Unit (ReLU) function 42. Finally, an average 
+pooling layer was applied to reduce the sample size. All these structures and hyperparameters were optimized by 
+repeated trial-and-error executions.
+ 3. Classification module
+To leverage both the information of PAC features and raw EEG features, the feature maps from the PAC feature 
+extraction module and the raw EEG feature extraction module were concatenated along the temporal axis. For 
+refinement, a 1D CNN layer was inserted, with a kernel size of 8 and a stride of 2, to extract feature maps 
+that amalgamate information from both extraction modules. Subsequently, the integrated feature maps were 
+flattened following their passage through a max pooling layer, with a pool size of 4 and a stride of 2, and were 
+then subjected to a dropout layer with a rate of 0.5. After this process, two fully connected (FC) layers were 
+employed to calculate the probabilities of EEG segments being classified into each sleep stage. The first FC layer 
+employed the ReLU activation function, while the second FC layer utilized the softmax activation function, as 
+shown in Fig. 1.
+Weighted loss function
+The imbalanced distribution of sleep stages is one of the most significant challenges in DL-based classification 
+of sleep stages. To address this class imbalance issue, the weighted cross-entropy loss function developed by 
+Eldele et al.40 was employed, with weights adjusted according to the frequency of occurrence of each sleep stage. 
+For example, higher weights were assigned to N1 stage with low prevalence, while lower weights were allocated 
+to more prevalent N2 stage. Given that the one-hot encoded ground-truth label is represented as yi
+k  and the 
+predicted probability is denoted as ˆyi
+k
+, which indicates i-th sample for the stage k, where N is the batch size and 
+K is the number of sleep stages, the weighted cross-entropy loss function, Loss, is defined by (2).
+ 
+Loss = − 1
+N
+K∑
+k=1
+N∑
+i=1
+ωkyi
+k log
+(
+ˆyi
+k
+)
+ (2)
+ ωk = µk · max (1,log (µk N/N k )),  (3)
+Where ωk  stands for the weight of each stage, µk  denotes the parameter for weight, and Nk  is the number of 
+samples in each stage. µk  was assigned different values depending on the sleep stage as follows.
+Fig. 3. Detailed architecture of Raw EEG feature extraction module. S (t), raw EEG signal; Conv, 1D 
+convolutional neural networks; GELU, Gaussian Error Linear Unit; ReLU, Rectified Linear Unit.
+ 
+Scientific Reports |        (2026) 16:17317 5| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 6 =====
+
+ 
+µk =
+
+
+
+a/K k = W
+b/K k = N 1
+c/K k = N 2
+d/K k = N 3
+e/K k = REM
+,  (4)
+Where a, b, c, d, and e are hyperparameters that are dependent on the distribution of the used dataset. They were 
+set to 1.5, 1.8, 1, 1.5, and 1.2, respectively.
+Model training
+The leave-one-subject-out cross-validation method was employed to enhance the reliability of classification 
+performance. To prevent overfitting, 24 participants were randomly divided into training and validation sets in a 
+21:3 ratio, excluding one designated for the test set. In this procedure, segments from the same participant were 
+assigned to the same set to avoid information leakage between participants.
+In the training phase, 100 epochs and a batch size of 128 were applied. To optimize the weighted loss 
+function, AdamW43 optimizer was employed considering its superior generalization capabilities compared to 
+other optimizers. The parameters included 0.9 of β1, 0.999 of β2, and a weight decay of 1 × 10−6. The cosine 
+annealing learning rate scheduler44 was employed to prevent the DL model from converging to a local minimum 
+during the optimization process. The Initial learning rate was set to 1 × 10−3, with a decay step of 1400. The 
+parameter Tmult, Mmult, α were set to 1, 1, and 1 × 10−3, respectively. All the training and classification 
+processes of DL models were conducted using Python 3.9.12 version with NVIDIA Geforce RTX 4070 Ti Super.
+Evaluation metrics
+To evaluate the classification performance of each sleep stage, three per-class evaluation metrics, including 
+Precision (PR), Recall (RE), and the per-class F1-score (F1) were used. The definitions of these metrics are as 
+follows:
+ PR = TP
+TP +FP  (5)
+ RE = TP
+TP+FN  (6)
+ F 1= 2×PR×RE
+PR +RE  (7)
+Where TP , FP , and FN  represent true positives, false positives, and false negatives, respectively. Additionally, 
+the overall performance of sleep stage classification was evaluated using accuracy ( ACC), macro-averaged F1-
+score (MF1), and Cohen’s Kappa coefficient (κ)45, which were calculated using the following equations:
+ ACC =
+∑K
+i=1TPi
+M
+ (8)
+ 
+MF 1=
+K∑
+i=1
+F1i  (9)
+ κ = ACC −PC
+1−PC  (10)
+Where M is the total number of samples, PC  indicates the probability that the true and predicted sleep stages 
+coincided, and K represents the number of sleep stages.
+Models for comparison with SleepPACNet
+To evaluate the classification performance of SleepPACNet objectively, we compared its performance with 
+that of other DL models. Classification performances of the previous ASSC models, including SleepFCN 18, 
+DeepSleepNet41, and TinySleepNet20 were implemented to prove that SleepPACNet outperformed these ASSC 
+models. All the tested DL models were optimized so that they could achieve the highest ASSC accuracy. To 
+ensure a fair and rigorous comparison with SleepPACNet, experimental data using the bipolar prefrontal EEG 
+signals, model training from scratch, and evaluation were consistently applied to the previous ASSC models.
+Ablation studies
+To evaluate the contribution of the PAC feature extraction module in SleepPACNet, a conventional CNN-based 
+DL model, denoted as SleepCNN, was implemented by excluding the PAC feature extraction module from 
+SleepPACNet. Furthermore, several architectural variants were tested to justify the design choices of SleepPACNet 
+from two perspectives: the efficacy of PAC feature extraction and hyperparameter optimality. First, regarding the 
+efficacy of PAC extraction, the importance of explicitly exposing phase information was evaluated by assessing 
+the case without the Hilbert transform. Within the same perspective, to demonstrate that the proposed module 
+extracts more adaptive features, a case was conducted replacing the module with hand-crafted PAC features, 
+specifically the MI calculated from the predefined frequency bands used in this study. Additionally, to investigate 
+the most effective structural approach for complex-valued features, the performance was compared against a 
+complex-valued CNN (CV-CNN) architecture, which was implemented as an alternative to the parallel CNN 
+structure independently processing real and imaginary parts. Second, to ensure hyperparameter optimality, the 
+influence of frequency band selection was examined by applying narrow frequency bands that precisely target 
+Scientific Reports |        (2026) 16:17317 6| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 7 =====
+
+delta waves (0.5–4 Hz) and sleep spindles (12–15 Hz). Furthermore, the robustness of the model’s regularization 
+was evaluated by modifying the dropout rate to a lower value of 0.2. To ensure an objective evaluation, all 
+hyperparameters and experimental settings were identically applied to SleepPACNet, except for the modified or 
+excluded modules in each ablation case.
+Statistical analysis
+To examine which sleep stages showed significant improvement in classification performance, F1-scores of 
+SleepPACNet and SleepCNN were compared for each sleep stage. The normality of the F1-score distributions 
+was assessed by confirming that the absolute values of skewness and kurtosis were below 2 and 7, respectively46. 
+Since the F1-scores satisfied the normality assumption, a paired t-test was performed on the F1-scores for each 
+sleep stage in SleepPACNet and SleepCNN. To address the multiple comparison issue, Bonferroni correction 
+was applied by multiplying the probability by five, which corresponds to the number of sleep stages47.
+Results
+Model classification performance
+Table 1 presents the confusion matrix and per-class performance metrics of SleepPACNet. The N2 and N3 stages 
+exhibited superior classification performance compared to other sleep stages, with F1-scores exceeding 0.8. In 
+contrast, a large number of epochs in the N1 stage were misclassified into other sleep stages, with the exception 
+of the N3 stage. Table  2 compares the classification performance of SleepPACNet with that of previous ASSC 
+models. Both overall performance and per-class F1-scores were highest in SleepPACNet compared to all previous 
+DL-based ASSC models, achieving a classification accuracy of 75.7%. Detailed per-subject classification accuracy 
+is provided in the Supplementary Information to further demonstrate the generalizability and robustness of 
+SleepPACNet (Supplementary Fig. 1).
+Ablation studies of SleepPACNet
+Table 3 summarizes the results of the ablation studies, where SleepPACNet serves as the reference model. As 
+shown in the table, SleepPACNet outperformed SleepCNN in both overall performance and per-class F1-scores, 
+improving classification accuracy by more than 2.4% compared to when the PAC feature extraction module was 
+excluded. Regarding the efficacy of the PAC extraction module, replacing this module with hand-crafted PAC 
+exhibited the lowest accuracy of 71.2%, which was even lower than that of SleepCNN. In contrast, while the case 
+without the Hilbert transform and the use of CV-CNN architecture yielded higher accuracy than SleepCNN, 
+both cases resulted in lower overall performance compared to SleepPACNet. Specifically, the case of using CV-
+CNN outperformed the case without the Hilbert transform in terms of overall performance. With respect to 
+hyperparameter optimality, both the application of narrow frequency bands and the reduction of the dropout 
+rate to 0.2 resulted in lower accuracy compared to original SleepPACNet.
+Hypnogram
+To illustrate the similarity between the ground-truth hypnogram and the predicted hypnogram, Fig. 4 displays 
+the hypnograms of a participant whose sleep stages were predicted with the highest accuracy. The overall sleep 
+structure of the predicted hypnogram closely resembles that of the true hypnogram; however, there are some 
+parts in the predicted hypnogram where sleep stages transition rapidly analogous to noise. It is to be noted 
+Models
+Overall performance Per-class F1-score (%)
+ACC (%) MF1 (%) κ W N1 N2 N3 REM
+SleepPACNet (ours) 75.7 0.672 0.654 0.689 0.293 0.834 0.807 0.738
+SleepFCN18 55.2 0.496 0.413 0.542 0.158 0.611 0.663 0.507
+DeepSleepNet41 67.2 0.542 0.532 0.545 0.057 0.758 0.708 0.642
+TinySleepNet20 71.8 0.566 0.575 0.607 0.012 0.800 0.740 0.672
+Table 2. Comparison of the classification performance of SleepPACNet and other previous ASSC models 
+using Fp1–Fp2 signal.
+ 
+Predicted
+Per-class 
+performance (%)
+W N1 N2 N3 REM PR RE F1
+W 2003 384 183 22 445 0.722 0.660 0.689
+N1 210 484 358 3 450 0.270 0.322 0.293
+N2 261 621 9510 584 903 0.871 0.801 0.834
+N3 130 13 496 2805 70 0.815 0.798 0.807
+REM 171 294 377 28 3857 0.674 0.816 0.738
+Table 1. Confusion matrix and per-class performance of the SleepPACNet using Fp1–Fp2 signal.
+ 
+Scientific Reports |        (2026) 16:17317 7| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 8 =====
+
+that the predicted hypnogram was obtained using a single-channel prefrontal EEG, whereas the ground-truth 
+hypnogram was estimated using multimodal biomedical signals manually by a sleep expert.
+Comparison of f1-score between SleepPACNet and SleepCNN
+Figure 5 shows the F1-score distributions of SleepPACNet and SleepCNN across sleep stages. There is a significant 
+difference in the F1-scores between SleepPACNet and SleepCNN for the REM stage (Bonferroni corrected 
+p = 0.002; SleepPACNet: 0.729 ± 0.039; SleepCNN: 0.686 ± 0.041), with SleepPACNet achieving a significantly 
+higher F1-score compared to SleepCNN. In constant, no significant differences were observed for other sleep 
+stages, although SleepPACNet exhibited higher F1-scores than SleepCNN across all sleep stages.
+Discussions
+In this study, we developed SleepPACNet, a novel CNN-based model incorporating PAC information, and 
+we evaluated the ASSC performance of SleepPACNet. Our findings indicate that SleepPACNet is capable of 
+accurately classifying sleep stages utilizing bipolar prefrontal single-channel EEG, which is beneficial for 
+capturing PAC information while maintaining superior classification performance. SleepPACNet demonstrated 
+enhanced performance compared to other ASSC models, such as SleepCNN, SleepFCN, DeepSleepNet, and 
+TinySleepNet. Although SleepPACNet did not show a statistically significant improvement in performance 
+compared to SleepCNN during the N2 and N3 stages, it achieved robust classification performance with an 
+F1-score exceeding 0.8, demonstrating its ability to accurately detect deep sleep. Additionally, a statistically 
+significant improvement was observed during the REM stage, indicating that the extracted PAC features played 
+a crucial role in distinguishing REM sleep patterns in a bipolar prefrontal single-channel EEG. While CNNs are 
+proficient at extracting amplitude features from raw EEG signals, they face challenges in effectively capturing 
+phase features. To address this issue, Kim et al. 48 introduced the HiRENet, which facilitates the extraction of 
+phase features from raw EEG signals via the Hilbert transform, demonstrating an enhancement in classification 
+performance within deep learning frameworks. To extract PAC features, the Hilbert transform was utilized to 
+clarify the phase information associated with low-frequency EEG signals. The importance of PAC information 
+Fig. 4. The hypnogram of a subject who showed the best classification accuracy. The upper hypnogram was 
+manually scored by an expert, while the lower hypnogram was automatically classified using SleepPACNet.
+ 
+Architectures
+Overall performance Per-class F1-score (%)
+ACC (%) MF1 (%) κ W N1 N2 N3 REM
+SleepPACNet 75.7 0.672 0.654 0.689 0.293 0.834 0.807 0.738
+SleepCNN 73.3 0.646 0.623 0.636 0.265 0.831 0.795 0.705
+Hand-crafted PAC 71.2 0.620 0.586 0.594 0.252 0.803 0.781 0.670
+w/o Hilbert Transform 74.2 0.657 0.638 0.641 0.278 0.826 0.788 0.753
+CV-CNN 75.1 0.666 0.646 0.664 0.296 0.836 0.793 0.739
+Narrow frequency bands 74.3 0.658 0.639 0.680 0.268 0.833 0.798 0.710
+Low Dropout (rate = 0.2) 72.6 0.641 0.614 0.628 0.272 0.818 0.787 0.702
+Table 3. Ablation studies: Classification performance of SleepPACNet.
+ 
+Scientific Reports |        (2026) 16:17317 8| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 9 =====
+
+in the classification of sleep stages was evidenced by the superior performance of SleepPACNet in comparison 
+to SleepCNN, the latter differing solely in its exclusion of the PAC feature extraction module present in 
+SleepPACNet. This finding indicates that PAC features were effectively extracted by integrating the phase features 
+of low-frequency EEG signals, obtained through the Hilbert transform, with the amplitude features of high-
+frequency EEG signals using CNN. These results imply that the PAC feature extraction module has significant 
+potential to enhance the performance of sleep stage classification when incorporated into other models.
+In particular, the results of the ablation studies provide strong evidence that the application of the Hilbert 
+transform to reveal phase information for the automatic extraction of PAC features plays a critical role in 
+enhancing performance. Among the ablation studies focused on the efficacy of the PAC extraction module, 
+replacing this module with hand-crafted PAC resulted in the lowest performance. This indicates that the PAC 
+extraction module enhances classification by automatically selecting the most suitable PAC features among 
+various PAC metrics for sleep stage classification, rather than relying on predefined fixed metrics. Furthermore, 
+the finding that the case without the Hilbert transform outperformed SleepCNN but remained inferior to 
+SleepPACNet suggests that while the separation of frequency bands provides some performance improvement, 
+the explicit exposure of phase information using the Hilbert transform makes a more substantial contribution 
+to the classification performance. Finally, the slightly higher performance of SleepPACNet compared to the case 
+using CV-CNN may reflect that our architecture is functionally sufficient to capture essential phase information. 
+Consequently, the consistent superior performance of SleepPACNet across three ablation studies demonstrates 
+that revealing phase information and automatically extracting PAC features is the optimal configuration for 
+sleep stage classification.
+Furthermore, the results of an ablation study on narrow frequency bands (e.g., 0.5–4 Hz for the low-frequency 
+band and 12–15 Hz for the high-frequency band) exhibited lower classification performance compared with 
+SleepPACNet, which utilizes 0.5–8 Hz for a low-frequency band and 8–30 Hz for a high-frequency band. The 
+frequency bands of SleepPACNet were empirically selected to comprehensively capture the characteristic 
+interactions of both NREM and REM sleep stages. The enhanced performance of SleepPACNet is attributed to 
+the inclusion of broader frequency ranges, specifically a low-frequency band (0.5–8 Hz) that incorporates both 
+the delta waves (0.5–4 Hz) prominent during NREM sleep and the theta waves (4–8 Hz), characteristic of REM 
+sleep. Similarly, the high-frequency band (8–30 Hz) encompasses not only NREM sleep spindles (12–15 Hz) 
+but also beta activity (15–30 Hz), which has been reported to interact with theta rhythms in the frontal lobe 
+during REM sleep44. This broad frequency band may enable the CNN to automatically extract cross-frequency 
+relationships from both NREM and REM sleeps, such as delta–spindle coupling during NREM and theta–beta 
+interactions during REM.
+SleepPACNet al.so outperformed previous ASSC models in classifying the sleep stages using a bipolar 
+prefrontal single-channel EEG signal. In our study, other previous ASSC models exhibited lower accuracy 
+compared to the earlier research, which may be attributed to the use of a bipolar prefrontal single-channel 
+EEG signal. Most prior studies employing single-channel EEG for ASSC used electrode pairs including central 
+electrodes, such as Fpz–Cz, C3–M2, and C4–M1, which are recommended by the R&K and AASM manuals as 
+key channels where sleep EEG features, such as sleep spindles and K-complex, are prominently represented 7,8. 
+Accordingly, several studies utilizing Fp1–Fp2 signals have consistently reported lower performances; for 
+instance, Shambroom et al.41 showed that ASSC using Fp1–Fp2 signal exhibited lower performance compared 
+to that using PSG, and Stepnowsky et al. 42 reported a classification accuracy of approximately 70% using Fp1–
+Fp2 signals. Consequently, the lack of distinct EEG characteristics in the prefrontal regions inevitably leads 
+many state-of-the-art ASSC models to underperform in this study compared to their results in previous 
+studies. However, the employment of a bipolar prefrontal single-channel EEG signal for ASSC is important 
+from a practical perspective, such as when using a portable EEG device during sleep at home. This approach 
+helps reduce noise caused by hair 49 and enables the use of electronic skin for EEG measurement. Therefore, 
+Fig. 5. The comparison of F1-scores across sleep stages between SleepPACNet and SleepCNN. The mean bars 
+represent the average F1-scores for each sleep stage, while the error bars indicate the standard error of the 
+mean. ∗p< 0.05, ∗∗ p< 0.01,∗∗∗ p< 0.005.
+ 
+Scientific Reports |        (2026) 16:17317 9| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 10 =====
+
+SleepPACNet has the potential to be effectively implemented in real-world applications for the classification of 
+sleep stages by extracting both PAC information and other EEG characteristics from a bipolar prefrontal single-
+channel EEG signal.
+Despite the practical advantages of using Fp1–Fp2 signals, the development of ASSC models is limited by 
+the absence of an open database with bipolar prefrontal EEG signals. In this study, the Fp1–Fp2 signals were 
+synthesized using Fp1–F3, Fp2–F4, and F3–F4 signals in DOD. However, synthesized signals may potentially 
+differ from real signals in terms of noise characteristics. To verify the technical validity of this synthesis, an 
+additional analysis was conducted by comparing the synthesized Fp1–Fp2 signals with real Fp1–Fp2 signals 
+recorded during the eye-closed resting-state in an independent measurement. Detailed information regarding 
+the measurement is provided in the Supplementary Information. The synthesized and real signals exhibited 
+similar waveforms and showed high correlations in power spectral density (r = 0.910) (Fig. 6). Furthermore, noise 
+analysis using the FOOOF algorithm50 demonstrated consistent 1/f noise profiles between the synthesized Fp1–
+Fp2 signals and the original Fp1–F3, Fp2–F4, and F3–F4 signals in DOD (Supplementary Fig.  2). While minor 
+discrepancies may exist due to hardware factors such as electrode impedance, these results demonstrate that the 
+synthesized Fp1–Fp2 signals effectively preserve the essential physiological characteristics of recorded Fp1–Fp2 
+signals. Nevertheless, the public release of large-scale, open-access Fp1–Fp2 datasets would be invaluable for 
+further advancing practical tools that support sleep assessment and improvement.
+Fig. 6. Comparison between real and synthetic Fp1–Fp2 EEG signals. (a) The comparison of signal waveforms 
+and (b) The comparison of PSD. The black lines represent the real EEG signal or features derived therefrom, 
+while the red lines represent the synthetic EEG signal or its derived features. PSD: power spectral density.
+ 
+Scientific Reports |        (2026) 16:17317 10| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 11 =====
+
+Scored sleep stages are commonly used to assess sleep quality and facilitate in its improvement. Among 
+these stages, the N3 stage is recognized as one of the most important, as a deficiency in N3 stage can lead to 
+fatigue, waking up feeling tired, and cognitive decline 51,52. Consequently, many studies have been conducted 
+to increase slow oscillations of the N3 stage during sleep through auditory 53,54 or electrical stimulation 55,56. 
+However, indiscriminate stimulation can disrupt sleep rather than enhance it 54, underscoring the need for 
+precise, closed-loop stimulation specifically targeting the N3 stage. To achieve this, an accurate ASSC model 
+is essential for reliably identifying the N3 stage. SleepPACNet demonstrates strong potential in this regard, 
+achieving an F1-score exceeding 0.8 for N3 stage detection. This capability marks a significant advancement in 
+the commercialization of home-based stimulation systems, as discussed in relation to real-world applications.
+Aside from sleep research, PAC features have been employed as important markers for traditional ML-based 
+classification across various domains, including neuropsychiatry, motor imagery, and emotion recognition57–60. 
+Furthermore, many studies in these fields have attempted to use PAC features in DL-based classification. For 
+example, Li et al.61 classified epileptic brain activity using handcrafted complex-valued PAC features with a DL-
+based approach utilizing a complex-valued CNN. However, handcrafted PAC features may not always represent 
+the optimal PAC measure for each specific classification task, potentially limiting improvements in classification 
+performance in previous studies. Therefore, SleepPACNet could provide an alternative approach to enhance 
+classification performance in other fields, as it automatically extracts features.
+Although the PAC features were successfully extracted using SleepPACNet, the precise role of these features 
+in classifying sleep stages remains unclear due to the inherent nature of DL ’s black box systems. This limitation 
+emphasizes the necessity of investigating the extracted PAC features in greater detail to uncover the underlying 
+neurophysiological phenomena associated with PAC during different sleep stages. Therefore, to verify whether 
+the learned features align with physiological expectations using explainable artificial intelligence (XAI) methods, 
+we visualized the class activation maps using Grad-CAM. As shown in Fig.  7, the heatmaps showed that the 
+model’s attention was concentrated at specific phases of delta waves, precisely where sleep spindle waveforms 
+were clearly observed in NREM stages (N2 and N3). In the REM stage, the importance weights increased 
+around the peaks of theta waves, coinciding with regions where beta activity was distinctly visible. These results 
+confirm that SleepPACNet successfully learned the well-known delta-alpha coupling in NREM and theta-beta 
+interaction in REM. Additionally, these XAI methods could further expand the application of PAC by enhancing 
+our understanding of its mechanisms. For example, there have been some attempts to improve memory 
+consolidation, which is well-known phenomenon related to PAC that occurs when people fall asleep through 
+the use of transcranial electrical stimulation (tES)33,62,63. As more detailed insights into PAC parameters, such as 
+Fig. 7. Grad-CAM visualization of learned features. These graphs display the raw EEG signals overlaid with 
+importance heatmaps (with color intensity representing the level of feature importance). (a) N2 and (b) N3: 
+The model’s attention concentrates on specific phases of delta waves, precisely where sleep spindle waveforms 
+are clearly observed. (c) REM: The importance weights increase around the peaks of theta waves, coinciding 
+with regions where beta activity is distinctly visible. These patterns confirm that the model automatically 
+captures physiological delta-spindle coupling in NREM and theta-beta coupling in REM sleep.
+ 
+Scientific Reports |        (2026) 16:17317 11| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 12 =====
+
+the timing of PAC synchronization, are obtained, tES may be employed to further enhance PAC synchronization 
+and thereby strengthen memory consolidation64.
+There are several primary limitations in our study. Firstly, the absence of an open database containing 
+bipolar prefrontal EEG signals with PAC information necessitated the theoretical generation of these signals to 
+approximate those obtained through direct measurement. However, it is important to acknowledge that minor 
+discrepancies may arise due to potential noise interference. Secondly, the limited number of sleep stage samples 
+available constrains the application of deep learning-based classification methods. Thirdly, SleepPACNet was 
+evaluated using only DOD, which may limit the generalization ability of our findings to different populations 
+and recording setups. Consequently, further validation of SleepPACNet using additional datasets or diverse 
+recording environments, with larger sample sizes obtained directly from bipolar prefrontal single-channel 
+EEG signals, would significantly strengthen the evidence for the applicability of SleepPACNet. Additionally, 
+although SleepPACNet primarily relies on CNNs to extract frequency-specific features, this architecture may 
+have limitations in modeling long-range temporal dependencies across consecutive epochs. Previous ASSC 
+studies have demonstrated that hybrid architectures combining CNNs with explicit temporal modeling modules 
+can significantly enhance decoding performance. For instance, DeepSleepNet 41 utilized Bidirectional LSTM 
+(Bi-LSTM) to capture sequential patterns, and AttnSleepNet40 employed a multi-head attention mechanism to 
+learn temporal context from sleep EEG signals. Additionally, AtSiftNet 65 has also demonstrated that attention 
+mechanisms can enhance EEG classification performance by effectively capturing temporal information. 
+Therefore, a promising future direction is to integrate these temporal modeling mechanisms (e.g., Self-Attention 
+or Bi-LSTM) into the SleepPACNet framework to better capture contextual information across sleep stages.
+Conclusion
+We developed a novel CNN-based ASSC model, SleepPACNet, which is capable of automatically extracting PAC 
+features to classify sleep stages using single-channel EEG. The PAC features were extracted using CNN through 
+the concatenation of a Hilbert-transformed low-frequency EEG signal, which enhances the accessibility of phase 
+information, and a high-frequency EEG signal. To evaluate the classification performance of SleepPACNet, we 
+used the bipolar prefrontal single-channel EEG signal, Fp1–Fp2, as it provides valuable PAC information and 
+offers high potential for practical applications. The classification performance of SleepPACNet outperformed 
+that of SleepCNN, indicating that the automatically extracted PAC features from SleepPACNet contribute to 
+more accurate sleep stage classification.
+However, the small sample size, the limited generalization arising from using a single dataset, and the use of 
+generated signals, which may be affected by potential noise issues, may constrain our study. Future work should 
+focus on improving classification performance and generalization by directly measuring bipolar prefrontal 
+single-channel EEG signals from a larger number of participants across diverse populations or recording setups 
+during sleep. Furthermore, the practical applicability of SleepPACNet can be further validated by employing 
+portable EEG devices in subsequent studies. Additionally, the implementation of XAI methods in further 
+studies could provide insights into the role of PAC features as biomarkers in classification, thereby broaden our 
+understanding of the sleep phenomena associated with PAC.
+Data availability
+The Dreem Open datasets are publicly available and can be accessed at  [ h t t p s : / / z e n o d o . o r g / r e c o r d s / 1 5 9 0 0 3 9 4 
+] ( h t t p s : / z e n o d o . o r g / r e c o r d s / 1 5 9 0 0 3 9 4 ) . Further detailed information regarding the dataset is provided in the 
+associated publication (  [ h t t p s : / / d o i . o r g / 1 0 . 1 1 0 9 / T N S R E . 2 0 2 0 . 3 0 1 1 1 8 1 ] ( h t t p s : / d o i . o r g / 1 0 . 1 1 0 9 / T N S R E . 2 0 2 0 . 3 
+0 1 1 1 8 1 ) ).
+Received: 7 November 2025; Accepted: 10 April 2026
+References
+ 1. Aboalayon, K. A. I., Faezipour, M., Almuhammadi, W . S. & Moslehpour, S. Sleep stage classification using EEG signal analysis: a 
+comprehensive survey and new investigation. Entropy 18, 272 (2016).
+ 2. Memar, P . & Faradji, F . A. Novel multi-class EEG-based sleep stage classification system. IEEE Trans. Neural Syst. Rehabil Eng. 26, 
+84–95 (2018).
+ 3. Porkka-Heiskanen, T., Zitting, K. M. & Wigren, H. K. Sleep, its regulation and possible mechanisms of sleep disturbances. Acta 
+Physiol. (Oxf.) 208, 311–328 (2013).
+ 4. Boostani, R., Karimzadeh, F . & Nami, M. A comparative review on sleep stage classification methods in patients and healthy 
+individuals. Comput. Methods Programs Biomed. 140, 77–91 (2017).
+ 5. Vilamala, A., Madsen, K. H. & Hansen, L. K. Deep convolutional neural networks for interpretable analysis of eeg sleep stage 
+scoring. 2017 IEEE 27th Int. Workshop Mach. Learn. Signal Process. (2017).
+ 6. Krystal, A. D. & Edinger, J. D. Measuring sleep quality. Sleep. Med. 9 (Suppl 1), S10–17 (2008).
+ 7. Wolpert, E. A. A manual of standardized terminology, techniques and scoring system for sleep stages of human subjects. Arch. Gen. 
+Psychiatry. 20, 246–247 (1969).
+ 8. Berry, R. B. et al. AASM scoring manual updates for 2017 (Version 2.4). J. Clin. Sleep. Med. 13, 665–666 (2017).
+ 9. Phan, H. et al. Towards more accurate automatic sleep staging via deep transfer learning. IEEE Trans. Biomed. Eng. 68, 1787–1798 
+(2021).
+ 10. Hassan, A. R. & Bhuiyan, M. I. A decision support system for automatic sleep staging from EEG signals using tunable Q-factor 
+wavelet transform and spectral features. J. Neurosci. Methods. 271, 107–118 (2016).
+ 11. Vitazkova, D. et al. Transforming sleep monitoring: review of wearable and remote devices advancing home polysomnography and 
+their role in predicting neurological disorders. Biosensors 15, 117 (2025).
+ 12. Santaji, S. & Desai, V . Analysis of EEG signal to classify sleep stages using machine learning. Sleep. Vigil. 4, 145–152 (2020).
+ 13. Mousavi, Z., Y ousefi Rezaii, T., Sheykhivand, S., Farzamnia, A. & Razavi, S. N. Deep convolutional neural network for classification 
+of sleep stages from single-channel EEG signals. J. Neurosci. Methods. 324, 108312 (2019).
+Scientific Reports |        (2026) 16:17317 12| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 13 =====
+
+ 14. Liang, S. F ., Kuo, C. E., Hu, Y . H., Pan, Y . H. & Wang, Y . H. Automatic stage scoring of single-channel sleep EEG by using multiscale 
+entropy and autoregressive models. IEEE Trans. Instrum. Meas. 61, 1649–1657 (2012).
+ 15. Chen, Z. H., Zhang, L., Cao, Z. G. & Guo, J. Distilling the knowledge from handcrafted features for human activity recognition. 
+IEEE Trans. Ind. Inf. 14, 4334–4342 (2018).
+ 16. Lin, W ., Hasenstab, K., Moura Cunha, G. & Schwartzman, A. Comparison of handcrafted features and convolutional neural 
+networks for liver MR image adequacy assessment. Sci. Rep. 10, 20336 (2020).
+ 17. Xu, Y . K., Y ang, J., Zhao, S. Q., Wu, H. M. & Sawan, M. An end-to-end deep learning approach for epileptic seizure prediction. In 
+2020 2nd IEEE Int. Conf. Artif. Intell. Circuits Syst. (AICAS) 266–270 (2020).
+ 18. Goshtasbi, N., Boostani, R. & Sanei, S. SleepFCN: a fully convolutional deep learning framework for sleep stage classification using 
+single-channel electroencephalograms. IEEE Trans. Neural Syst. Rehabil. Eng. 30, 2088–2096 (2022).
+ 19. Mousavi, S., Afghah, F ., Acharya, U. R. & SleepEEGNet: automated sleep stage scoring with sequence to sequence deep learning 
+approach. PLoS One. 14, e0216456 (2019).
+ 20. Supratak, A. & Guo, Y . TinySleepNet: an efficient deep learning model for sleep stage scoring based on raw single-channel EEG. 
+Annu. Int. Conf. IEEE Eng. Med. Biol. Soc. 2020, 641–644 (2020).
+ 21. Wang, G. et al. Eegpt: pretrained transformer for universal and reliable representation of eeg signals. Adv. Neural Inf. Process. Syst. 
+37, 39249–39280 (2024).
+ 22. Cui, W . H. et al. Neuro-Gpt: towards a foundation model for Eeg. IEEE Int. Symp. Biomed. Imaging (2024).
+ 23. Jiang, W . B., Zhao, L. M. & Lu, B. L. Large brain model for learning generic representations with tremendous EEG data in BCI. 
+arXiv:2405.18765 (2024).
+ 24. Aziz, M. Z. et al. BCINetV1: integrating temporal and spectral focus through a novel convolutional attention architecture for MI 
+EEG decoding. Sensors 25, 1452 (2025).
+ 25. Yu, X. J. et al. Computerized multidomain EEG classification system: a new paradigm. IEEE J. Biomed. Health Inf. 26, 3626–3637 
+(2022).
+ 26. Hu, D. H. et al. Epileptic state classification by fusing hand-crafted and deep learning EEG features. IEEE Trans. Circuits Syst. II 
+Express Briefs. 68, 1542–1546 (2021).
+ 27. Bustios, P . & Rosa, J. L. G. Incorporating hand-crafted features into deep learning models for motor imagery EEG-based 
+classification. Appl. Intell. 53, 30133–30147 (2023).
+ 28. Zhao, L. et al. Stress detection via multimodal multitemporal-scale fusion: a hybrid of deep learning and handcrafted feature 
+approach. IEEE Sens. J. 23, 27817–27827 (2023).
+ 29. Bruns, A. & Eckhorn, R. Task-related coupling from high- to low-frequency signals among visual cortical areas in human subdural 
+recordings. Int. J. Psychophysiol. 51, 97–116 (2004).
+ 30. Canolty, R. T. et al. High gamma power is phase-locked to theta oscillations in human neocortex. Science 313, 1626–1628 (2006).
+ 31. Osipova, D., Hermes, D. & Jensen, O. Gamma power is phase-locked to posterior alpha activity. PLoS One. 3, e3990 (2008).
+ 32. Cairney, S. A., Ashton, J. E., Roshchupkina, A. A. & Sobczak, J. M. A dual role for sleep spindles in sleep-dependent memory 
+consolidation? J. Neurosci. 35, 12328–12330 (2015).
+ 33. Weiner, O. M. et al. Slow oscillation-spindle cross-frequency coupling predicts overnight declarative memory consolidation in 
+older adults. Eur. J. Neurosci. 59, 662–685 (2024).
+ 34. Manasova, D. & Stankovski, T. Neural cross-frequency coupling functions in sleep. Neuroscience 523, 20–30 (2023).
+ 35. Dimitriadis, S. I., Salis, C. & Linden, D. A novel, fast and efficient single-sensor automatic sleep-stage classification based on 
+complementary cross-frequency coupling estimates. Clin. Neurophysiol. 129, 815–828 (2018).
+ 36. Hulsemann, M. J., Naumann, E. & Rasch, B. Quantification of phase-amplitude coupling in neuronal oscillations: comparison of 
+phase-locking value, mean vector length, modulation index, and generalized-linear-modeling-cross-frequency-coupling.. Front. 
+Neurosci. 13, 573 (2019).
+ 37. Tort, A. B. L., Komorowski, R., Eichenbaum, H. & Kopell, N. Measuring phase-amplitude coupling between neuronal oscillations 
+of different frequencies. J. Neurophysiol. 104, 2302–2302 (2010).
+ 38. Guillot, A., Sauvet, F ., During, E. H. & Thorey, V . Dreem open datasets: multi-scored sleep datasets to compare human and 
+automated sleep staging. IEEE Trans. Neural Syst. Rehabil. Eng. 28, 1955–1965 (2020).
+ 39. Hendrycks, D. & Gimpel, K. Gaussian error linear units (gelus). arXiv:1606.08415 (2016).
+ 40. Eldele, E. et al. An attention-based deep learning approach for sleep stage classification with single-channel EEG. IEEE Trans. 
+Neural Syst. Rehabil. Eng. 29, 809–818 (2021).
+ 41. Supratak, A., Dong, H., Wu, C. & Guo, Y . DeepSleepNet: a model for automatic sleep stage scoring based on raw single-channel 
+EEG. IEEE Trans. Neural Syst. Rehabil. Eng. 25, 1998–2008 (2017).
+ 42. Agarap, A. F . Deep learning using rectified linear units (relu). arXiv:1803.08375 (2018).
+ 43. Loshchilov, I. & Hutter, F . Decoupled weight decay regularization. arXiv:1711.05101 (2017).
+ 44. Loshchilov, I. & Hutter, F . Sgdr stochastic gradient descent with warm restarts. arXiv:1608.03983 (2016).
+ 45. Cohen, J. A. Coefficient of agreement for nominal scales. Educ. Psychol. Meas. 20, 37–46 (1960).
+ 46. Curran, P . J., West, S. G. & Finch, J. F . The robustness of test statistics to nonnormality and specification error in confirmatory 
+factor analysis. Psychol. Methods. 1, 16–29 (1996).
+ 47. Armstrong, R. A. When to use the Bonferroni correction. Ophthalmic Physiol. Opt. 34, 502–508 (2014).
+ 48. Kim, M. & Im, C. H. HiRENet novel convolutional neural network architecture using Hilbert-transformed and raw 
+electroencephalogram (EEG) for subject-independent emotion classification. Comput. Biol. Med. 178, 108788 (2024).
+ 49. Mandekar, S., Holland, A., Thielen, M., Behbahani, M. & Melnykowycz, M. Advancing towards ubiquitous EEG, correlation of 
+in-ear EEG with forehead EEG. Sensors 22, 1568 (2022).
+ 50. Donoghue, T. et al. Parameterizing neural power spectra into periodic and aperiodic components. Nat. Neurosci. 23, 1655–U1288 
+(2020).
+ 51. Basunia, M. et al. Relationship of symptoms with sleep-stage abnormalities in obstructive sleep apnea-hypopnea syndrome. J. 
+Community Hosp. Intern. Med. Perspect. 6, 32170 (2016).
+ 52. Herberger, S. et al. Enhanced conductive body heat loss during sleep increases slow-wave sleep and calms the heart. Sci. Rep. 14, 
+4669 (2024).
+ 53. Debellemaniere, E. et al. Performance of an ambulatory dry-EEG device for auditory closed-loop stimulation of sleep slow 
+oscillations in the home environment. Front. Hum. Neurosci. 12, 88 (2018).
+ 54. Schade, M. M., Mathew, G. M., Roberts, D. M., Gartenberg, D. & Buxton, O. M. Enhancing slow oscillations and increasing N3 
+sleep proportion with supervised, non-phase-locked pink noise and other non-standard auditory stimulation during NREM sleep. 
+Nat. Sci. Sleep. 12, 411–429 (2020).
+ 55. Hathaway, E. et al. Transcranial Electrical Stimulation targeting limbic cortex increases the duration of human deep sleep. Sleep. 
+Med. 81, 350–357 (2021).
+ 56. Antonenko, D., Diekelmann, S., Olsen, C., Born, J. & Molle, M. Napping to renew learning capacity: enhanced encoding after 
+stimulation of sleep slow oscillations. Eur. J. Neurosci. 37, 1142–1151 (2013).
+ 57. Edakawa, K. et al. Detection of epileptic seizures using phase-amplitude coupling in intracranial electroencephalography. Sci. Rep. 
+6, 25422 (2016).
+ 58. Won, G. H. et al. Theta-phase gamma-amplitude coupling as a neurophysiological marker in neuroleptic-naive schizophrenia. 
+Psychiatry Res. 260, 406–411 (2018).
+Scientific Reports |        (2026) 16:17317 13| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/
+
+===== PAGE 14 =====
+
+ 59. Gwon, D. & Ahn, M. Alpha and high gamma phase amplitude coupling during motor imagery and weighted cross-frequency 
+coupling to extract discriminative cross-frequency patterns. Neuroimage 240, 118403 (2021).
+ 60. Sheng, T. et al. Effect of phase clustering bias on phase-amplitude coupling for emotional EEG. J. Integr. Neurosci. 23, 33 (2024).
+ 61. Li, C., Liu, S., Wang, Z. & Yuan, G. Classifying epileptic phase-amplitude coupling in SEEG using complex-valued convolutional 
+neural network. Front. Physiol. 13, 1085530 (2022).
+ 62. Mikutta, C. et al. Phase-amplitude coupling of sleep slow oscillatory and spindle activity correlates with overnight memory 
+consolidation. J. Sleep. Res. 28, e12835 (2019).
+ 63. Barham, M. P ., Enticott, P . G., Conduit, R. & Lum, J. A. Transcranial electrical stimulation during sleep enhances declarative (but 
+not procedural) memory consolidation: evidence from a meta-analysis. Neurosci. Biobehav. Rev. 63, 65–77 (2016).
+ 64. Ladenbauer, J. et al. Promoting sleep oscillations and their functional coupling by transcranial stimulation enhances memory 
+consolidation in mild cognitive impairment. J. Neurosci. 37, 7111–7124 (2017).
+ 65. Xu, H. Q., Haider, W ., Aziz, M. Z., Sun, Y . C. & Yu, X. J. Transforming motor imagery analysis: a novel EEG classification framework 
+using AtSiftNet method. Sensors 24, 6466 (2024).
+Author contributions
+This study was designed by T. Lee, J. Shon, and C. Im. Data selection and preprocessing were performed by T. 
+Lee and H. Nam. Model development, training, and evaluation were conducted by T. Lee. J. Shon and C. Im 
+supervised the entire project. The manuscript was written by T. Lee, J. Shon, and C. Im. All authors reviewed and 
+approved the final manuscript.
+Funding
+This research was supported in part by the Bio&Medical Technology Development Program of the National 
+Research Foundation (NRF) funded by the Korean government (MSIT) (No. RS-2024-00397673) and in part by 
+KYUNG NAM PHARM.
+Competing interests
+The authors declare no competing interests.
+Additional information
+Supplementary Information The online version contains supplementary material available at  h t t p s : / / d o i . o r g / 1 
+0 . 1 0 3 8 / s 4 1 5 9 8 - 0 2 6 - 4 8 8 8 1 - w     .  
+Correspondence and requests for materials should be addressed to J.S. or C.-H.I.
+Reprints and permissions information is available at www.nature.com/reprints.
+Publisher’s note Springer Nature remains neutral with regard to jurisdictional claims in published maps and 
+institutional affiliations.
+Open Access  This article is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 
+4.0 International License, which permits any non-commercial use, sharing, distribution and reproduction in 
+any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide 
+a link to the Creative Commons licence, and indicate if you modified the licensed material. Y ou do not have 
+permission under this licence to share adapted material derived from this article or parts of it. The images or 
+other third party material in this article are included in the article’s Creative Commons licence, unless indicated 
+otherwise in a credit line to the material. If material is not included in the article’s Creative Commons licence 
+and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to 
+obtain permission directly from the copyright holder. To view a copy of this licence, visit  h t t p : / / c r e a t i v e c o m m o 
+n s . o r g / l i c e n s e s / b y - n c - n d / 4 . 0 /     .  
+© The Author(s) 2026 
+Scientific Reports |        (2026) 16:17317 14| https://doi.org/10.1038/s41598-026-48881-w
+www.nature.com/scientificreports/

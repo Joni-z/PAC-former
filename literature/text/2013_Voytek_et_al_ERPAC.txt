@@ -1,0 +1,669 @@
+
+
+===== PAGE 1 =====
+
+A method for event-related phase/amplitude coupling
+Bradley Voytek a,⁎, Mark D'Esposito a,b, Nathan Crone c, Robert T. Knight a,b
+a Helen Wills Neuroscience Institute, University of California, Berkeley, USA
+b Department of Psychology, University of California, Berkeley, USA
+c Department of Neurology, Epilepsy Center, Johns Hopkins Medical Institutions, Baltimore, MD, USA
+abstractarticle info
+Article history:
+Accepted 6 September 2012
+Available online 14 September 2012
+Keywords:
+Phase/amplitude coupling
+Cross-frequency coupling
+Electrophysiology
+Electrocorticography
+Theta
+Alpha
+Gamma
+Phase/amplitude coupling (PAC) is emerging as an important electrophysiological measure of local and
+long-distance neuronal communication. Current techniques for calculating PAC provide a numerical index
+that represents an average value across an arbitrarily long time period. This requires researchers to rely on
+block design experiments and temporal concatenation at the cost of the sub-second temporal resolution
+afforded by electrophysiological recordings. Here we present a method for calculating event-related phase/
+amplitude coupling (ERPAC) designed to capture the temporal evolution of task-related changes in PAC
+across events or between distant brain regions that is applicable to human or animal electromagnetic
+recording.
+© 2012 Elsevier Inc. All rights reserved.
+Introduction
+The mammalian neo- and archicortices generate electrophysiologi-
+cal oscillatory rhythms (Buzsáki and Draguhn, 2004; Engel et al., 2001)
+that interact to facilitate communication ( Fries, 2005; Fröhlich and
+McCormick, 2010; Sirota et al., 2008 ). The amplitude and phase of
+these rhythms are typically assessed in an event-related manner across
+trials or subjects. There is emerging evidence that frequency-speci ﬁc
+rhythms are often nested within other frequency bands (Kramer et al.,
+2008a; Roopun et al., 2008; Tort et al., 2009 ;s e e Canolty and Knight,
+2010 for a review). There are multiple forms of coupling dynamics:
+phase/amplitude (Canolty et al., 2006; Cohen et al., 2009; Griesmayr
+et al., 2010; Lakatos et al., 2008; Miller et al., 2010; Osipova et al.,
+2008; Tort et al., 2009; Voytek et al., 2010a ), phase/phase ( Canolty
+et al., 2007; Darvas et al., 2009; Palva et al., 2005; Tass et al., 1998 ),
+and amplitude-to-amplitude (Bruns and Eckhorn, 2004; Voytek et al.,
+2010b). It is proposed that phase/amplitude coupling (PAC) reﬂects in-
+teractions between local microscale ( Colgin et al., 2009; Quilichini et
+al., 2010) and systems-level macroscale neuronal ensembles ( Canolty
+et al., 2010; Fries, 2005; Lisman and Idiart, 1995) that index cortical ex-
+citability and network interactions (Vanhatalo et al., 2004). From a be-
+havioral viewpoint PAC has been shown to track learning and memory
+(Axmacher et al., 2010; Lisman and Idiart, 1995; Tort et al., 2009 ). PAC
+magnitude also ﬂuctuates at an extremely low ( b0.1 Hz) rate at rest
+(Foster and Parvizi, 2012).
+Currently PAC calculation algorithms compute a value averaged
+across a semi-arbitrary time window ( Canolty et al., 2006; Cohen and
+van Gaal, in press; Voytek et al., 2010a )( s e e Cohen, 2008; Penny
+et al., 2008; Tort et al., 2010 for methodological details). The minimum
+length of this time window is bounded by the frequency of the coupling
+phase, as at least one full cycle is needed to calculate the distribution of
+values of the coupling amplitude. However, the PAC metric is sensitive
+to noise, and recent simulations have made use of >200 cycles to get
+a reliable PAC estimate ( Tort et al., 2010 ). This means, for example,
+that if one is investigating PAC between theta phase (4 –8 Hz) and
+high gamma amplitude (80 –150 Hz), the best temporal resolution
+one could achieve at 4 Hz would be 250 ms (one full cycle). However,
+50 s or more might be required for reliable estimates (250 ms/
+cycle × 200 cycles). This requires researchers to use block designs
+(Voytek et al., 2010a ), use long trial windows at the cost of temporal
+resolution (Tort et al., 2009), or to concatenate time series across trials
+(Tort et al., 2009) which could introduce spurious PAC due to edge arti-
+facts (see Kramer et al., 2008b). These limitations present a problem for
+analyzing subcomponents of a task such as encoding, delay, and retriev-
+al periods during working memory.
+Here we demonstrate a novel approach for assessing time-resolved,
+event-related PAC (ERPAC). We provide results from subdural
+electrocorticographic (ECoG) data from three human subjects with
+implanted electrodes ( Jacobs and Kahana, 2010 ) to demonstrate the
+utility of the ERPAC analysis procedure. We show that this method
+can be used to assess PAC both within local cortical regions as well as
+between distant sites. We observed couplings between multiple fre-
+q
+uencies occurring at different time scales that evolved across trials
+NeuroImage 64 (2013) 416– 424
+⁎ Corresponding author.
+E-mail address: bradley.voytek@gmail.com (B. Voytek).
+1053-8119/$ – see front matter © 2012 Elsevier Inc. All rights reserved.
+http://dx.doi.org/10.1016/j.neuroimage.2012.09.023
+Contents lists available at SciVerse ScienceDirect
+NeuroImage
+journal homepage: www.elsevier.com/locate/ynimg
+
+===== PAGE 2 =====
+
+and were independent of evoked responses. ERPAC provides a method
+for assessing sub-second coupling dynamics supporting cortical
+processing.
+Methods
+Data collection
+We analyzed data from three patients with intractable epilepsy who
+were implanted with chronic subdural electrodes for approximately
+one week as part of a pre-operative procedure to localize the epi-
+leptogenic focus. Data were recorded at the Johns Hopkins School of
+Medicine where the surgeons determined electrode placement and
+treatment solely on the clinical needs of each patient. All subjects gave
+informed consent in accordance with the Johns Hopkins Medicine Insti-
+tutional Review Boards. ECoG data were recorded at 1000 Hz using a
+Stellate Harmonie ampliﬁer (Stellate Systems, Inc., Montreal, Canada).
+Signals were digitized for further analysis and referenced ofﬂine to the
+average potential of the electrodes included in analysis for each subject
+separately.
+Behavioral tasks
+We include data from one ECoG patient who performed a lateralized
+visual attention task and from three patients who performed a pho-
+neme repetition task. The visual attention task is described in full in a
+previous manuscript (Voytek et al., 2010c). Brieﬂy, the subject was rap-
+idly presented (107‐ms presentation; 800 or 1000‐ms interstimulus in-
+terval (ISI)) with a series of non-target standard stimuli [p= 0.7], target
+stimuli [p= 0.2], or neutral novel stimuli [p= 0.1] to either the left or
+right visualﬁeld ([p = 0.5] for each hemiﬁeld). On separate blocks of tri-
+als, the subject manually responded to targets presented only to the left
+or only to the right visual hemi ﬁeld. For the phoneme repetition task,
+the three ECoG subjects listened to a stream of vowel phonemes ( e.g.,
+“oo” as in “book”, “ee” as in “eel”, etc.) with an average 3000-ms ISI
+and were asked to repeat each of them aloud. For the visual task,
+there were 117 target trials and 380 standard non-target trials included
+in the analysis. For the three subjects who performed the phoneme task,
+215 and 270 trials were included, respectively.
+Data analysis
+All electrophysiological data were put into a common average ref-
+erence to avoid spatial bias due to the choice of intracranial reference
+electrode ( Boatman-Reich et al., 2010 ). All signals were analyzed in
+MATLAB® (R2009b, Natick, MA) using custom scripts. For ERSP and
+PAC ﬁgures (1, 3, 4, and 6) we corrected for multiple comparisons
+using a false discovery rate (FDR) method ( fdr.m function in EEGLAB
+toolbox ( Delorme and Makeig, 2004 ) in MATLAB). All analyses were
+done on an individual subject and electrode basis.
+Event-related spectral perturbations
+For ERSP analyses, the data for each channel wasﬁrst ﬁltered in mul-
+tiple, logarithmically-spaced pass bands using a two-way, zero phase-lag,
+ﬁnite impulse response ﬁlter (eegﬁlt.m function in EEGLAB) to prevent
+ph
+ase distortion. The ﬁlter order is deﬁned as 3r where r is the ratio of
+the sampling rate to the low-frequency cutoff of the ﬁlter, rounded
+down. Data were ﬁltered in partially overlapping bands from 0.5 to
+250 Hz. We seeded the ﬁrst pass band such that fp(n) =[fL(n)fH(n)];
+where for n=1 , fL(n) =0 . 5 , a n dfH(n) = 0.9. Successive bands were calcu-
+lated such that fL(n) = 0.85(fH(n− 1))a n df H(n) =1 . 1+(fH(n− 1) − fL(n− 1))
+fL(n). We then applied a Hilbert transform to each of these time-series
+(hilbert.m function) resulting in a complex time-series, hx[n]=a x[n]
+exp(iϕx[n]) where ax[n]a n dϕx[n] are the analytic amplitudes and phases,
+respectively, of a speci ﬁc pass band fp(n). The phase time-series ϕ x
+assumes values within ( − π, π] radians with a cosine phase such
+that − /+ π radians correspond to the troughs and 0 radians to the
+peak. The Hilbert phase and amplit ude estimation method yields
+results equivalent to sliding window FFT and wavelet approaches
+(Bruns, 2004 ).
+From each trial the time-series of analytic amplitudes, a
+x (the abso-
+lute value, or modulus, of hx), was used to create an average event-
+related analytic amplitude (ERAA), an estimate of the band-speciﬁc sig-
+nal energy. Each trial-speciﬁc epoch consisted of a 100-ms pre-stimulus
+period and a 1000 ms post-stimulus period. To calculate the signi ﬁ-
+cance of any event-related changes in analytic amplitude under a
+given experimental condition, we used a standard resampling tech-
+nique (see Voytek et al., 2010b ) to assess whether any event-related
+changes in analytic amplitude occurred relative to stimulus onset. To
+statistically assess whether a change in analytic amplitude at a given la-
+tency was signiﬁcantly different from the pre-stimulus baseline, we cre-
+ated 1000 surrogate ERAAs (sERAA). Each sERAA was calculated by
+taking the real stimulus onset times and shifting them randomly in
+time, keeping the relative timing between each event the same as the
+real timing, and then creating a new average sERAA. We chose this
+event-onset shifting method to account for any possible autocorrelation
+in the time series. From this, each time point in the ERAA was associated
+with a distribution of 1000 surrogate analytic amplitudes against which
+to compare the real ERAA.
+The change from background activity was calculated with a z-score
+and associatedp-value at each time point (t) where the z-score was cal-
+culated as z(t) = (a(t) − s(t))/ σ(t), where a(t) is the real analytic am-
+plitude at time ( t), s(t) is the mean of the 1000 surrogate analytic
+amplitudes at time (t), and σ(t) is the standard deviation of that popu-
+lation of surrogate amplitudes. Because we are calculating a mean of
+means, the central limit theorem suggests that this distribution will be
+normal, and thus a z-score represents an estimate of the probability of
+observing a particular analytic amplitude given the distribution of the
+data. These methods were applied for each frequency band separately
+to construct the ERSP images.
+Because all time-frequency amplitude, phase, and regression anal-
+yses were performed at each time point and across multiple frequen-
+cy bands, we corrected for multiple comparisons using an FDR
+method to correct the raw p-values obtained from the analyses. We
+used no temporal binning or smoothing procedures, so we corrected
+for all 1000 post-stimulus time points and 45 frequency bins, to
+achieve a conservative and stringent correction procedure. The re-
+sults we obtained were robust and survived multiple comparison cor-
+rection, but statistical power could have been further increased using
+analyses restricted to a priori bands of interest, or through temporal
+downsampling. For example, rather than needing to correct for mul-
+tiple comparisons for all time and frequency points, if the a priori hy-
+pothesis is that theta phase is coupled to gamma amplitude, one
+could restrict analyses to just those frequency bins.
+Inter-trial phase locking (IPL)
+For IPL analyses ( Fig. 5b),
+each point in the Hilbert transform at a
+channel at each passband was divided by the absolute value of its am-
+plitude to generate a signed, unit-length, complex-valued time series;
+epochs of these time series were then created as described above in
+Event-related spectral perturbations . The absolute value of the mean
+of the complex-valued epochs is the frequency-speciﬁ c IPL, which
+has a value from [0,1], where 0 represents total phase independence
+and 1 means all phase values are equal, similar to previous methods
+(Tallon-Baudry et al., 1996 ). The angle of the vector mean is the pre-
+ferred phase. This method is equivalent to taking the circular mean
+angle and vector length of the phase distribution at each point across
+all trials, providing a metric of event-related phase locking across tri-
+als for a given frequency band. This can be accomplished using the
+CircStat toolbox ( Berens, 2009) in MATLAB using circ_r.m).
+417B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 3 =====
+
+Amplitude ANOVA
+We used a sliding standard ANOVA to calculate the percent of the
+variance in the amplitude of each frequency band at each time point
+across trials ( ηx
+2[n]) that is explained by the independent variables
+of interest ( e.g., stimulus type). We restrict the explanation of our
+methods to a single frequency band in a single channel, though for
+the full analysis used to plot the ﬁgures this method was applied to
+all frequency bands. To calculate the standard ANOVA in Fig. 1 c, the
+time series of analytic amplitudes (a
+x) was divided into epochs rela-
+tive to the onset of each of the stimuli (100 ms before and 1000 ms
+after stimulus onset). Each epoch was classi ﬁed as belonging to a spe-
+ciﬁc trial type for use in the ANOVA. For visual tasks, each trial type
+was encoded as being either a target or non-target standard. These
+coding variables were used in the ANOVA as independent variables;
+we then calculated the F-statistic and associated p-value for the
+main effects of stimulus on amplitude.
+Circular ANOVA
+For the sliding circular ANOVA, the same method was used as for the
+standard ANOVA. However, epochs were created around the phase
+time-series ϕ
+x (the angle of hx) and no baseline correction was
+performed. Circular statistics were performed using the CircStat toolbox
+making use of the circular equivalents of the one-way and two-way
+ANOVA (Watson –Williams test ( circ_wwtest.m) and Harrison –Kanji
+test (circ_hktest.m), respectively). A circular ANOVA attempts to explain
+the amount of circular variance that is explained by task parameters
+(e.g., stimulus type; see Fig. 1d). This approach has recently been used
+to show that, during olfactory decision-making and response inhibition
+in rats, neurons in the OFC show differential phase-synchrony in the γ
+band (Van Wingerden et al., 2010).
+Traditional phase/amplitude coupling (PAC)
+We calculated traditional PAC using a general linear model after
+Penny et al., 2008 , where the gamma analytic amplitude (a
+γ) is esti-
+mated from low-frequency phase ( e.g. α) such that a γ = Xαβ + ε
+where Xα is a three-column matrix composed of the sin and cos com-
+ponents of the phase hα and a column of 1 s; β are the regression co-
+efﬁcients, and ε is the error term. For Fig. 3c, we estimated a γ from hα
+for each trial separately. Because traditional PAC must be calculated
+across time, we estimated PAC across two cycles of the lower bound
+of α— (1000 ms / 8 Hz) ∗2 cycles) — or the ﬁrst 250 ms of each trial.
+Note that 2 cycles is an arbitrary decision, as it is dif ﬁcult to deter-
+mine a priori how much data is needed to get an accurate PAC esti-
+mate. This loss of temporal resolution and the need for an arbitrary
+time window is one of the problems addressed by the ERPAC method.
+Circular–linear correlation
+We assessed circular –linear correlation after Berens, 2009
+(circ_corrcl.m in the CircStat toolbox) which linearizes the phase var-
+iable into its sin and cos components and calculates a single correla-
+tion coefﬁcient, ρ
+ϕa such that
+ρϕa ¼
+ﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃﬃ
+r2
+ca þ r2
+sa
+− 2rcarsarcs
+1− r2
+cs
+s
+;
+where rca = c(cos ϕ[n], a[ n]), rsa = c(sin ϕ[n], a[ n]), rcs = c(sin ϕ[n],
+cos ϕ[n]) with c(x,y) equal to the Pearson correlation between x and
+y, ϕ[n] equal to the instantaneous phase, and a[ n] equal to the instan-
+taneous analytic amplitude. This method allows us to examine the re-
+lationship between a linear variable (such as γ amplitude) and a
+circular variable (such as α phase) across trials. This approach has
+Fig. 1. Event-related spectral responses to visual stimuli. (a) Reconstructed locations of electrodes on the inferior surface of the brain. In this example, the subject is viewing an attended
+target presented to the visual hemi ﬁeld contralateral to hemisphere in which the electrodes are implanted. (b) ERSP plots ( z-scores) for attended visual targets and attended visual
+non-target (standard) stimuli from an electrode over early visual cortex (green circle in a). Event-related amplitude increases can be seen in broad band γ (80–150 Hz) and
+lower-frequencyθ (4–8 Hz) and α (8–12 Hz) bands. Black and red contours denote regions of signiﬁcant event-related amplitude increases and decreases, respectively, after correcting
+for multiple comparisons (pb 0.001). Using a sliding ANOVA approach we calculated the percent of the variance explained in (c) amplitude or (d) phase by stimulus type. Color represents
+percent of variance explained by stimulus type, with signiﬁcant regions outlined by contours (pb 0.001 after correcting for multiple comparisons). As suggested by the ERSPs, (c) standard
+ANOVA reveals a main effect of stimulus type on γ amplitude. However circular ANOVA (d) reveals a main effect of stimulus type on earlyα (8–12 Hz) phase that provides information
+independent of amplitude. In order to calculate the effect of stimulus type on phase we used a circular ANOVA (see Methods). Line plots below c and d are similar as the spectral plots
+above, but for main effects of stimulus on a priori (c) γ amplitude and (d) α phase.
+418 B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 4 =====
+
+recently been used to examine the relationship between scalp EEG θ
+phase and global ﬁeld power during attention in humans ( Busch
+and VanRullen, 2010 ).
+We can compare the signi ﬁcance of the difference between corre-
+lation coef ﬁcients ρ1 and ρ2 by ﬁrst applying Fisher's z-transform to
+normalize correlation coef ﬁcients such that zrn ¼ 1
+2 ln 1þρn
+1− ρn
+/C16/C17
+and cal-
+culating the difference Δρz = z(ρ1) − z(ρ2) and associated standard
+error σ ¼
+ﬃﬃﬃﬃﬃﬃﬃﬃﬃ
+1
+n1 − 3
+q
+þ 1
+n2 − 3. From this we can calculate the z-score z =
+Δρz/σ and associated p-value.
+Event-related phase/amplitude coupling (ERPAC)
+We introduce a method for ERPAC making use of either the circular–
+linear correlation above or its more generalized form of a circular–linear
+regression. We calculated ERPAC using each channel's frequency-
+dependent instantaneous amplitude as the regressand and the sin and
+cos components of the phase as the regressors (see Penny et al.,
+2008). For example, if we wish to determine the amount of trial-
+by-trial variance in the high frequency broadband γ amplitude
+(80–150 Hz; Miller et al., 2009 ) that can be explained by trial-by-trial
+variations in α phase (8–12 Hz), we can calculate the correlation be-
+tween γ amplitude (aγ)a n d α phase (ϕα) (or the regression between
+them) at each time point. This method is “event-related” in that we ex-
+amine PAC at each time point, across trials, thus unmasking sub-second
+changes in PAC caused by an event of interest.
+To examine the possibility that phase at one electrode correlates
+with amplitude at another, we calculated ERPAC between α and θ
+phase at four responsive visual cortical electrodes and the frontal
+electrode that showed the largest target-related γ amplitude re-
+sponse. While this type of selection may have the appearance of “dou-
+ble dipping ” (Kriegeskorte et al., 2009 ), phase and amplitude are
+statistically independent, and phase information was not used in
+the frontal electrode selection analysis. We have made all ERPAC
+code available online as a resource for other researchers ( http://
+darb.ketyov.com/professional/publications/erpac.zip).
+Assessing possible ERPAC estimation artifacts
+To examine the effect of stimulus-evoked amplitude changes
+or IPL on estimates of ERPAC, we performed a sliding window
+resampling analysis ( Fig. 4 c) to quantify the likelihood that the ob-
+served ERPAC is due to a speci ﬁc statistical relationship between
+trial-by-trial amplitude and phase components, and not, for example,
+due to a possible spurious relationship induced by “sharp” artifacts
+(see Kramer et al., 2008b ) or stimulus-induced. For normal ERPAC
+calculations, what is important is the trial-by-trial covariance be-
+tween amplitude and phase. So for surrogate analyses we kept the ac-
+tual analytic amplitude and phase values at each time point, but
+randomized the trial labels. This keeps the stimulus-evoked changes
+in amplitude or IPL intact while randomizing the relative trial struc-
+ture between the two variables and is similar to methods used to cal-
+culate signiﬁcance in e.g. phase synchrony (Lachaux et al., 1999 ). This
+was done 1000 times at each time point. If the observed ERPAC is
+caused by a spurious artifact then that value should not be improba-
+ble given the possible distribution of ERPAC values drawn from the
+permutation testing. In other words, at each time point we can
+Fig. 2. Comparison of phase/amplitude coupling methods. (a) Methods for calculating traditional blocked PAC and event-related PAC (ERPAC) begin similarly: the raw signal is ﬁl-
+tered into separate amplitude and phase components (here broadband γ analytic amplitude and α phase). For traditional blocked PAC analyses, a single PAC index is calculated
+across an arbitrarily long time window at the cost of temporal resolution. (b) To calculate ERPAC, the phase and time series are broken into time windows of equal length around
+each trial, time-locked to the onset of stimulus presentation (example black rectangles in a). In contrast to blocked PAC, which is calculated across time, ERPAC is calculated across
+trials separately at each time point. In this example (from the electrode shown in Fig. 1), trial-by-trial differences in α phase explain a signi ﬁcant amount of the inter-trial variability
+in broadband γ amplitude during a brief time window (50– 250 ms) after stimulus onset. See Methods for full details.
+419B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 5 =====
+
+compute the z-score and associated p-value of observing the real
+ERPAC value given the distribution of possible values.
+To further examine the relationship between event-related changes
+in analytic amplitude and estimates of ERPAC, we performed a separate
+set of analyses (Fig. 6) to more directly test the effect of γ amplitude on
+ERPAC estimates by using two different, but related, sliding-window
+methods. The ﬁrst is an “opening window” method where we use suc-
+cessively more trials in the α phase/γ amplitude ERPAC calculations
+(from 50 to all 117 attended target trials) at two neighboring electrodes
+that exhibit different trial-by-trial γ amplitude changes. The second
+method is a simple sliding-window technique calculating ERPAC on
+50-trial bins with a one-trial increment.
+Fig. 3. Event-related phase/amplitude coupling modulated by task demands. Trial-by-trial variance in low frequency phase explains a signi ﬁcant amount of the trial-by-trial var-
+iance in γ amplitude in visual cortex in response to (a) attended non-target standard and (b) attended target stimuli (data are from the same electrode as in Fig. 1). (c) Traditional
+PAC for a priori α/γ coupling across the ﬁrst 250 ms post-stimulus onset shows no signi ﬁcant difference between non-targets (blue) and targets (red). Note the lack of temporal
+resolution because PAC is calculated across time and averaged across trials. In contrast, ERPAC (d) is calculated across trials on a point-by-point basis in the time series. This
+shows that PAC in response to targets (red) is signi ﬁcantly higher compared to non-targets (blue) during the same 250 ms post-stimulus time window where traditional PAC
+showed no differences (black dots above ERPAC traces denote time points with a signi ﬁcant PAC difference between stimuli at p b 0.01; see Methods). Error bars indicate SEM.
+(n.s.), not signi ﬁcant ( p = 0.14).
+Fig. 4. Event-related phase/amplitude coupling is not an artifact of stimulus-evoked responses. Target stimuli were associated with signiﬁcant, transient changes inγ amplitude (a) andα
+IPL (b) during the same approximate time window where we observed signi ﬁcant ERPAC (Fig. 3d). To assess whether ERPAC was an artifact of these stimulus-induced responses, we
+conducted a resampling analysis that preserves these induced changes but randomizes the inter-trial relationship between amplitude and phase. That is, for each time point, we shufﬂed
+the order of the trial-wise α phase values with respect to the γ amplitude values at that same time point and calculated the ERPAC between this shufﬂed α phase and γ amplitude. This
+keeps the distributions exactly the same, preserving the induced changes in frequency-speciﬁc analytic amplitude and phase, but randomizes the inter-trial relationship between them.
+This was done 1000 times at each time point to create a surrogate distribution of possible PAC values given the data. We then compared the real PAC value at each time point with the
+surrogate distribution to calculate the probability that the observed PAC is due to theexact trial-by-trial relationship between phase and amplitude, or whether the observed PAC arises
+naturally from the data. (c) We ﬁnd that the likelihood of the observed PAC values occurring during the ﬁrst 250 ms after stimulus onset, absent a speciﬁct r i a l - b y - t r i a lr e l a t i o n s h i pb e -
+tween γ amplitude and α phase, is improbable (pb 10
+− 20).
+420 B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 6 =====
+
+Results
+Event-related amplitude and phase changes
+An analysis of the effect of visual stimulus types (attended targets
+and standard non-targets) on event-related spectral perturbation
+(ERSP) in visual cortex ( Fig. 1 a) reveals an early latency ( b100 ms)
+increase in high frequency γ (80–150 Hz) and low frequency δ
+(1–4 Hz) and θ (4–8 Hz) activity for both stimulus types ( Fig. 1 b;
+p b 0.001, corrected for multiple comparisons). Upon visual inspec-
+tion, it appears that γ and α (8–12 Hz) amplitudes are greater in re-
+sponse to targets compared to non-targets. A sliding-window
+standard ANOVA corroborates this observation, highlighting a main
+effect of stimulus type on γ and α amplitudes ( Fig. 1 c). However,
+what cannot be seen in the classic ERSP plot is also an effect of stim-
+ulus type on α phase distribution, revealed by circular ANOVA
+(Fig. 1d; p b 0.001, corrected; see Methods).
+Event-related phase/amplitude coupling
+By using a circular –linear correlation or regression analysis (see
+Fig. 2 and Methods), we ﬁnd transient ( b250 ms) effects of attention
+to visual stimulus (attended non-target standards and attended tar-
+gets) on ERPAC over visual cortex ( Figs. 3 a and b; p b 0.001,
+corrected). We observe that variance in low frequency δ and α phases
+explain the trial-by-trial variance in γ amplitude, and that these ef-
+fects are not seen using traditional PAC methods ( Fig. 3 c). ERPAC is
+signiﬁcantly stronger for attended targets than for non-target stimuli
+(Fig. 3d), and this target-speciﬁc ERPAC effect is not an artifact caused
+by stimulus-related changes in amplitude or phase ( Figs. 4a–c).
+Importantly, this ERPAC method assesses coupling between dis-
+tant brain regions ( Fig. 5). For example, in a midline frontal electrode
+that demonstrates signi ﬁcant
+ (~ 200–400 ms) γ amplitude increases
+in response to targets we ﬁnd that visual cortical θ phase correlates
+with frontal γ amplitude ( Fig. 5 ). This technique might be useful for
+highlighting long-distance bottom-up and top-down interregional
+communication via neuronal synchrony ( Engel et al., 2001; Fries,
+2005; Womelsdorf and Fries, 2007 ).
+We assessed the trial-by-trial evolution of ERPAC by examining
+two electrodes over visual cortex that exhibit strong γ activity in re-
+sponse to attended targets. We observe complex intertrial evolution
+of early (100 –200 ms) γ activity ( Fig. 6 ). For example, across trials,
+at two neighboring electrodes, γ amplitude is anti-correlated ( r = −
+0.26, p = 0.005) such that one electrode exhibits strong a γ during
+the ﬁrst 20–30 target trials, but this response decreases or attenuates
+with successive trials. In contrast, γ activity at the neighboring elec-
+trode shows the opposite pattern. Furthermore, using separate sliding
+window techniques (see Methods), we show that α/γ ERPAC is not
+necessarily contingent upon γ amplitude. This is evident given that
+the electrode that shows decreasing γ activity across trials (green)
+also shows increasing α/γ ERPAC and the electrode that shows in-
+creasing γ across trials (orange) shows decreasing α/γ ERPAC.
+Phoneme repetition
+We extended the ﬁndings from our ECoG data in the visual
+target-detection task to the auditory modality and provide results
+from subjects with subdural ECoG performing a simple phoneme rep-
+etition task (see Methods). Similar to the visual attention data, sub-
+jects performing an auditory task also exhibit transient ERPAC.
+Consistent with previous reports of δ phase/γ amplitude relationships
+(Lakatos et al., 2008; Whittingstall and Logothetis, 2009 ), we show
+that the δ phase correlates with the γ amplitud
+ e in auditory cortical
+areas (Fig. 7). Notably one of the three subjects showed no signi ﬁcant
+δ phase/γ amplitude ERPAC effects. These ﬁndings illustrate that
+Fig. 5. Inter-regional phase/amplitude coupling. The event-related PAC methods described are not limited to within-electrode effects. For example, θ phase from a visual cortical
+electrode (purple circle, top) correlates with γ amplitude at a target-responsive medial frontal site (purple circle, bottom). (a) Both the visual cortical and frontal sites exhibit strong
+event-related spectral perturbations (ERSPs) in response to attended targets. Both sites exhibit early ( b250 ms) target-related γ amplitude increases with the frontal site showing
+activity at a slightly longer latency. (b) Similarly, both sites show early inter-trial phase-locking (IPL) in the α band, though IPL is weaker at the frontal site (contours: p b 0.001 after
+correcting for multiple comparisons). (c) Interestingly, although visual cortical IPL is strongest in the α band, phase of the θ band within the visual cortex that predicts γ amplitude
+at the frontal site during the time-period of frontal event-related gamma γ increases (contour: pb 0.05 after correcting for multiple comparisons; α/γ PAC not shown).
+421B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 7 =====
+
+Fig. 7. Auditory cortex event-related phase/amplitude coupling in response to phonemes. In three separate subjects performing a phoneme repetition task, we observe signi ﬁcant,
+transient ERPAC between γ amplitude and δ phase (1 –4 Hz) in auditory cortical regions for two subjects, illustrating the broad applicability of this method.
+Fig. 6. Relationship between phase/amplitude coupling and number of trials in the analysis. Two electrodes in the visual cortex show target-related γ responses with different
+trial-by-trial dynamics. γ amplitude between these electrodes is anti-correlated across trials (r = − 0.26, p = 0.005) such that (a) the medial electrode (green) shows strong γ dur-
+ing early trials that diminishes across successive trials while (b) the neighboring electrode (orange) shows the opposite response. (c, d) We used two sliding-window techniques to
+calculate the effect of number of trials on ERPAC estimates. All plots show the percent of the variance in inter-trial γ amplitude explained by α phase. In the top plots we used an
+opening-window technique; for the bottom plots we used a sliding window technique (see Methods). Both methods show that ERPAC changes over time, independent of the
+changes in γ amplitude, such that in the medial electrode (green), even though γ amplitude decreases across trials, α/γ ERPAC increases, and vice versa for the more lateral electrode
+(orange).
+422 B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 8 =====
+
+ERPAC is not limited to one subject, cortical region, or sensory modal-
+ity, but rather might be a more broadly generalizable phenomenon.
+Discussion
+We describe a PAC method that provides time-resolved calcula-
+tion of event-related PAC (ERPAC). Because it is based on correlation
+and regression techniques, it is intuitive and straightforward to
+instantiate. While other methods exist for examining time-resolved
+phase/phase or amplitude/amplitude relationships ( Bruns and
+Eckhorn, 2004; Darvas et al., 2009 ), this method combines a circular
+(phase) and linear (amplitude) variable with improved temporal res-
+olution permitting within-trial changes in PAC.
+As we show in Fig. 3c, traditional PAC measures miss temporally dis-
+crete phase/amplitude coupling effects that are observed when ana-
+lyzed using our ERPAC technique. This is likely due to the underlying
+differences between what the two methods address: traditional PAC
+asks, “what is the statistical relationship between phase and amplitude
+across time?” at the expense of temporal resolution. In contrast, ERPAC
+asks, “what is the statistical relationship between phase and amplitude
+across trials, at each time point?” That is, with ERPAC we can examine
+sub-second changes in PAC related to the onset of an event of interest.
+This difference is analogous to the different inferences that can be
+drawn from event-related vs. block design fMRI studies and highlights
+the utility of this technique for assessing within-trial changes in PAC.
+It is important to point out that we are not limited to using the
+phase at one channel to predict amplitude at that same channel (or
+vice versa). That is, we can use the phase of one channel to predict fre-
+quency band amplitudes at another (nearby or distant) channel ( e.g.,
+Fig. 5), which might be useful for examining the degree and timing of
+top-down or bottom-up communication between brain areas. An im-
+portant caveat to consider is that cross-channel phase coupling or
+amplitude envelope correlations might have spurious effects on
+interregional coupling dynamics. For example, if two electrodes, A
+and B have correlated gamma amplitude envelopes, and theta phase
+in electrode A predicts gamma amplitude in A, the theta phase from
+A will also predict gamma amplitude in B. Note that recent new
+methods provide a multivariate solution to a network of coupled os-
+cillators the diminishes the solution space ( Canolty et al., 2010 ).
+This technique provides a method for observing, quantifying, and
+statistically comparing ERPAC dynamics in a time-resolved and com-
+putationally tractable manner. Given that this method calculates PAC
+across trials at each time point it is likely capturing evoked (as op-
+posed to induced) PAC effects (see David et al., 2006). This would pro-
+vide complementary information to time-averaged PAC that would be
+better suited to capturing induced PAC. Here we use this method to
+analyze ECoG data from subdural recordings in humans, but the
+method can be applied to other forms of electromagnetic recordings
+in animals and man.
+Conﬂict of interest statement
+The authors declare no competing ﬁnancial or other interests.
+Acknowledgments
+We thank Aurelie Bidet-Caulet, Maya Cano, Ryan Canolty, Adeen
+Flinker, John Long, Avgusta Shestyuk, Frederic Theunissen, Adriano
+Tort, and Jonathan Wallis for useful conversations about the manu-
+script and methods. B.V. is funded by the American Psychological Asso-
+ciation Diversity Program in Neuroscience (5-T32-MH18882). B.V. and
+R.T.K. are funded by the NINDS grant NS21135 and R.T.K. by the
+NINDS grant PO40813. N.E.C is funded by NINDS grant NS40596.
+References
+Axmacher, N., Henseler, M.M., Jensen, O., Weinreich, I., Elger, C.E., Fell, J., 2010. Cross-
+frequency coupling supports multi-item working memory in the human hippo-
+campus. Proc. Natl. Acad. Sci. U. S. A. 107, 3228 –3233.
+Berens, P., 2009. CircStat: a MATLAB toolbox for circular statistics. J. Stat. Softw. 31, 1–21.
+Boatman-Reich, D., Franaszczuk, P.J., Korzeniewska, A., Caffo, B., Ritzl, E.K., Colwell, S.,
+Crone, N.E., 2010. Quantifying auditory event-related responses in multichannel
+human intracranial recordings. Front. Comput. Neurosci. 19.
+Bruns, A., 2004. Fourier-, Hilbert- and wavelet-based signal analysis: are they really dif-
+ferent approaches? J. Neurosci. Methods 137, 321 –332.
+Bruns, A., Eckhorn, R., 2004. Task-related coupling from high- to low-frequency signals
+among visual cortical areas in human subdural recordings. Int. J. Psychophysiol. 51,
+97–116.
+Busch, N., VanRullen, R., 2010. Spontaneous EEG oscillations reveal periodic sampling
+of visual attention. Proc. Natl. Acad. Sci. U. S. A. 107, 16048 –16053.
+Buzsáki, G., Draguhn, A., 2004. Neuronal oscillations in cortical networks. Science 304,
+1926–1929.
+Canolty, R.T., Knight, R.T., 2010. The functional role of cross-frequency coupling. Trends
+Cogn. Sci. 14, 506 –515.
+Canolty, R.T., et al., 2006. High gamma power is phase-locked to theta oscillations in
+human neocortex. Science 313, 1626 –1628.
+Canolty, R.T., et al., 2007. Spatiotemporal dynamics of word processing in the human
+brain. Front. Neurosci. 1, 185 –196.
+Canolty, R.T., et al., 2010. Oscillatory phase coupling coordinates anatomically dis-
+persed functional cell assemblies. Proc. Natl. Acad. Sci. U. S. A. 107, 17356 –17361.
+Cohen, M.X., 2008. Assessing transient cross-frequency coupling in EEG data. J. Neurosci.
+Methods 168, 494–499.
+Cohen, M.X., van Gaal, S., in press. Dynamic interactions between large-scale brain net-
+works predict behavioral adaptation after perceptual errors. Cereb. Cortex. http://
+dx.doi.org/10.1093/cercor/bhs069.
+Cohen, M.X., et al., 2009. Good vibrations: cross-frequency coupling in the human nu-
+cleus accumbens during reward processing. J. Cogn. Neurosci. 21, 875 –889.
+Colgin, L.L., et al., 2009. Frequency of gamma oscillations routes ﬂow of information in
+the hippocampus. Nature 462, 353– 357.
+Darvas, F., Miller, K.J., Rao, R., Ojemann, J., 2009. Nonlinear phase-phase cross-
+frequency coupling mediates communication between distant sites in human neo-
+cortex. J. Neurosci. 29, 426– 435.
+David, O., Kilner, J.M., Friston, K.J., 2006. Mechanisms of evoked and induced responses
+in MEG/EEG. NeuroImage 31, 1580 –1591.
+Delorme, A., Makeig, S., 2004. EEGLAB: an open source toolbox for analysis of single-
+trial EEG dynamics including independent component analysis. J. Neurosci.
+Methods 134, 9 –21.
+Engel, A.K., Fries, P., Singer, W., 2001. Dynamic predictions: oscillations and synchrony
+in top-down processing. Nat. Rev. Neurosci. 2, 704 –716.
+Foster, B.L., Parvizi, J., 2012. Resting oscillations and cross-frequency coupling in the
+human posteromedial cortex. NeuroImage 1 –8.
+Fries, P., 2005. A mechanism for cognitive dynamics: neuronal communication through
+neuronal coherence. Trends Cogn. Sci. 9, 474 –480.
+Fröhlich, F., McCormick, D.A., 2010. Endogenous electric ﬁelds may guide neocortical
+network activity. Neuron 67, 129 –143.
+Griesmayr, B., Gruber, W.R., Klimesch, W., Sauseng, P., 2010. Human frontal midline
+theta and its synchronization to gamma during a verbal delayed match to sample
+task. Neurobiol. Learn. Mem. 93, 208– 215.
+Jacobs, J., Kahana, M.J., 2010. Direct brain recordings fuel advances in cognitive electro-
+physiology. Trends Cogn. Sci. 14, 162 –171.
+Kramer,
+M.A., et al., 2008a. Rhythm generation through period concatenation in rat so-
+matosensory cortex. PLoS Comput. Biol. 4, e1000169.
+Kramer, M.A., et al., 2008b. Sharp edge artifacts and spurious coupling in EEG frequency
+comodulation measures. J. Neurosci. Methods 170, 352 –357.
+Kriegeskorte, N., Simmons, W.K., Bellgowan, P.S.F., Baker, C.I., 2010. Circular analysis in
+systems neuroscience: the dangers of double dipping. Nat. Neurosci. 12, 535 –540.
+Lachaux, J.P., Rodriguez, E., Martinerie, J., Varela, F.J., 1999. Measuring phase synchrony
+in brain signals. Hum. Brain Mapp. 8, 194– 208.
+Lakatos, P., Karmos, G., Mehta, A., Ulbert, I., Schroeder, C., 2008. Entrainment of neuro-
+nal oscillations as a mechanism of attentional selection. Science 320, 110 –113.
+Lisman, J.E., Idiart, M.A., 1995. Storage of 7 +/ − 2 short-term memories in oscillatory
+subcycles. Science 267, 1512 –1515.
+Miller, K.J., Sorensen, L.B., Ojemann, J., den Nijs, M., 2009. Power-law scaling in the
+brain surface electric potential. PLoS Comput. Biol. 5, e1000609.
+Miller, K.J., et al., 2010. Dynamic modulation of local population activity by rhythm
+phase in human occipital cortex during a visual search task. Front. Hum. Neurosci.
+http://dx.doi.org/10.3389/fnhum.2010.00197.
+Osipova, D., Hermes, D., Jensen, O., Rustichini, A., 2008. Gamma power is phase-locked
+to posterior alpha activity. PLoS One 3, e3990.
+Palva, J.M., Palva, S., Kaila, K., 2005. Phase synchrony among neuronal oscillations in the
+human cortex. J. Neurosci. 25, 3962 –3972.
+Penny, W.D., Duzel, E., Miller, K.J., Ojemann, J., 2008. Testing for nested oscillation.
+J. Neurosci. Methods 174, 50 –61.
+Quilichini, P., Sirota, A., Buzsáki, G., 2010. Intrinsic circuit organization and theta-
+gamma oscillation dynamics in the entorhinal cortex of the rat. J. Neurosci. 30,
+11128–11142.
+Roopun, A., et al., 2008. Temporal interactions between cortical rhythms. Front.
+Neurosci. 2, 145– 154.
+Sirota, A., et al., 2008. Entrainment of neocortical neurons and gamma oscillations by
+the hippocampal theta rhythm. Neuron 60, 683 –697.
+423B. Voytek et al. / NeuroImage 64 (2013) 416 –424
+
+===== PAGE 9 =====
+
+Tallon-Baudry, C., Bertrand, O., Delpuech, C., Pernier, J., 1996. Stimulus speci ﬁcity of
+phase-locked and non-phase-locked 40 Hz visual responses in human. J. Neurosci.
+16, 4240–4249.
+Tass, P., et al., 1998. Detection of n: m phase locking from noisy data: application to
+magnetoencephalography. Phys. Rev. Lett. 81, 3291 –3294.
+Tort, A.B., Komorowski, R.W., Manns, J.R., Kopell, N.J., Eichenbaum, H., 2009. Theta –
+gamma coupling increases during the learning of item-context associations. Proc.
+Natl. Acad. Sci. U. S. A. 106, 20942 –20947.
+Tort, A.B., Komorowski, R.W., Eichenbaum, H., Kopell, N.J., 2010. Measuring phase–ampli-
+tude coupling between neuronal oscillations of different frequencies. J. Neurophysiol.
+104, 1195–1210.
+Van Wingerden, M., Vinck, M., Lankelma, J., Pennartz, C., 2010. Learning-associated
+bamma-band phase-locking of action –outcome selective neurons in orbitofrontal
+cortex. J. Neurosci. 30, 10025 –10038.
+Vanhatalo, S., et al., 2004. Infraslow oscillations modulate excitability and interictal ep-
+ileptic activity in the human cortex during sleep. Proc. Natl. Acad. Sci. U. S. A. 101,
+5053–5057.
+Voytek, B., et al., 2010a. Shifts in gamma phase –amplitude coupling frequency from
+theta to alpha over posterior cortex during visual tasks. Front. Hum. Neurosci. 4,
+1–9.
+Voytek, B., et al., 2010b. Hemicraniectomy: a new model for human electrophysiology
+with high spatio-temporal resolution. J. Cogn. Neurosci. 22, 2491 –2502.
+Voytek, B., et al., 2010c. Dynamic neuroplasticity after human prefrontal cortex dam-
+age. Neuron 68, 401– 408.
+Whittingstall, K., Logothetis, N., 2009. Frequency-band coupling in surface EEG re ﬂects
+spiking activity in monkey visual cortex. Neuron 64, 281 –289.
+Womelsdorf, T., Fries, P., 2007. The role of neuronal synchronization in selective atten-
+tion. Curr. Opin. Neurobiol. 17, 154– 160.
+424 B. Voytek et al. / NeuroImage 64 (2013) 416 –424

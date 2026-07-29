@@ -8,11 +8,10 @@ reconstruction of per-token log band-amplitude with two masking modes:
   * "random"    -- standard MAE: mask a random fraction of grid tokens. Safety net;
                    this is the proven paradigm (LaBraM/CBraMod/REVE all mask).
   * "crossfreq" -- OURS: mask every HIGH-band token and reconstruct its amplitude
-                   from the visible LOW bands. The only signal that solves this is
-                   low-phase -> high-amplitude coupling, so the model is forced to
-                   learn PAC. Uses freq_mixer="attention" so no coupling matrix is
-                   fed (the true coupling is computed from the masked bands and
-                   would leak the target); the model must route low->high itself.
+                   from visible LOW bands plus spatio-temporal context.  This is a
+                   PAC-inspired asymmetric mask distribution: it encourages the
+                   representation to retain low-to-high dependencies, but does not
+                   by itself prove that the network learned biological PAC.
 
 Target = frontend log mean amplitude per (electrode, band, patch): deterministic,
 so no collapse and no target-encoder needed. The encoder never sees a masked
@@ -27,6 +26,7 @@ import torch.nn.functional as F
 from .frontend.triaxial import TriAxialFrontend
 from .triaxial import TriAxialEncoder, BandPE, SpatialPE
 from .build import _spatial_coords
+from .montage import coords_for
 
 
 class MAEPretrain(nn.Module):
@@ -47,6 +47,13 @@ class MAEPretrain(nn.Module):
         self.crossfreq_frac = cfg.get("crossfreq_frac", 0.5)
         self.crossfreq_density = cfg.get("crossfreq_density", 1.0)
         self.mixed_p = cfg.get("mixed_p", 0.5)
+        self.structured_mask_mode = cfg.get(
+            "structured_mask_mode", "crossfreq"
+        )
+        if self.structured_mask_mode not in ("crossfreq", "lowfreq", "bandrand"):
+            raise ValueError(
+                "structured_mask_mode must be crossfreq/lowfreq/bandrand"
+            )
         self.pretrain_task = cfg.get("pretrain_task", "mae")
         self.freq_mixer = cfg.get("freq_mixer", "attention")
         self.needs_pac_vector = (
@@ -56,6 +63,8 @@ class MAEPretrain(nn.Module):
             n_bands=cfg["n_bands"], hidden_dim=d, sample_rate=cfg["sample_rate"],
             kernel_size=cfg.get("kernel_size", 201), patch_len=cfg.get("patch_len", 200),
             return_pac_vector=self.needs_pac_vector,
+            tokenizer_mode=cfg.get("tokenizer_mode", "raw"),
+            pac_token_mode=cfg.get("pac_token_mode", "measured"),
         )
         self.band_pe = BandPE(d, n_bands=cfg["n_bands"], mode=cfg.get("band_pe", "hz"))
         self.spatial_pe = SpatialPE(cfg["n_channels"], d, coords=_spatial_coords(cfg))
@@ -68,6 +77,36 @@ class MAEPretrain(nn.Module):
         self.mask_token = nn.Parameter(torch.zeros(d))
         self.recon = nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Linear(d, 1))
         self.align_head = nn.Linear(d, 1)
+        self.recon_loss = cfg.get("recon_loss", "mse")
+
+        # Pooled batches carry a member id.  Keep the corresponding coordinate
+        # tables so xyz SpatialPE can be selected at runtime.  The current four
+        # corpora share a montage, but this removes that assumption from the
+        # model/pretrainer boundary and is required when the big-cluster corpus
+        # grows to additional channel layouts.
+        self.pool_coords = []
+        for spec in cfg.get("pretrain_pool", []):
+            coords = coords_for(spec["name"])
+            if cfg.get("spatial_pe") == "xyz" and coords is None:
+                raise ValueError(
+                    f"no xyz montage coordinates registered for pooled dataset "
+                    f"{spec['name']!r}"
+                )
+            self.pool_coords.append(coords)
+
+    def _spatial_encoding(self, C, device, dataset_idx=None):
+        coords = None
+        if self.pool_coords and dataset_idx is not None:
+            if torch.is_tensor(dataset_idx):
+                unique = torch.unique(dataset_idx.detach().cpu())
+                if unique.numel() != 1:
+                    raise ValueError(
+                        "pooled pretrain batch mixes datasets; enable the "
+                        "dataset-homogeneous mixture batch sampler"
+                    )
+                dataset_idx = int(unique.item())
+            coords = self.pool_coords[int(dataset_idx)]
+        return self.spatial_pe(C, device, coords=coords)
 
     def _mask(self, B, C, nb, P, device):
         """Return a boolean (B, C, nb, P) mask, True = hidden/reconstruct."""
@@ -76,7 +115,11 @@ class MAEPretrain(nn.Module):
             # Per-batch coin flip between the two objectives: keep crossfreq's
             # low->high forcing while still getting standard MAE's broad-coverage
             # signal, which is what the multi-class tasks appear to need (sec. 13.10b).
-            mode = "crossfreq" if torch.rand(1).item() < self.mixed_p else "random"
+            mode = (
+                self.structured_mask_mode
+                if torch.rand(1).item() < self.mixed_p
+                else "random"
+            )
         n_hide = max(1, int(round(nb * self.crossfreq_frac)))
         # Mechanism controls (AGENT.md 13.40-D): all hide the SAME NUMBER of
         # whole bands as crossfreq, differing only in WHICH bands, to isolate whether
@@ -98,7 +141,7 @@ class MAEPretrain(nn.Module):
         # random: independent Bernoulli per token
         return torch.rand(B, C, nb, P, device=device) < self.mask_ratio
 
-    def encode(self, x):
+    def encode(self, x, dataset_idx=None):
         """Frontend + PEs + encoder with NO masking -- for probing/finetuning."""
         frontend_out = self.frontend(x)
         if self.needs_pac_vector:
@@ -108,12 +151,14 @@ class MAEPretrain(nn.Module):
             pac_vector = None
         B, C, nb, P, D = tokens.shape
         tokens = tokens + self.band_pe(band_hz).view(1, 1, nb, 1, D)
-        tokens = tokens + self.spatial_pe(C, tokens.device).view(1, C, 1, 1, D)
+        tokens = tokens + self._spatial_encoding(
+            C, tokens.device, dataset_idx
+        ).view(1, C, 1, 1, D)
         return self.encoder(tokens, coupling, pac_vector)  # (B, C, nb, P, D)
 
-    def forward(self, x):
+    def forward(self, x, dataset_idx=None):
         if self.pretrain_task == "phase_align":
-            return self._phase_alignment_loss(x)
+            return self._phase_alignment_loss(x, dataset_idx)
 
         frontend_out = self.frontend(x, return_amp_target=True)
         if self.needs_pac_vector:
@@ -128,7 +173,9 @@ class MAEPretrain(nn.Module):
         # encodings so the encoder still knows where the hidden tokens live.
         tok = torch.where(mask.unsqueeze(-1), self.mask_token.view(1, 1, 1, 1, D), tokens)
         tok = tok + self.band_pe(band_hz).view(1, 1, nb, 1, D)
-        tok = tok + self.spatial_pe(C, x.device).view(1, C, 1, 1, D)
+        tok = tok + self._spatial_encoding(
+            C, x.device, dataset_idx
+        ).view(1, C, 1, 1, D)
 
         # Leakage control (applies to any freq_mixer that USES coupling, i.e.
         # "coupling"; attention/cotar ignore it). coupling[.., i, j] = mean_t(
@@ -147,10 +194,36 @@ class MAEPretrain(nn.Module):
         h = self.encoder(tok, cpl, pac)                                 # (B,C,nb,P,D)
 
         pred = self.recon(h).squeeze(-1)                               # (B,C,nb,P)
-        loss = F.mse_loss(pred[mask], amp_target.detach()[mask])
-        return loss
+        return self._reconstruction_loss(pred, amp_target.detach(), mask)
 
-    def _phase_alignment_loss(self, x):
+    def _reconstruction_loss(self, pred, target, mask):
+        """Masked amplitude loss, optionally balanced over frequency bands.
+
+        Standard elementwise MSE is retained as the default for exact backward
+        compatibility.  The foundation recipe uses band-balanced Smooth-L1:
+        every reconstructed band contributes one mean loss regardless of its
+        absolute envelope scale or how many tokens happened to be masked.  This
+        directly addresses the low-frequency energy dominance highlighted by
+        BandVQ/TFM without discarding absolute log-amplitude information.
+        """
+        if self.recon_loss == "mse":
+            return F.mse_loss(pred[mask], target[mask])
+        if self.recon_loss not in ("band_balanced_mse", "band_balanced_smooth_l1"):
+            raise ValueError(f"unknown recon_loss={self.recon_loss!r}")
+        if self.recon_loss == "band_balanced_mse":
+            error = F.mse_loss(pred, target, reduction="none")
+        else:
+            error = F.smooth_l1_loss(pred, target, reduction="none")
+        band_losses = []
+        for band in range(pred.shape[2]):
+            selected = mask[:, :, band, :]
+            if selected.any():
+                band_losses.append(error[:, :, band, :][selected].mean())
+        if not band_losses:
+            raise RuntimeError("masked reconstruction produced an empty mask")
+        return torch.stack(band_losses).mean()
+
+    def _phase_alignment_loss(self, x, dataset_idx=None):
         """Discriminate measured PAC geometry from magnitude-matched phase scrambles.
 
         Positive and negative examples share *identical tokens and coupling
@@ -164,7 +237,9 @@ class MAEPretrain(nn.Module):
         tokens, coupling, band_hz, pac_vector = self.frontend(x)
         B, C, nb, P, D = tokens.shape
         tok = tokens + self.band_pe(band_hz).view(1, 1, nb, 1, D)
-        tok = tok + self.spatial_pe(C, x.device).view(1, C, 1, 1, D)
+        tok = tok + self._spatial_encoding(
+            C, x.device, dataset_idx
+        ).view(1, C, 1, 1, D)
 
         # Keep the *entire real preferred-phase distribution* and every local
         # |Z|, but break their correspondence to the token grid by permuting

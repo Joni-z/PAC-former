@@ -1,0 +1,4 @@
+inherits: pacformer_base.yaml
+mask_mode: random
+output_dir: checkpoints/foundation-pacformer-base-random
+

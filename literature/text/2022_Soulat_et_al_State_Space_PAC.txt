@@ -1,0 +1,1697 @@
+
+
+===== PAGE 1 =====
+
+1
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports
+State space methods for phase 
+amplitude coupling analysis
+Hugo Soulat1,4, Emily P . Stephen2, Amanda M. Beck3 & Patrick L. Purdon1*
+Phase amplitude coupling (PAC) is thought to play a fundamental role in the dynamic coordination 
+of brain circuits and systems. There are however growing concerns that existing methods for PAC 
+analysis are prone to error and misinterpretation. Improper frequency band selection can render 
+true PAC undetectable, while non-linearities or abrupt changes in the signal can produce spurious 
+PAC. Current methods require large amounts of data and lack formal statistical inference tools. We 
+describe here a novel approach for PAC analysis that substantially addresses these problems. We 
+use a state space model to estimate the component oscillations, avoiding problems with frequency 
+band selection, nonlinearities, and sharp signal transitions. We represent cross-frequency coupling in 
+parametric and time-varying forms to further improve statistical efficiency and estimate the posterior 
+distribution of the coupling parameters to derive their credible intervals. We demonstrate the method 
+using simulated data, rat local field potentials (LFP) data, and human EEG data.
+Neural oscillations are thought to play a fundamental role in the dynamic coordination of brain circuits and 
+ systems1. At individual frequencies, oscillations reflect the temporal coordination of activity across popula-
+tions of neurons, and can be observed experimentally in neuronal spiking time series, multi-unit activity, local 
+field potentials (LFP), and even non-invasively using magnetoencephalogram or electroencephalogram (EEG) 
+recordings. In the past decade, a major advance has been the realization that oscillating neural activity can have 
+higher-order interactions in which oscillations at different frequencies  interact2–4. This cross-frequency coupling 
+(CFC) appears to be nearly as ubiquitous as oscillations themselves, occurring during learning and memory, 
+varying across different states of arousal and unconsciousness, and changing in relation to neurological and psy-
+chiatric  disorders2,4–15. If distinct oscillations stem from specific neural circuit architectures and time  constants16, 
+it seems plausible that cross-frequency coupling could serve as a way of coordinating activity among otherwise 
+disparate circuits and  systems2. Amplitude–Amplitude17 and Phase-Phase  coupling3,18 have been reported, but 
+phase-amplitude coupling (PAC), in which the phase of a slower wave modulates the amplitude of a faster one, 
+remains the most frequently described phenomenon.
+The explosion of interest in CFC has led to the growing concern that existing methods for analysis may be 
+prone to error and misinterpretation. In a recent article, Aru and  colleagues 19 point out that existing cross-
+frequency coupling analyses are very sensitive to frequency band selection, noise, sharp signal transitions, and 
+signal nonlinearities. Depending on the scenario, true underlying CFC can be missed, or spurious coupling can 
+be detected. For example, temporal signals with sharp transitions, such as square or triangular waves, cannot 
+be represented by a single sinusoidal component. Their Fourier decompositions include multiple phase locked 
+harmonics that are not independent oscillations. Methods have been proposed to handle such non-sinusoidal 
+EEG signals but they rely on multi-region  comparison20 or multiple band pass filters, whose parameters can be 
+difficult to establish, to target and remove harmonic  content21. In addition, cross-frequency coupling methods 
+tend to be statistically inefficient, requiring substantial amounts of data, making them unsuitable for time-
+varying scenarios or real-time applications. Finally, in the absence of an appropriate statistical model, analysts 
+typically employ surrogate data methods for statistical inference on cross-frequency coupling, making it difficult 
+to properly answer even basic questions about the nature of the coupling, such as the size of the effect or its 
+confidence or credible interval.
+We describe here a novel method to estimate PAC that addresses these problems. A major source of error in 
+existing methods stems from their reliance on traditional bandpass filtering. These filters can remove meaning-
+ful oscillatory coupling components (i.e., sidebands), and introduce spurious transients that resemble cross-
+frequency coupling. In our approach, we use a state space oscillator model to separate out the different oscillations 
+OPEN
+1Department of Anesthesia, Critical Care, and Pain Medicine, Massachusetts General Hospital and Harvard 
+Medical School, Boston, MA, USA. 2Department of Mathematics and Statistics, Boston University, Boston, MA, 
+USA. 3Department of Electrical Engineering and Computer Science, Massachusetts Institute of Technology, 
+Cambridge, MA, USA. 4Gatsby Computational Neuroscience Unit, University College London, London, UK. *email: 
+patrick.purdon@mgh.harvard.edu
+
+===== PAGE 2 =====
+
+2
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+of interest. These models can preserve the relevant coupling terms in the signal and are resilient to noise and sharp 
+signal transitions. We choose a particular model formulation, ingeniously proposed by Matsuda and  Komaki22, 
+that makes it straightforward to estimate both the phase and amplitude of oscillatory components. To further 
+improve statistical efficiency, we introduce a parametric representation of the cross-frequency coupling relation-
+ship. A constrained linear regression estimates modulation parameters which can in addition be incorporated 
+into a second state space model representing time-varying changes in the modulation parameters. Finally, we 
+combine these statistical models to compute credible intervals for the observed coupling via resampling from 
+the estimated posterior distributions. We demonstrate the efficacy of this method using simulated data, rat LFP 
+data, and human EEG data.
+We show that our method accurately estimates the parameters describing the oscillatory and modulation 
+dynamics, provides improved temporal resolution, statistical efficiency, and inference compared to existing 
+methods. Furthermore, we show that it overcomes the common problems with existing PAC methods described 
+earlier, namely, band selection and spurious coupling introduced by sharp signal transitions and nonlinearities. 
+The improved performance and robustness to artifacts should help improve the efficiency and reliability of PAC 
+methods, and could enable novel experimental studies of PAC as well as novel medical applications.
+Results
+Overview of the state-space PAC (SSP) method. In the conventional approach to phase and ampli-
+tude estimation, the signal is bandpass filtered to estimate the slow and fast components. The Hilbert trans-
+form is then applied to synthesize their imaginary counterparts. Finally, the slow component phase and the fast 
+component amplitude are computed and used to calculate a Phase Amplitude Coupling (PAC) metric. In our 
+approach, we use a state space model to estimate the oscillatory components of the signal, using the oscillation 
+decomposition framework described by Matsuda and  Komaki22. We assume, for the moment, that the observed 
+signal yt ∈ R is a linear combination of latent states representing a slow and a fast component xs
+t and xf
+t ∈ R2 . 
+Note that we introduce our method with two latents but provide a general derivation for an arbitrary number 
+of oscillations (and their harmonics) as well as model selection tools and illustrative experiments below and in 
+Supplementary Materials (see for example S1). Each of the 2 dimensional latent states are assumed to be inde-
+pendent and their evolution over a fixed step size is modeled as a scaled and noisy rotation. For j = s, f
+where
+is a 2-dimensional rotation of angle ωj (the radial frequency), aj is a scaling parameter and σ 2
+j  the process 
+noise variance. An example of this state space oscillation decomposition is shown in Fig.  1a–d. This approach 
+eliminates the need for traditional bandpass filtering since the slow and fast components are directly estimated 
+under the model. Perhaps more importantly, the oscillations’ respective components can be regarded as the real 
+and imaginary terms of a phasor or analytic signal. As a result, the Hilbert transform is no longer needed. Thus 
+the latent vector’ s polar coordinates provide a direct representation of the slow instantaneous phase φs
+t  and fast 
+oscillation amplitude Af
+t (Fig. 1f–g). W e note xt =[ xs⊺
+t xf⊺
+t ]⊺ and obtain a canonical state space  representation23
+where /Phi1∈ R4×4 is a block diagonal matrix composed of the rotations described earlier, Q the total process noise 
+covariance, R the observation noise covariance and M ∈ R1×4 links the observation with the oscillation first 
+coordinate. W e estimate (�, Q, R) using a Expectation-Maximization (EM) algorithm whose general formulation 
+(multiple oscillations and harmonics) is derived in the Supplementary Materials S1.
+The standard approach for PAC analysis uses binned histograms to quantify the relationship between phase 
+and  amplitude24 which is a major source of statistical inefficiency. Instead, we introduce a parametric representa-
+tion of PAC based on a simple amplitude modulation model used in radio communications. T o do so, we consider 
+a linear regression problem of the form
+where X(φ s
+t ) =
+[1 cos (φ s
+t ) sin(φ s
+t )]
+ . We term β ∈ R3 the modulation vector and impose the additional constraint 
+(β2
+1 + β 2
+2 )<β 2
+0 on its component. Defining Kmod =
+√
+β 2
+1 + β 2
+2 /β0 , φ mod = tan−1(β2/β1) and A0 = β0 . Equa-
+tion (4) becomes
+Kmod controls the strength of the modulation while φmod is the preferred phase around which the amplitude 
+of the fast oscillation xf
+t  is maximal (Fig.  1h–j). For example, if Kmod = 1 and φmod = 0 , the fast oscillation is 
+strongest at the peak of the slow oscillation. On the other hand, if φmod = π , the fast oscillation is strongest at 
+the trough or nadir of the slow oscillation.
+(1)xj
+t = ajR (ωj)xj
+t−1 + uj
+t , uj
+t ∼ N(0,σ 2
+j I2×2),
+(2)R (ωj) =
+(
+cos(ωj) − sin(ωj)
+sin(ωj) cos(ωj)
+)
+,
+(3)
+yt = Mxt + vt , vt ∼ N(0,R)
+xt = �x t−1 + ut , ut ∼ N(0,Q),
+(4)Af
+t = X(φs
+t )β + εt , εt ∼ N(0,σ 2
+β ),
+(5)
+{ Af
+t = A0[1+ Kmod cos(φs
+t − φ mod)]+ε t ,, εt ∼ N(0,σ 2
+β )
+Kmod ∈[0, 1) .
+
+===== PAGE 3 =====
+
+3
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+Finally, instead of relying on surrogate  data19 to determine statistical significance, which decreases efficiency 
+even further, our model formulation allows us to estimate the posterior distribution of the modulation parameters 
+p(Kmod, φ mod|{yt }t ) and to deduce the associated credible intervals (CI) (Fig.  1f–j).
+W e refer to our approach as the State-Space PAC (SSP) method. Because physiological systems are time vary-
+ing, we apply it over multiple non-overlapping windows. In a variation of our method, we model the temporal 
+continuity on the modulation parameters across windows. T o do so, we fit an autoregressive (AR) model with 
+noisy observations to the modulation vector β by solving and optimizing Y ule-W alker type equations numerically 
+02 04 06 08 01 00 1201 40 160
+[min]
+-100
+-50
+0
+50
+100µV
+1s/20µV 1s/20µV
+0
+1s
+0 0.5 1
+0
+0.01
+0.02
+0.03
+0.04
+0.05
+0
+0
+0.01
+0.02
+0.03
+0.04
+0.05
+1s/20µV
+1s/20µV
+1s/10µVπ−π
+π
+−π
+a Raw EEG
+b 6s Window c Slow Oscillation
+f  Slow Phasee Model Summary
+d Fast Oscillation
+g Fast Amplitude
+j Regressed Amplitude h Kmod distribution i φmod distribution
+Figure 1.  The oscillation decomposition for an EEG time-series from a human subject during anesthesia-
+induced unconsciousness using propofol. From the raw EEG trace (a), we extract a 6 s window (b) and 
+decompose it into a slow (c) and a fast (d) oscillation using our state space model (e). We then deduce the slow 
+oscillation phase (f) and the fast oscillation amplitude (g). Finally, we use a linear model (e) to regress the alpha 
+amplitude (j) and to the estimate modulation parameters (h,j) and their distributions. Here, we used 200 × 200 
+resampled series (dark grey) to compute the 95% CI.
+
+===== PAGE 4 =====
+
+4
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+(see Supplementary Materials S1), yielding what we term the double State Space PAC estimate (dSSP). In other 
+words, given Qβ and Rβ process and observation covariances, and, for a time-window T, we model
+where βSSP
+T  represents the modulation vector estimated in (4) in time window T and βdSSP
+T  represents the smoothed 
+modulation vector.
+Human EEG data. To demonstrate the performance of our methods we first analyzed EEG data from 
+a human volunteer receiving propofol to induce sedation and unconsciousness (Fig.  2). As expected, as the 
+concentration of propofol increases, the subject’s probability of response to auditory stimuli decreases. The 
+power spectral density changes during this time, developing beta (12.5–25 Hz) oscillations as the probability of 
+response begins to decrease, followed by slow (0.1–1 Hz) and alpha (8–12 Hz) oscillations when the probability 
+of response is zero (Fig. 2d) as  in25. Here, the spectrogram is estimated using our model parameters (and Eq. (44) 
+from Supplementary Materials S1) but we compare it to multitaper spectral  estimation38 in Fig. S2. For a window 
+T, we estimate the modulation strength Kmod
+T  and phase φmod
+T  (and CI) with dSSP (Fig. 2f) and we gather those 
+estimates in the Phase Amplitude Modulogam: PAM(T, ψ)  (Fig. 2e). For a given window T, PAM(T,. ) is a prob-
+ability density function (pdf) having support [−π , π ] . It assesses how the amplitude of the fast oscillation is dis-
+tributed with respect to the phase of the slow oscillation. When the probability of response is zero, we observe a 
+strong ”peak-max” ( Kmod
+T ≈ 0.8 , φmod
+T ≈ 0 ) pattern in which the fast oscillation amplitude is largest at the peaks 
+of the slow oscillation. During the transitions to and from unresponsiveness, we observe a ”trough-max” pattern 
+of weaker strength ( Kmod
+T ≈ 0.25 , φmod
+T =± π ) in which the fast oscillation amplitude is largest at the troughs 
+of the slow oscillation. Note that the coefficient of determination R2 for the modulation relationship mirrors the 
+coupling strength Kmod since Af
+t is better predicted by our model when the coupling is strong.
+When averaged over long, continuous and stationary time windows, conventional methods provide good 
+qualitative assessments of PAC. However, in many cases, analyses over shorter windows of time may be neces-
+sary if the experimental conditions or clinical situation changes rapidly. In previous  work25, we analyzed PAC 
+using conventional methods with relatively long δt = 120 s windows, appropriate in this case because propofol 
+was administered at fixed rates over ∼ 14 min intervals. The increased statistical efficiency of the SSP and dSSP 
+methods makes it possible to analyze much shorter time windows of δt = 6 s, which we illustrate in two sub -
+jects, one with strong coupling (Fig.  3) and another with weak coupling (Fig. S3). T o do so, we compare SSP , 
+dSSP and standard methods used with δt = 120 s or δt = 6 s based on the modulogram and on the Modulation 
+Index (MI) estimates. The latter assesses the strength of the modulation by measuring, for any window T  how 
+different PAM(T,. ) is from the uniform distribution. The Kullback-Leibler Divergence is typically used for this 
+purpose. Thus, any random fluctuations in the estimated PAM will increase MI, introducing a bias. Our model 
+parametrization is used to derive PAM, MI and associated CI but standard non-parametric analysis typically 
+(6)
+β SSP
+T = β dSSP
+T + γT , γ T ∼ N(0,Rβ )
+β dSSP
+T =
+p∑
+k=1
+hkβ dSSP
+T−k + ηT , ηT ∼ N(0,Qβ )
+,
+50 1001 50
+0
+2
+4
+6
+µg/ mL
+50 100 150
+0
+0.5
+1
+P(response)
+50 100 150
+0
+0.5
+1
+50 100 150
+[min]
+0
+10
+20
+30Freq [Hz]
+-15 -10 -5 05 10 15 20
+50 100 150
+[min]
+-π
+0
+π
+0.05 0.10 .150 .2 0.25 0.3
+50 100 150
+0
+0.5
+1
+50 100 150
+[min]
+-2
+0
+2
+Kmod φmod R2 
+95% CI
+Mean
+d Parametric spectrogram [dB] e Modulogram PAM(t,ψ)
+a Propofol Concentrationb  Response probability c Modulation regression R2 value
+f Modulation parameters
+ψ [Rad]
+Figure 2.  Propofol-induced unconsciousness in a human subject monitored with EEG. Increasing target 
+effect-site concentrations of propofol were infused (a) while loss and recovery of consciousness were monitored 
+behaviorally with an auditory task from which a probability of response was estimated (b). R2 value of our 
+modulation regression (c). dSSP was used to estimate the parametric spectrogram (d), the phase amplitude 
+modulogram (e) and the modulation parameters (f) Kmod and φmod alongside their CI computed with 
+200 × 200 samples.
+
+===== PAGE 5 =====
+
+5
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+rely on binned histogram. As a results they estimate statistical significance by constructing surrogate datasets 
+and reporting p-values19.
+20 40 60 80 100 120 140
+0
+2
+4
+6µg/ mL
+20 40 60 80 100 120 140
+0
+1
+20 40 60 80 100 120 140
+-2
+0
+2
+20 40 60 80 100 120 140
+0
+0.2
+0.4
+0.6
+20 40 60 80 100 120 140
+-2
+0
+2
+20 40 60 80 100 120 140
+0
+0.2
+0.4
+0.6
+20 40 60 80 100 120 140
+-2
+0
+2
+20 40 60 80 100 120 140
+0
+0.2
+0.4
+0.6
+20 40 60 80 100 120 140
+[min]
+-2
+0
+2
+20 40 60 80 100 120 140
+[min]
+0
+0.1
+0.2
+0.3
+MI
+p<0.05
+95% CI
+Mean
+c Modulogram
+a Response probability b Propofol Concentration
+d Modulation Index
+Slow Phase [Rad]Slow Phase [Rad]Slow Phase [Rad]Slow Phase [Rad]
+0.1
+0.15
+0.2
+0.1
+0.15
+0.2
+0.1
+0.15
+0.2
+0.1
+0.15
+0.2
+Standard δt=120sSSPdSSP Standard δt=6s
+P(response)
+Figure 3.  The phase amplitude coupling profile of a subject infused with increasing target effect site 
+concentrations of propofol. Left: response probability curves (a) aligned with modulograms (c) (distribution of 
+alpha amplitude with respect to slow phase) computed with standard (top) and state-space parametric (bottom) 
+methods. Right: propofol infusion target concentration (b) aligned with corresponding modulation indices (d). 
+Standard technique significance was assessed using 200 random permutations and CI where estimated using 
+200 × 200 samples.
+
+===== PAGE 6 =====
+
+6
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+Both subjects exhibit the typical phase amplitude modulation profile previously described when they transi-
+tion in and out of unconsciousness. Nevertheless, since SSP more efficiently estimates phase and  amplitude22 and 
+produces smooth PAM estimates even on short windows, MI estimates derived from SSP show less bias that the 
+standard approach. For the same reasons, φmod estimates show less variance than the standard approach. The 
+dSSP algorithm provides a temporal continuity constraint on the PAM, making it possible to track time-varying 
+changes in PAC while further reducing the variance of the PAM estimates. Finally, our parametric strategy 
+provides posterior distributions for Kmod , φmod and MI, making it possible to estimate CI for each variable and 
+assesses significance without resorting to surrogate data methods.
+Rat LFP data. To illustrate the performance of our approach in a different scenario representative of inva-
+sive recordings in animal models, we analyzed rat LFP during a learning task hypothesized to involve theta (6–10 
+Hz) and low gamma (25–60 Hz) oscillations. We applied dSSP on 2 s windows (Fig. 4) and confirmed that theta-
+gamma coupling in the CA3 region of the hippocampus increases as the rat learned the discrimination task, as 
+originally reported in Tort et al.4. In our analysis using dSSP , we did not pre-select the frequencies of interest, nor 
+did we specify bandpass filtering cutoff frequencies. Rather, the EM algorithm was able to estimate the specific 
+underlying oscillatory frequencies for phase and amplitude from the data, given an initial starting point in the 
+theta and gamma ranges. Thus we illustrate that our method can be applied effectively to analyze LFP data, and 
+that it can identify the underlying oscillatory structure without having to specify fixed frequencies or frequency 
+ranges.
+Simulation studies. To test our algorithms in a more systematic way as a function of different modulation 
+features and signal to noise levels, we analyzed multiple simulated data sets. By design, these simulated data 
+were constructed using generative processes or models different than the state space oscillator model; i.e., the 
+simulated data generating processes were outside the ”model class” used in our methods. Here, we focus on slow 
+and alpha components to reproduce our main experimental data cases. In doing so, our intent is not to provide 
+an exhaustive characterization of the precision and accuracy of our algorithm, since this would strongly depend 
+on the signal to noise ratio, the signal shape, etc. Instead, we aim to illustrate how and why our algorithm out-
+performs standard analyses in the case of short and noisy time-varying data sets.
+We first compare the resolution and robustness of dSSP with conventional techniques on broadband signals 
+with modulation parameters varying on multiple time scales. Results are reported for different generative param-
+eters (See Methods, /Delta1f gen
+s = /Delta1fgen
+f  , σs and σf ) in Fig.  5 and Fig. S4 and associated signal traces are illustrated 
+Fig. S5. Although robust when averaged on long windows with stationary coupling parameters, standard tech -
+niques become ineffective when the modulation parameters vary rapidly across windows. The modulation cannot 
+be resolved when long windows are used. However if we reduce the window size to compensate, the variance 
+of the estimates increases significantly. A trade-off has to be found empirically. On the other hand, we see that, 
+applied on 6-s windows, (d)SSP can track the rapid changes in amplitude modulation even in the case of a low 
+signal to noise ratio. The dSSP algorithm also provides estimates of the posterior distribution of the modulation 
+-2
+0
+2 [rad]
+0.12 0.16 0.2
+20 60 100
+Trial #
+-2
+0
+2 [rad]
+0
+20
+40
+60[Hz]
+-40 -20 0
+05 0 100
+Trial #
+0
+20
+40
+60[Hz]
+0.005
+0.01
+0.015
+40 60 80 100
+Trial #
+4
+6
+8
+10 10 -3
+Modulogram Spectrogram [a.u] Modulation Index
+(Trial Averaged)
+dSSP Standard
+Figure 4.  Rats show increased theta-gamma coupling when learning a discrimination task in hypocampus 
+CA3 region. Top row:  Standard4 processing for phase-amplitude modulogram (left), multitaper  spectrogram38 
+(middle), and standard modulation index (right). Bottom row: dSSP applied on 2 s windows (left), parametric 
+spectrogram (middle), modulation index based on dSSP (right).
+
+===== PAGE 7 =====
+
+7
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+parameters, making it straightforward to construct CI and perform statistical inference. By comparison, the 
+surrogate data approach becomes infeasible as there are fewer and fewer data segments to shuffle.
+In a recent paper, Dupré la Tour et al.26 designed an elegant nonlinear PAC formulation, described as a driven 
+autoregressive (DAR) process, where the modulated signal is a polynomial function of the slow oscillation. The 
+latter, referred to as the driver, is filtered out from the observation around a preset frequency and used to esti -
+mate DAR coefficients. The signal parametric spectral density is subsequently derived as a function of the slow 
+oscillation. The modulation is then represented in terms of the phase around which the fast oscillation power is 
+preferentially distributed. A gridsearch is performed on the driver, yielding modulograms for each slow central 
+frequency over a range of fast frequencies. The frequencies associated with the highest likelihood and/or strongest 
+coupling relationship are then selected as the final coupling estimate.
+This parametric representation improves efficiency, especially in the case of short signal windows, but because 
+it relies on an initial filtering step, it also shares some of the limitations of conventional techniques. As we will 
+see, spurious CFC can emerge from abruptly varying signals or nonlinearities. Additionally, this initial filtering 
+step might contaminate PAC estimates from short data segments with wideband slow oscillations.
+To compare our methods with standard techniques and the DAR method, we generated modulated signals 
+with the scheme described in Dupré la Tour et al.26 (Eq. (13), /afii9838= 3 , and φmod =− π/3 ) using different frequen-
+cies of interest ( fs and ff  ) spectral widths ( /Delta1fgen
+s  ) and Signal to Noise Ratios (SNR). Typical signal traces for 
+those generating parameters are reported in Figs. S7 and S8. W e then compare how well these methods recover 
+the slow oscillation and the fast oscillation (Figs. S7 and S8) or the modulation phase (Fig. 6 and Fig. S6). Con-
+trary to the other methods presented here, SSP does not compute the full comodulograms to select frequencies 
+of interest but rather identifies them by fitting the state space oscillator model. Coupling is only estimated in 
+a second step. Although we used tangible prior knowledge in previous sections to initialize the algorithm, we 
+adapt an initialization procedure  from27 (See Supplementary Materials S1) to provide a fair comparison. For each 
+condition, we generated 400 six-second windows. When necessary, the driver was extracted using /Delta1fﬁlt
+s = /Delta1f gen
+s .
+We find that our algorithm better retrieves fast frequencies in each case (Figs. S7 and S8) especially when the 
+slow oscillation is wider-band. It also outperforms the other methods when estimating modulation phase (Fig. 6 
+and Fig. S6): our algorithm is stable in the case of broadband ( /Delta1fgen
+s = 3 Hz) or weak ( (σs, σ s) = (0.7, 0.3) ) slow 
+oscillations and φmod is estimated accurately with very few outliers and a smaller standard deviation in virtually 
+all cases considered.
+Overcoming key limitations of CFC analysis: sharp transitions, nonlinearities, and frequency 
+band selection. Despite the central role that CFC likely plays in coordinating neural systems, standard 
+51 01 52 0
+[min]
+0
+1
+51 01 52 0
+[min]
+0
+1
+2
+3
+-2
+0
+2
+0.1
+.
+-2
+0
+2
+0
+0.1
+51 01 5
+[min]
+-2
+0
+2
+51 01 5
+[min]
+0
+0.1
+51 01 52 0
+[min]
+0
+1
+51 01 52 0
+[min]
+0
+1
+2
+3
+-2
+0
+2
+0.1
+-2
+0
+2
+0
+0.1
+24
+[min]
+-2
+0
+2
+24
+[min]
+0
+0.1
+51 01 52 0
+[min]
+0
+1
+51 01 52 0
+[min]
+0
+1
+2
+3
+-2
+0
+2
+0.1
+-2
+0
+2
+0
+0.1
+0.51 1.5
+[min]
+-2
+0
+2
+0.51 1.5
+[min]
+0
+0.1
+00 0
+[rad][rad]
+0.1 0.15 0.2
+[rad]
+Faster Dynamics
+p<0.05
+CI
+PAM(t,ψ) MI(t,ψ) PAM(t,ψ) MI(t,ψ)
+0.1 0.15 0.2 0.1 0.15 0.2
+Standard δt=120sdSSP Standard δt=6s
+PAM(t,ψ) MI(t,ψ)
+Kmodφmod Kmodφmod Kmodφmod
+Figure 5.  Comparison of the modulation estimates using standard methods and our new dSSP method. Slow 
+and fast oscillations were generated by filtering white noise around fs = 1 Hz and fs 10 Hz with /Delta1fgen
+s  = 3 Hz and 
+normalized to standard deviation σs = 0.5 and σf = 2. The time scale over which Kmod and φmod changed varied 
+between 20–5 and 2 min. See Fig. S5 for typical signal traces.
+
+===== PAGE 8 =====
+
+8
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+methods of CFC analysis are subject to many caveats that are a source of ongoing  concern19. Spurious coupling 
+can arise when the underlying signals have sharp transitions or nonlinearities. On the other hand, true underly-
+ing coupling can be missed if the frequency band for bandpass filtering is not selected properly. Here we illustrate 
+how our SSP method is robust to all of these limitations. We also show how our method is able, counterintui-
+tively, to extract nonlinear features of a signal using a linear model.
+Signals with abrupt changes and/or harmonics. Oscillatory neural waveforms may have features such as abrupt 
+changes or asymmetries that are not confined to narrow  bands28. In such cases, truncating their spectral content 
+with standard bandpass filters can distort the shape of the signal and can introduce artefactual components that 
+may be incorrectly interpreted as coupling.
+The state space oscillator model provides an alternative to bandpass filtering that can accommodate non 
+sinusoidal wave-shapes. In this section, we extend the model to explicitly represent the slow oscillatory signal’s 
+harmonics, thus allowing the model to better represent oscillations that have sharp transitions and those that 
+may be generated by nonlinear systems. To do so, we optimize h  oscillations with respect to the same fun -
+damental frequency fs (see Supplementary Materials S1). W e further combine this model with information 
+criteria (Akaike Information Criteria -AIC- 29 or Bayesian Information Criteria -BIC- 30) to determine (i) the 
+number of slow harmonics h and (ii) the presence or the absence of a fast oscillation. We select the best model 
+by minimizing �IC = IC − min(IC) . W e only report AIC-based PAC estimation here although both AIC and 
+BIC perform similarly. When multiple slow harmonics are favored, we use the phase of the fundamental oscil -
+lation to estimate PAC.
+W e first simulated a non-symmetric abruptly varying signal using a V an der Pol oscillator (Eq. (14), 
+ε = 5, ω = 5s−1 ) to which we added observation noise ( vt ∼ N(0, R) , 
+√
+R = 0.15 ). W e then considered two 
+scenarios: one with a modulated fast sinusoidal wave (Fig. 7a, Af
+t = A0
+(
+1 + cos φs
+t
+)
+ , A0 = 2
+√
+R and ff = 10Hz ), 
+and one without (Fig. 7b). Because our model is able to fit the sharp transitions, both AIC and BIC (not shown) 
+identify the correct number of independent components (Fig.  7a–c-4 : the minimum is reached for the correct 
+number of components). As a consequence, when no clear fast oscillation is detected, no PAC is calculated 
+(Fig. 7a-6). On the other hand, when no fast oscillation is present, standard techniques extract a fast component 
+stemming from the abruptly changing slow oscillation, leading to the detection of spurious coupling (Fig. 7a-3).
+Nonlinear inputs arising from signal transduction harmonics are a similar hurdle in CFC analysis. If we 
+consider a slow oscillation xs
+t = cos(ωst) non-linearly transduced as yt = g(xs
+t ) , we can write a second order 
+approximation
+If ω s/(2π) = 1 Hz, bandpass filtering yt around 0.9–3.1 Hz to extract an oscillation peaking at ff = 2 Hz would 
+ yield19
+(7)yt ≈ xs
+t + a
+(
+xs
+t
+)2 = cos(ωst) + a[1 + cos(2ωst)]/2.
+-2 02
+0
+0.05
+0.1
+0.15
+-2 02
+0
+0.05
+0.1
+0.15
+-2 02
+[rad]
+0
+0.05
+0.1
+0.15
+-2 02
+0
+0.2
+0.4
+0.6
+-2 02
+0
+0.2
+0.4
+0.6
+-2 02
+[rad]
+0
+0.2
+0.4
+0.6
+-2 02
+0
+0.5
+1
+-2 02
+0
+0.5
+1
+-2 02
+[rad]
+0
+0.5
+1
+-2 02
+0
+0.05
+0.1
+0.15
+-2 02
+0
+0.05
+0.1
+0.15
+-2 02
+[rad]
+0
+0.05
+0.1
+0.15
+-2 02
+0
+0.2
+0.4
+0.6
+-2 02
+0
+0.2
+0.4
+0.6
+-2 02
+[rad]
+0
+0.2
+0.4
+0.6
+-2 02
+0
+0.5
+1
+-2 02
+0
+0.5
+1
+-2 02
+[rad]
+0
+0.5
+1
+-2 02
+0
+0.1
+0.2
+-2 02
+0
+0.05
+0.1
+0.15
+-2 02
+[rad]
+0
+0.05
+0.1
+0.15
+-2 02
+0
+0.2
+0.4
+-2 02
+0
+0.2
+0.4
+-2 02
+[rad]
+0
+0.2
+0.4
+-2 02
+0
+0.2
+0.4
+0.6
+-2 02
+0
+0.2
+0.4
+0.6
+-2 02
+[rad]
+0
+0.2
+0.4
+0.6
+Standard DAR(10,1) SSP True 
+SNR SNR SNR
+φmod:
+∆fgen = 1Hz ∆fgen = 2Hz ∆fgen = 3Hz
+Figure 6.  Modulation phase φmod estimation and comparisons with standard methods (black), DAR (pink) 
+and SSP (blue). 400 windows of 6 s were generated with: a slow oscillation (filtered from white noise around 
+fs = 1 Hz with bandwidth /Delta1fgen
+s  , normalized to standard deviation σs ) and a modulated fast oscillation 
+( φmod =− π/3 , modeled with a sinusoid fs = 10 Hz and normalized to σf ). W e added unit normalized 
+Gaussian noise and we used 3 Signal T o Noise Ratio (SNR) conditions ( (σs, σ s) = (2, 1.5) , (1, 0.6) and (0.7, 0.3)). 
+We show typical signal traces for these different conditions Fig. S7.
+
+===== PAGE 9 =====
+
+9
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+In such a case, standard CFC analysis infers significant coupling (Fig.  7c-3) while oscillation decomposition 
+correctly identifies a harmonic decomposition without CFC (Fig. 7c-6).
+This model selection strategy does not guarantee that the correct model will always be selected. Furthermore, 
+the oscillation decomposition itself is often a non convex optimization problem. However, we observe that the 
+(extended) state-space oscillator is better suited to model physiological signals than narrow band components. 
+In addition, the model selection paradigm combined with prior knowledge of the signal content (e.g., propofol 
+anesthesia slow-alpha or rodent hippocampal theta-gamma oscillations) allows us to study PAC in a more 
+principled way.
+Frequency band selection. If bandpass filters with an excessively narrow bandwidth are applied to a modulated 
+signal, the modulation structure can be obliterated. Let us consider the following signal:
+Developing yt yields 4 frequency peaks: the slow and fast frequencies ωs and ωf  and two sidelobes centered 
+around ωf − ws and ωf + ωs
+As a consequence, if the fast oscillation is extracted without its side lobes, no modulation is detected, as illus-
+trated Fig. 8a–c. Our SSP algorithm uses a state-space oscillator decomposition which does not explicitly model 
+the structural relationship giving rise to the modulation side lobes (Eq. ( 9)). Y et, we see that the modulation is 
+successfully extracted, as observed in the fitted time series (Fig.  1) and in the spectra (Fig.  8d–f). The model is 
+able to achieve this by making the frequency response of the fast component wide enough to encompass the side 
+lobes. The algorithm does this by inflating the noises covariances R  and σ 2
+f  and σ 2
+f  and deflating af  . In theory 
+(8)xf
+t = (1 + a cos(ωst))cos(ωst).
+(9)yt = As cos(ωst) + Af cos(ωft)[1+ Kmod cos(ωst + φ mod)]+ vt , vt ∼ N(0,R).
+(10)yt = As cos(ωst) + Af cos(ωft) + (AfKmod/2)[cos(ωft + wst) + cos(ωft − ω st)].
+246
+-2
+-1
+0
+1
+2
+2468
+0
+20
+40
+60
+0246
+-2
+-1
+0
+1
+2
+0246
+-2
+-1
+0
+1
+2
+-2 02
+0
+0.1
+0.2
+0.3
+-2 02
+0
+0.1
+0.2
+0.3
+246
+-2
+-1
+0
+1
+2
+2468
+0
+100
+200
+300
+400
+0246
+-2
+-1
+0
+1
+2
+0246
+-2
+-1
+0
+1
+2
+-2 02
+0
+0.1
+0.2
+0.3
+0.4
+-2 02
+0
+0.1
+0.2
+0.3
+0.4
+246
+[sec]
+-1
+0
+1
+0246
+[sec]
+-1
+0
+1
+-2 02
+[rad]
+0.1
+0.2
+0.3
+0.4
+2468
+#Slow Harmonics
+0
+20
+40
+60
+80
+0 246
+[sec]
+-1
+0
+1
+-2 02
+[rad]
+0.1
+0.2
+0.3
+0.4
+0.4 0.4
+AIC  1 comp.
+AIC  2 comp.
+AIC  3 comp.
+Estimated PAC
+True PAC
+Signal Tot Slow comp.
+Fast comp. Resampled
+N/A
+a-1 a-2 a-3 a-4 a-5 a-6
+b-1 b-2 b-3 b-4 b-5 b-6
+c-1 c-2 c-3 c-4 c-5 c-6
+Standard SSP Simulated Signal
+c- Harmonic Signal b- Van Der Pol + Alpha a- Van Der Pol
+Figure 7.  PAC analysis of 6-s signals with harmonic content using standard methods and SSP . The signal was 
+either generated using a Van der Pol oscillator alone (a-1), a Van der Pol oscillator with a modulated alpha 
+oscillation (b-1), or with a nonlinearity according to Eq. (7) (c-1). The standard method use conventional filters 
+to extract the oscillation (0.1–1 Hz and 6–14 Hz (ab-2) and 0.6–1.2 Hz and 0.9–3.1 Hz (c-2)). SSP was combined 
+with an Akaike Information Criteria (AIC, abc-4) to select the optimal number of independent oscillations 
+(one, two or three) and the number of slow harmonics (abc-5). PAC is reported as the distribution of the fast 
+amplitude with respect to the slow phase (abc-3,abc-6). For SSP 100 samples were drawn from the posterior to 
+generate CI (b-6).
+
+===== PAGE 10 =====
+
+10
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+it might be possible to use a higher order model like an ARMA(4,2) (which would represent the product of 2 
+oscillations whose poles are in asafe±i(wf±ws) ), or to directly model coupling through a nonlinear observation. 
+However, in both cases, we found that such models were difficult to fit to the data, and quickly became under -
+constrained when applied to noisy, non-stationary, non-sinusoidal physiological signals. Instead, we found that 
+our simpler model was able to extract the modulated high-frequency component robustly.
+In summary, the first stage of our algorithm can extract nonlinearities stemming from the modulation before 
+fitting them with a regression model in the second stage. The main consequence of this approach is to inflate the 
+variance in the fast component estimation. See for example the wide CI in the fast oscillation estimate in Fig. 1g. 
+In turn, we resample the fast oscillation amplitudes from a wider distribution than is actually the case. Although 
+this does not affect the estimates of φmod , it does produce a conservative estimate when resampling Kmod , i.e., 
+the credible intervals are wider than they might be otherwise. Even so, we find that our approach still performs 
+better than previous methods (Figs. 3, 5 and 6).
+Discussion
+We have presented a novel method that integrates a state space model of oscillations with a parametric formula-
+tion of phase amplitude coupling (PAC). Under this state space model we represent each oscillation as an analytic 
+ signal22 to directly estimate the phase or amplitude. We then characterize the PAC relationship using a parametric 
+model with a constrained linear regression. The regression coefficients, which efficiently represent the coupling 
+relationship in only a few parameters, can be incorporated into a second state space model to track time-varying 
+changes in the PAC. We demonstrated the efficacy of this method by analyzing neural time series data from a 
+number of applications, and illustrated its improved statistical efficiency compared to standard techniques using 
+simulation studies based on different generative models. Finally, we showed how our method is robust to many 
+of the limitations associated with standard phase amplitude coupling analysis methods.
+The efficacy of our method stems from a number of factors. First, the state-space analytic signal model pro-
+vides direct access to the phase and amplitude of the oscillations being analyzed. This linear model also has the 
+remarkable ability to extract a nonlinear feature (the modulation) by imposing ”soft” frequency band limits which 
+are estimated from the data. The oscillation decomposition is thus well-suited to analyze physiological signals 
+that are not confined to strict band limits. We also proposed a harmonic extension that can represent nonlinear 
+oscillations (e.g., Van der Pol, Fig. 7), making it possible to better differentiate between true and spurious PAC 
+resulting from bandpass filtering artifacts. The parametric representation of the coupling relationship can accom-
+modate different modulation shapes and increases the model efficiency even further.
+Signal
+1s/2a.u
+1s/2a.u
+01 02 0
+-40
+-20
+0
+Multitaper PSD [dB]
+01 02 0
+(Hz)
+-40
+-20
+0
+- 0
+0.5
+1
+1.5
+PAM
+- 0
+(rad)
+0.5
+1
+1.5
+True Resampled Estimate Filtered
+StandardSSP
+ab c
+de f
+Figure 8.  Decomposition (a,d), power spectral density (b,e) and modulogram (c,f). The top row shows the 
+result of applying a narrow bandpass filter that removes the modulation side lobes. The bottom row shows 
+the result of applying the oscillation decomposition used in SSP and dSSP , which preserves the modulation 
+structure. ( Kmod = 0.6, φmod =− π/3 , R = 4 , As
+t = 4 and Af
+t = 1).
+
+===== PAGE 11 =====
+
+11
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+Overall, we addressed a majority of the significant limitations associated with current methods for PAC analy-
+sis. The neural time series are processed more efficiently (Fig. 3), frequency bands of interest are automatically 
+selected (Fig. 4), extracted (Fig. 8d–e), and more realistically modeled (Fig.  7). Contrary to standard methods, 
+we do not need to average PAC-related quantities across time, reducing the amount of contiguous time series 
+data required. Moreover, the posterior distributions of the signals of interest are well-defined under our proposed 
+model. Sampling from them bypasses the need to build surrogate data, which can obscure non-stationary struc-
+ture in the data and underestimate the false positive  rate19. Conversely, because SSP estimates the modulation 
+parameters’ posterior distribution, we report CI and provide information on the statistical significance of our 
+results as well as the strength and direction of the modulation. Our dynamic estimation of PAC hence makes 
+it possible to base inference on much shorter windows—as short as 6 s for slow 0.1–1 Hz signals. Other novel 
+models have been proposed to represent PAC, including driven autoregressive models (DAR)26 and generalized 
+linear models (GLM)31. As we saw earlier, SSP performs better than the DAR and standard approaches, particu-
+larly when the signal to noise is low. The GLM represents the modulation relationship parametrically as we do, 
+but in a more general form, and provides confidence intervals using the  bootstrap31. Both the DAR and GLM 
+approaches remain reliant on traditional bandpass filtering for signal extraction, and thus remain vulnerable to 
+the crucial problems introduced by these  filters19. Our method is the first to use state space models combined 
+with a parametric model of the modulation, the latter of which could be generalized in the manner described  by31.
+Our methods could significantly improve the analysis of future studies involving CFC, and could enable medi-
+cal applications requiring near real-time tracking of CFC. One such application could be EEG-based monitoring 
+of anesthesia-induced unconsciousness. During propofol induced anesthesia, frequency bands are not only very 
+well defined, but the PAC signatures strongly discriminates deep unresponsiveness (peak-max) from transition 
+states (through-max), most likely reflecting underlying changes in the polarization level of the  thalamus32. Thus, 
+PAC could provide a sensitive and physiologically-plausible marker of anesthesia-induced brain states, offering 
+more information than spectral features alone. Accordingly, a recent  study33 reported cases in which spectral 
+features could not perfectly predict unconsciousness in patients receiving general anesthesia. In this same data, 
+CFC measures (peak-max) could more accurately indicate a fully unconscious state from which patients cannot 
+not be  aroused34. In the operating room, drugs can be administered rapidly through bolus injection, drug infusion 
+rates can change abruptly, and patients may be aroused by surgical stimuli, leading to corresponding changes 
+in patients’ brain states over a time scale of  seconds35,36. These rapid transitions in state can blur modulation 
+patterns estimated using conventional methods. Faster and more reliable modulation analysis could therefore 
+lead to tremendous improvement in managing general anesthesia. Conventional methods are impractical since 
+they require minutes of data to produce one estimate; in contrast our method can estimate CFC on a time-scale 
+compatible with such applications.
+Since CFC analysis methods were first introduced into neuroscience, there has been a wealth of data suggest-
+ing that CFC is a fundamental mechanism for brain coordination in both health and  disease15,37. Our method 
+addresses many of the challenging problems encountered with existing techniques for estimating CFC, while also 
+significantly improving statistical efficiency and temporal resolution. This improved performance could pave the 
+way for important new discoveries that have been limited by inefficient analysis methods, and could enhance the 
+reliability and efficiency of PAC analysis to enable their use in medical applications.
+Methods
+All methods were carried out in accordance with relevant guidelines and  regulations4,25.
+Data sets. Experimental design and procedure. (a) Human EEG
+We analyzed human EEG data during loss and recovery of consciousness during administration of the anes-
+thetic drug propofol. The experimental design and EEG preprocessing have been extensively described  in25. 
+Briefly, 10 healthy volunteers (18–36 years old) were infused increasing amounts of propofol spanning 6 target 
+effect site concentrations (0, 1, 2, 3, 4, and 5 µ g L −1 ). Infusion was computer controlled and each concentration 
+was maintained for 14 min. T o monitor loss and recovery of consciousness behaviorally, subjects were presented 
+with an audio stimulus (a click or a verbal command - only the latter is reported here) every 4 s and had to 
+respond by pressing a button. The probability of response and associated 95% credible intervals were estimated 
+using Monte-Carlo  methods48 to fit a state space model to these data. Finally, EEG data were pre-processed using 
+an anti-aliasing filter and downsampled to 250 Hz.
+W e computed spectrograms of the EEG using the parametric expression associated with oscillation decom-
+position (derived in Supplementary Materials S1). Standard techniques for PAC analysis were applied on 6 and 
+120 s windows for which alpha and slow component were assumed to be known and extracted using bandpass 
+filters around 0.1–1 Hz and 9–12 Hz. Significance for the standard PAC method was assessed using 200 random 
+permutations.
+(b) Rat LFP
+Rat LFP dataset was generously shared by Tort et al.4. Data were recorded from the CA3 region of the dorsal 
+hippocampus of rats as they learned a spatial recognition task. The signal was sampled at 1000 Hz, bandpassed 
+from 1 to 300 Hz and binned into non-overlapping 2 s time windows. The standard PAC analysis was performed 
+using 6-10 Hz and 30–55 Hz filters to extract theta and gamma components, respectively. To replicate the original 
+results, modulation indices were averaged over 20 trials.
+Simulations. We tested our algorithm on simulated datasets generated by different models. We constructed 
+each simulated signal by combining unit variance Gaussian noise, a slow oscillation centered at fs (= 1 Hz unless 
+stated otherwise), and a modulated fast oscillation centered at ff (= 10 Hz unless stated otherwise). It is impor-
+
+===== PAGE 12 =====
+
+12
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+tant to note that we chose to generate these simulated signals using a method or “model class” that was differ -
+ent from the state space oscillator model we use to analyze the data. For standard processing, significance was 
+assessed with 200 random permutations, fs and ff were assumed to be known, and components were extracted 
+with bandpass filters with pass bands set to 0.1–1 Hz for the slow component and 8–12 Hz for the fast compo-
+nent.
+(a) Simulating the slow oscillation
+Neural oscillations are not perfect sinusoids and instead have a broad band character. Using the approach 
+described  in26, we simulated a broad band slow oscillation by convolving (filtering) independent identically 
+distributed Gaussian noise with the following impulse response function
+where ωs = 2πfs , c0 is a Blackman window of order 2
+⌊
+1.65fs/�f gen
+s
+⌋
++ 1 . The smaller the slow frequency band-
+width /Delta1fgen
+s  , the closer the signal is to a sinusoid. When necessary, we additionally use a π/2 phase-shifted filter: 
+˜c(t) = c0(t)sin(ωst) to model an analytic slow oscillation xs
+t from which we deduce the phase φs
+t  . The resulting 
+series is finally normalized such that its standard deviation is set to σs.
+(b) Simulating the modulation
+To assess the temporal resolution of our method and the standard method, we generated simulated data sets 
+with different rates of time-varying modulation. First, to construct the modulated fast oscillation, we constructed 
+a fast oscillation centered at ωf = 2πff and normalized to σf as described above and modulated it by
+Here, Kmod
+t  and phase φmod
+t  are time varying and follow the dynamics illustrated in Fig. 5 (and in Fig. S4). Rep-
+resentative simulated EEG signal traces for different generative parameters are illustrated in Fig. S5.
+W e also generated simulated data using an alternative modulation function (Fig. 6 and Figs. S6, S7 and S8)
+where u⊺
+φ mod =
+[
+cos(φ mod) − sin(φ mod)
+]
+ , described previously in described  in26.
+(c) Simulated signals with abrupt changes
+Signals with abrupt or sharp transitions can lead to artefactual phase-amplitude  modulation19. To assess the 
+robustness of our state-space PAC method under such conditions, we used a Van Der Pol oscillator to generate 
+a signal with abrupt changes. Here, the oscillation x is governed by the differential equation:
+Equation (14) was solved using Euler method with fixed time steps.
+State-space oscillator model. For a time series of length N sampled at Fs (unless stated otherwise 
+Fs = 250 Hz and N/Fs = 6 s), we consider a time window {yt }N
+t=1 ∈ RN , and we assume, in this section, that yt 
+is the sum of observation noise and components from two latent states xs
+t and xf
+t ∈ R2N which account for a slow 
+and a fast component. We use the oscillation decomposition model described by Matsuda and  Komaki22. For 
+j = s, f and t = 2 ...N  , each component follows the process Eq.
+where aj ∈ (0, 1) and R (ωj) is a rotation matrix with angle ωj = 2π fj/Fs
+and
+As previously stated, the phase φj
+t and amplitude Aj
+t of each oscillation are obtained using the latent vector polar 
+coordinates:
+Each oscillation has a broad-band power spectral density (PSD) with a peak at frequency fj . The parametric 
+expression for this PSD is derived in the Supplementary Materials S1.
+Setting M =
+[1010 ]
+ , xt =[ xs⊺
+t xf⊺
+t ]⊺ , and Q and /Phi1 to be block diagonal matrices whose blocks are Qj and 
+ajR (ωj) , respectively, we find the canonical state space of Eq. (3).
+(11)c(t) = c0(t)cos(ωst).
+(12)mt = 1 + Kmod
+t cos(φ s
+t − φ mod
+t ).
+(13)mt =
+(
+1 + exp
+(
+−/afii9838xs
+t u⊺
+φmod
+))−1
+(14)dx2
+dt2 − εω 0(1 − x2)dx
+dt + ω 2
+0x = 0.
+(15)xj
+t = ajR (ωj)xj
+t−1 + uj
+t , uj
+t ∼ N(0,Qj),
+(16)R (ωj) =
+(
+cos(ωj) − sin(ωj)
+sin(ωj) cos(ωj)
+)
+(17)Qj =
+(
+σ 2
+j 0
+0 σ 2
+j
+)
+.
+(18)φj
+t = tan−1
+(
+xj
+2,t
+xj
+1,t
+)
+and Aj
+t =
+√(
+xj
+1,t
+)2
++
+(
+xj
+2,t
+)2
+
+===== PAGE 13 =====
+
+13
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+Given the observed signal yt , we aim to estimate both the hidden oscillations xt and their generating param-
+eters (�, Q, R) . W e do so using an Expectation-Maximization (EM) algorithm (see Supplementary Materials S1 
+for a more general derivation). The hidden oscillations xt are estimated in the E-step of the EM algorithm using 
+the Kalman filter and fixed-interval  smoother51, while the generating parameters are estimated in each iteration 
+of the M-step.
+Phase amplitude coupling model. Standard processing using bandpass filters and the Hilbert trans‑
+form. Standard approaches for PAC analysis follow a procedure described in Tort, et al. 24, which we briefly 
+summarize here. The raw signal yt is first bandpass filtered to isolate slow and fast oscillations. A Hilbert trans-
+form is then applied to estimate the instantaneous phase of the slow oscillation φs
+t , and instantaneous amplitude 
+of the fast oscillation Af
+t . At time t, the alpha amplitude Af
+t is assigned to one of (usually 18) equally spaced phase 
+bins of length δψ based on the instantaneous value of the slow oscillation phase: φs
+t . The histogram is constructed 
+over some time window T of observations, for instance a ∼ 2 min epoch, which yields the phase amplitude 
+modulogram (PAM)40:
+For a given window T, PAM(T,.) is a probability distribution function which assesses how the fast oscillation 
+amplitude is distributed with respect to the slow oscillation phase. The strength of the modulation is then usually 
+measured with the Kullback–Leibler divergence with a uniform distribution. It yields the Modulation Index (MI):
+Finally, under this standard approach, surrogate data such as random permutations are used to assess the statisti-
+cal significance of the observed MI. Random time shifts /Delta1t are drawn from a uniform distribution whose interval 
+depends on the problem  dynamics40 and phase amplitude coupling is estimated using the shifted fast amplitudes 
+Af
+t−/Delta1t and the original slow phase φs
+t  . The MI is then calculated for this permuted time series, and the process 
+is repeated to construct a null distribution for the MI. The original MI is deemed significant if it is bigger that 
+95% of the permuted values. Overall, this method requires that the underlying process remains stationary for 
+sufficiently long so that the modulogram can be estimated reasonably well and so that enough comparable data 
+segments can be permuted in order to assess significance.
+Parametric phase amplitude coupling. To improve statistical efficiency, we introduce a parametric representa-
+tion of PAC. For a given window, we consider the following (constrained) linear regression problem:
+where β =[ β0 β1 β2]⊺ , X(φ s
+t ) =
+[1 cos (φ s
+t ) sin(φ s
+t )]
+ and W(K) ={ β ∈ R3|
+√
+β 2
+1 + β 2
+2 <β 0K} . If we define
+we see that Eq. (21) is equivalent to:
+Setting K = 1 ensures that the model is consistent, i.e., that the modulation envelope cannot exceed the ampli-
+tude of the carrier signal. But this can be a computationally expensive constraint to impose. If the data have a 
+high signal to noise ratio so that Kmod is unlikely to be greater than 1 by chance, we could also choose to solve 
+the unconstrained problem ( K = +∞ ). Under the constrained solution, the posterior distribution for β is a 
+truncated multivariate t-distribution47:
+The likelihood, conjugate prior, posterior parameters β , V , b, ν , and the normalizing constant Z are justified and 
+derived in Supplementary Material S1. We refer to this estimate as State Space PAC (SSP) and we note
+Posterior sampling. The standard approach relies on surrogate data to determine statistical significance, which 
+decreases its efficiency even further. Instead, we estimate the posterior distribution p(β |{yt }t ) from which we 
+obtain the credible intervals (CI) of the modulation parameters Kmod and φmod . T o estimate the posterior dis-
+tribution, we sample from the posterior distributions given by (i) the state space oscillator model and (ii) the 
+parametric PAC model.
+(19)PAM(T, ψ) =
+∫ δt/2
+−δt/2
+∫ ψ +δψ/ 2
+ψ −δψ/ 2 Af
+t δ(φs
+t − ψ ′)dtdψ ′
+2π
+∫ t+δt/2
+t−δt/2 Aft dt
+(20)MI(T) =
+∫ π
+−π
+PAM(T, ψ) log2 [2π PAM(t, ψ) ]dψ
+(21)
+{
+Af
+t = X(φs
+t )β + εt , εt ∼ N(0,σ 2
+β )
+β ∈ W(K)
+(22)Kmod =
+√
+β 2
+1 + β 2
+2 /β0 , φ mod = tan−1(β2/β1), and A0 = β0
+(23)
+{ Af
+t = A0[1+ Kmod cos(φs
+t − φ mod)]+ε t ,, εt ∼ N(0,σ 2
+β )
+Kmod ∈[0, K) .
+(24)p
+(
+β |{Af
+t , φ s
+t }t
+)
+= 1
+Z
+(
+1 + ν−1 (
+β − β
+)⊺(V /b)
+(
+β − β
+))− ν+ 3
+2 1{β ∈W(K)}.
+(25)βSSP = argmax p
+(
+β|{Af
+t , φs
+t }t
+)
+.
+
+===== PAGE 14 =====
+
+14
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+(i) The Kalman Filter used in the rth E-Step (see Supplementary Materials S1) of the EM algorithm provides 
+the following moments, for t, t′ = 1 ...N :
+Therefore, we can sample l1 times series: X ={ Xt }N
+t=1  using
+where P is a 4N × 4N matrix whose block entries are given by (P)tt′ = PN
+t,t′.
+(ii) For each X , we use Eq. (18) to compute the resampled slow oscillation’ s phase ϕ and fast oscillation’ s 
+amplitude A . W e then use Eq. (24) to draw l2 samples from p
+(
+β|A , ϕ
+)
+ . As a result, we produce l1 × l2 samples 
+to estimate:
+W e finally construct CI around βSSP using an L2 norm and in turn derive the CI of Kmod and φmod (Fig. 1h,i).
+A second state‑space model to represent time‑varying PAC. We segment the time series into multiple non-over-
+lapping windows of length N to which we apply the previously described analysis. We hence produce {βSSP
+T }T , a 
+set of vectors in R3 accounting for the modulation where T denotes a time window of length N.
+A second state-space model can be used to represent the modulation dynamics. Here we fit an autoregressive 
+(AR) model of order p with observation noise to the modulation vectors βSSP
+T  across time windows. It yields the 
+double State Space PAC estimate (dSSP):
+W e proceed by solving and optimizing Y ule-W alker type equations numerically (see Supplementary Materials 
+S1) and we select the order p with Bayesian Information  Criterion30. Finally, we can use the fitted parameters to 
+filter the l1 × l2 resampled parameters to construct a CI for {βSSP
+T }T when necessary.
+Equivalence. To better compare standard techniques with the SSP , we derive an approximate expression for the 
+PAM under our parametric model (Supplementary Materials S1). For a window T:
+Initialization of the expectation maximization (EM) algorithm. Although EM ensures conver -
+gence, the log likelihood which is to be maximized is not always  concave22. To address this issue, Matsuda and 
+Komaki initialize a signal composed of d oscillations with the parameters of the best autoregressive (AR) process 
+of order p ∈ [|d ,2 d|] . Nevertheless, because of the electrophysiological signal’ s aperiodic component, such pro-
+cedure might bias the initialization. Indeed, the aperiodic components are usually described by a 1/f χ power-law 
+ function45,46 which might be regressed by the AR process. In such cases, the initialization could fail to account 
+for an actual underlying oscillation.
+T o help mitigate this potential problem, we adapt Haller, Donoghue and Peterson’ s FOOOF  algorithm27 to the 
+state space oscillation framework. Our initialization algorithm aims to disentangle the oscillatory components 
+from the aperiodic one before fitting the resulting spectra with the parametric PSD of the oscillation (Eq. 44). 
+All fits in this initialization procedure use interior point methods to minimize L2 norms.
+The power spectral density (PSD) for the observed data signal yt is estimated using the multitaper  method38. 
+W e set the frequency resolution rf  (typically to 1 Hz) which yields the time bandwidth product TW =
+rf
+2
+N
+Fs  . The 
+number of taper K is then chosen such that K << ⌊2TW⌋ − 1.
+First of all, we estimate the observation noise R0 (used to initialized R) using:
+and we remove this offset from the PSD.
+(26)xN
+t = Er (xt |{yk}N
+k=1 ), PN
+t,t′ = covr (xt , xt′|{yk}N
+k=1 ) .
+(27)X |{yt }N
+t=1 ∼ N ({xN
+t }N
+t=1 , P) ,
+(28)
+p(β|{yt }t ) =
+∫
+X
+p(β|X )p(X |{yt }t )
+=
+∫
+A ,ϕ
+p(β|A, ϕ)p(A, ϕ |{yt }t ).
+(29)
+β SSP
+T = β dSSP
+T + γT , γ T ∼ N(0,Rβ )
+β dSSP
+T =
+p∑
+k=1
+hkβ dSSP
+T−k + ηT , ηT ∼ N(0,Qβ )
+.
+(30)
+PAM(T, ψ) = 1
+2π
+(
+1 + sin(δψ/2)
+δψ/ 2 Kmod
+T cos(ψ − φ mod
+T )
+)
+−−−→
+δψ →0
+1
+2π
+(
+1 + Kmod
+T cos(ψ − φ mod
+T )
+)
+.
+(31)10 log10
+R0
+Fs = lim
+f →∞
+PSD(f )
+
+===== PAGE 15 =====
+
+15
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+Regressing out the non oscillatory component. The aperiodic signal PSD in dB, at frequencies f is then modeled 
+by:
+χ controls the slope of the aperiodic signal, g0 the offset and f0 the ”knee” frequency. A first pass fit is applied to 
+identify the frequencies corresponding to non oscillatory components: only f0 is fitted while χ and g0 are respec-
+tively set to χ = 2 and g0 = PSD(f = 0) (Fig. 9a). W e fix a threshold (typically 0.8 quantile of the residual) to 
+identify frequencies associated to the aperiodic signals (Fig.  9b).
+A second pass fit is then applied only on those frequencies from which we deduce g0 , f0 and χ (Fig. 9c). W e 
+remove g(f) from the raw PSD in dB and use it for the second step of the algorithm (Fig. 9d).
+Oscillation initialization. From the redressed PSD, we fit a given number d0 (e.g d0 = 4 ) of independent oscil-
+lations using the theoretical PSD given (Eq. 44). T o do so, we identify PSD peaks of sufficient width (wider than 
+rf /2 ) before fitting an oscillation theoretical spectra in a neighborhood of width 2rf  around this peak. For oscil-
+lation j, we deduce (fj)0 , (aj)0 and (˜σ 2
+j )0 . Since (˜σ 2
+j )0 represents the offset of a given oscillation after removing the 
+aperiodic component, we adjust it to estimate σ 2
+j :
+The resulting spectra PSDj are then subtracted and the process is repeated until all oscillations are estimated 
+(Fig. 9e, blue). W e finally estimate the power P j of an an oscillation j in the neighborhood of (fj)0 and estimate 
+its contribution to the total power P 0 by −10 log10
+(
+1 − Pj
+P0+2rf R0/Fs
+)
+.
+Oscillation are sorted and the resulting parameters are used to initialize the EM algorithm with the d ∈ [|1, d0|] 
+first oscillations.
+Code availability
+Code will be made public after publication.
+(32)g(f ) = g0 − log
+(
+1 + (f /f0)χ )
+.
+(33)10 log10
+(
+(˜σ 2
+j )0
+Fs
+)
+≈ 10 log10
+(
+(σ 2
+j )0
+Fs
+)
++ g((fj)0) .
+02 04 06 08 0
+-30
+-20
+-10
+0
+10
+a First pass fit
+02 04 06 08 0
+-30
+-20
+-10
+0
+10
+02 04 06 08 0
+-30
+-20
+-10
+0
+10
+02 04 06 08 0
+-10
+0
+10
+20
+02 04 06 08 01 00
+-40
+-20
+0
+20
+c Second pass fit
+b Identify non oscillatory component d Redressed psd
+e Fit Oscillations
+Frequencies [Hz]
+dB
+Power Spectral Density
+Fit Aperiodic slope 
+DSS Initialization fit
+Independant Oscillations 
+Non oscillatory component 
+Figure 9.  Steps for the initialization procedure. A first pass fit is applied to the raw multitaper power spectral 
+density (PSD) estimate (a). We remove this fit from the raw PSD and fix a threshold to identify non-oscillatory 
+components (b). A second pass fit is applied (c) which yields a redressed PSD (d). We then fit the parametric 
+expression of the PSD for a fixed number of oscillations (d). The fitted parameters are then used to initialize the 
+EM algorithm.
+
+===== PAGE 16 =====
+
+16
+Vol:.(1234567890)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+Received: 4 February 2022; Accepted: 12 August 2022
+References
+ 1. Buzsáki, G., Anastassiou, C. A. & Koch, C. The origin of extracellular fields and currents: EEG, ECoG, LFP and spikes. Nat. Rev. 
+Neurosci. 13(6), 407–420 (2012).
+ 2. Canolty, R. T. et al. Oscillatory phase coupling coordinates anatomically dispersed functional cell assemblies. Proc. Natl. Acad. Sci. 
+107(40), 17356–17361 (2010).
+ 3. Tort, A. B. L., Kramer, M. A., Thorn, C., Gibson, D.J., Kubota, Y ., Graybiel, A. M., & Kopell, N.J. Dynamic cross-frequency couplings 
+of local field potential oscillations in rat striatum and hippocampus during performance of a T-maze task. Proc. Natl. Acad. Sci., 
+0810524105 (2008).
+ 4. Tort, A. B. L., Komorowski, R. W ., Manns, J. R., Kopell, N. J., Eichenbaum, H. Theta–gamma coupling increases during the learning 
+of item–context associations. Proc. Natl. Acad. Sci. 106(49), 20942–20947 (2009).
+ 5. Axmacher, N. et al. Cross-frequency coupling supports multi-item working memory in the human hippocampus. PNAS  107(7), 
+3228–3233 (2010).
+ 6. Lisman, J. E. & Idiart, M. A. Storage of 7 +/- 2 short-term memories in oscillatory subcycles. Science 267(5203), 1512–1515 (1995).
+ 7. Lisman, J. E. & Jensen, O. The theta-gamma neural code. Neuron 77(6), 1002–1016 (2013).
+ 8. López-Azcárate, J. et al. Coupling between beta and high-frequency activity in the human subthalamic nucleus may be a patho -
+physiological mechanism in Parkinson’s disease. J. Neurosci. 30(19), 6667–6677 (2010).
+ 9. Shimamoto, S. A. et al. Subthalamic nucleus neurons are synchronized to primary motor cortex local field potentials in Parkinson’s 
+disease. J. Neurosci. 33(17), 7220–7233 (2013).
+ 10. de Hemptinne, C. et al. Exaggerated phase-amplitude coupling in the primary motor cortex in Parkinson disease. PNAS 110(12), 
+4780–4785 (2013).
+ 11. Moran, L. V ., & Elliot Hong, L. High vs low frequency neural oscillations in Schizophrenia. Schizophr. Bull. 37(4), 659–663 (2011).
+ 12. Kirihara, K., Rissling, A. J., Swerdlow, N. R., Braff, D. L. & Light, G. A. Hierarchical organization of gamma and theta oscillatory 
+dynamics in Schizophrenia. Biol. Psychiat. 71(10), 873–880 (2012).
+ 13. Miskovic, V . et al. Changes in EEG cross-frequency coupling during cognitive behavioral therapy for social anxiety disorder. 
+Psychol. Sci. 22(4), 507–516 (2011).
+ 14. Allen, E. A. et al. Components of cross-frequency modulation in health and disease. Front. Syst. Neurosci. 5, 59 (2011).
+ 15. Fiebelkorn, I. C. & Kastner, S. A Rhythmic Theory of Attention. Trends Cogn. Sci. 23(2), 87–101 (2019).
+ 16. Börgers, C., Epstein, S., & Kopell, N. J. Gamma oscillations mediate stimulus competition and attentional selection in a cortical 
+network model. Proc. Natl. Acad. Sci.. pnas-0809511105 (2008).
+ 17. Shirvalkar, P . R., Rapp, P . R. & Shapiro, M. L. Bidirectional changes to hippocampal theta-gamma comodulation predict memory 
+for recent spatial episodes. Proc. Natl. Acad. Sci. 107(15), 7054–7059 (2010).
+ 18. Palva, J. M., Monto, S., Kulashekhar, S., & Palva, S. Neuronal synchrony reveals working memory networks and predicts individual 
+memory capacity. PNAS 107(16), 7580–7585 (2010).
+ 19. Aru, J. et al. Untangling cross-frequency coupling in neuroscience. Curr. Opin. Neurobiol. 31, 51–61 (2015).
+ 20. Siebenhühner, F . et al. Genuine cross-frequency coupling networks in human resting-state electrophysiological recordings. PLoS 
+Biol. 18(5), e3000685 (2020).
+ 21. Idaji, M. J., Zhang, J., Stephani, T., Nolte, G., Müller, K.-R., Villringer, A., & Nikulin, V . V . H. A method for eliminating spurious 
+interactions due to the harmonic components in neuronal data. NeuroImage, 252, 119053 (2022).
+ 22. Matsuda, T. & Komaki, F . Multivariate time series decomposition into oscillation components. Neural Comput. 29(8), 2055–2075 
+(2017).
+ 23. Shumway, R. H. & Stoffer, D. S. An approach to time series smoothing and forecasting using the Em algorithm. J. Time Ser. Anal. 
+3(4), 253–264 (1982).
+ 24. Tort, A. B. L., Komorowski, R., Eichenbaum, H., & Kopell, N. Measuring phase-amplitude coupling between neuronal oscillations 
+of different frequencies. J. Neurophysiol. 104(2), 1195–1210 (2010).
+ 25. Purdon, P . L., Pierce, E. T., Mukamel, E. A., Prerau, M. J., Walsh, J. L., Wong, K. F . K., Salazar-Gomez, A. F ., Harrell, P . G., Sampson, 
+A. L., Cimenser, A., Ching, S., Kopell, N. J., Tavares-Stoeckel, C., Habeeb, K., Merhar, R., & Brown, E. N. Electroencephalogram 
+signatures of loss and recovery of consciousness from propofol. Proc. Natl. Acad. Sci. USA110(12), E1142–E1151 (2013).
+ 26. Dupré la Tour, T., Tallot, L., Grabot, L., Doyère, V ., van Wassenhove, V ., Grenier, Y ., & Gramfort, A. Non-linear auto-regressive 
+models for cross-frequency coupling in neural time series. PLoS Comput. Biol.13(12) (2017).
+ 27. Haller, M., Donoghue, T., Peterson, E., Varma, P ., Sebastian, P ., Gao, R., Noto, T., Knight, R. T., Shestyuk, A., & Voytek, B. Param-
+eterizing neural power spectra. bioRxiv, page 299859 (2018).
+ 28. Cole, S. R. & Voytek, B. Brain oscillations and the importance of waveform shape. Trends Cogn. Sci. 21(2), 137–149 (2017).
+ 29. Akaike, H. A new look at the statistical model identification. IEEE Trans. Autom. Control 19(6), 716–723 (1974).
+ 30. Schwarz, G. Estimating the dimension of a model. Ann. Stat. 6(2), 461–464 (1978).
+ 31. Kramer, M. A. & Eden, U. T. Assessment of cross-frequency coupling with confidence using generalized linear models. J. Neurosci. 
+Methods 220(1), 64–74 (2013).
+ 32. Soplata, A. E. et al. Thalamocortical control of propofol phase-amplitude coupling. PLoS Comput. Biol. 13(12), e1005879 (2017).
+ 33. Gaskell, A. L., Hight, D. F ., Winders, J., Tran, G., Defresne, A., Bonhomme, V ., Raz, A., Sleigh, J. W ., Sanders, R. D., & Hemmings, 
+H. C. Frontal alpha-delta EEG does not preclude volitional response during anaesthesia: Prospective cohort study of the isolated 
+forearm technique. Br. J. Anaesth. 119(4), 664–673 (2017).
+ 34. Brown, E. N., Purdon, P . L., Akeju, O. & An, J. Using EEG markers to make inferences about anaesthetic-induced altered states of 
+arousal. Br. J. Anaesth. 121(1), 325–327 (2018).
+ 35. Brown, E. N., Purdon, P . L. & Van Dort, C. J. General anesthesia and altered states of arousal: A systems neuroscience analysis. 
+Annu. Rev. Neurosci. 34, 601–628 (2011).
+ 36. Purdon, P . L., Sampson, A., Pavone, K. J. & Brown, E. N. Clinical Electroencephalography for Anesthesiologists: Part I: Background 
+and Basic Signatures. Anesthesiology 123(4), 937–960 (2015).
+ 37. Canolty, R. T. & Knight, R. T. The functional role of cross-frequency coupling. Trends Cogn. Sci. 14(11), 506–515 (2010).
+ 38. Babadi, B. & Brown, E. N. A review of multitaper spectral analysis. IEEE Trans. Biomed. Eng. 61(5), 1555–1564 (2014).
+ 39. Brown, E. N., Lydic, R. & Schiff, N. D. General anesthesia, sleep, and coma. N. Engl. J. Med. 363(27), 2638–2650 (2010).
+ 40. Mukamel, E. A., Wong, K. F ., Prerau, M. J., Brown, E. N., & Purdon, P . L. Phase-based measures of cross-frequency coupling in 
+brain electrical dynamics under general anesthesia. Conf. Proc. IEEE Eng. Med. Biol. Soc. 1981–1984 (2011).
+ 41. Canolty, R. T. et al. High gamma power is phase-locked to theta oscillations in human neocortex. Science  313(5793), 1626–1628 
+(2006).
+ 42. Gregoriou, G. G., Gotts, S. J., Zhou, H. & Desimone, R. High-frequency, long-range coupling between prefrontal and visual cortex 
+during attention. Science 324(5931), 1207–1210 (2009).
+ 43. van Elswijk, G. et al. Corticospinal beta-band synchronization entails rhythmic gain modulation. J. Neurosci. 30(12), 4481–4488 
+(2010).
+
+===== PAGE 17 =====
+
+17
+Vol.:(0123456789)Scientific Reports |        (2022) 12:15940  | https://doi.org/10.1038/s41598-022-18475-3
+www.nature.com/scientificreports/
+ 44. Neske, G. T. The slow oscillation in cortical and thalamic networks: Mechanisms and functions. Front. Neural Circ.9 (2016).
+ 45. Bêdard, C. & Destexhe, A. Macroscopic models of local field potentials and the apparent 1/f noise in brain activity. Biophys. J.  
+96(7), 2589–2603 (2009).
+ 46. Pritchard, W . S. The brain in fractal time: 1/f-like power spectrum scaling of the human electroencephalogram. Int. J. Neurosci.  
+66(1–2), 119–129 (1992).
+ 47. Davis, W . W . Bayesian analysis of the linear model subject to linear inequality constraints. J. Am. Stat. Assoc. 73(363), 573–579 
+(1978).
+ 48. Smith, A. C., Stefani, M. R., Moghaddam, B. & Brown, E. N. Analysis and design of behavioral experiments to characterize popula-
+tion learning. J. Neurophysiol. 93(3), 1776–1792 (2005).
+ 49. Beck, A. M., Stephen, E. P . & Purdon, P . L. State Space Oscillator Models for Neural Data Analysis. Conf. Proc. IEEE Eng. Med. Biol. 
+Soc. 2018, 4740–4743 (2018).
+ 50. De Jong, P . & Mackinnon, M. J. Covariances for smoothed estimates in state space models. Biometrika 75(3), 601–602 (1988).
+ 51. Kitagawa, G., & Gersch, W . Smoothness priors analysis of time series. Number 116 in Lecture notes in statistics. Springer, New Y ork 
+(1996).
+ 52. Mukamel, E. A., Pirondini, E., Babadi, B., Wong, K. F ., Pierce, E. T., Harrell, P .G., Walsh, J. L., Salazar-Gomez, A.F ., Cash, S. S., 
+Eskandar, E. N., Weiner, V . S., Brown, E. N., & Purdon, P . L. A transition in brain state during propofol-induced unconsciousness. 
+J. Neurosci.34(3):839–845 (2014).
+Acknowledgements
+This work was generously supported by the Bertarelli Foundation (fellowship for H.S.), the National Science 
+Foundation (predoctoral fellowship for A.M.B.), and grants from the National Institutes of Health (R01AG056015, 
+R01AG054081, R21DA048323 to P .L.P .). Acknowledgements. We thank Adriano Tort and colleagues for sharing 
+their rat LFP dataset.
+Author contributions
+Conceptualization: H.S., P .L.P . Methodology: H.S., E.P .S, A.M.B., P .L.P . Software H.S., E.P .S, A.M.B. Formal 
+Analysis: H.S., P .L.P . Writing: H.S., P .L.P . Funding Acquisition: P .L.P .
+Competing interests 
+P .L.P . is also a co-founder of PASCALL Systems, Inc., a start-up company developing closed-loop physiological 
+control for anesthesiology. P .L.P ., H.S., E.P .S, and A.M.B. are co-inventors for a patent application employing 
+systems and methods described in part in this manuscript.
+Additional information
+Supplementary Information The online version contains supplementary material available at https:// doi. org/ 
+10. 1038/ s41598- 022- 18475-3.
+Correspondence and requests for materials should be addressed to P .L.P .
+Reprints and permissions information is available at www.nature.com/reprints.
+Publisher’s note Springer Nature remains neutral with regard to jurisdictional claims in published maps and 
+institutional affiliations.
+Open Access This article is licensed under a Creative Commons Attribution 4.0 International 
+License, which permits use, sharing, adaptation, distribution and reproduction in any medium or 
+format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the 
+Creative Commons licence, and indicate if changes were made. The images or other third party material in this 
+article are included in the article’s Creative Commons licence, unless indicated otherwise in a credit line to the 
+material. If material is not included in the article’s Creative Commons licence and your intended use is not 
+permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from 
+the copyright holder. To view a copy of this licence, visit http:// creat iveco mmons. org/ licen ses/ by/4. 0/.
+© The Author(s) 2022

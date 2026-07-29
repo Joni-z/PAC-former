@@ -3157,3 +3157,286 @@ would be fishing inside the noise band.
   mechanistic PAC story is now unsupported from **both** directions, architecture and objective.
   `cf_mixed` still works; **why** it works is an open question, and the paper must not assert
   the PAC-routing explanation without new evidence.
+
+### 13.42 Big-cluster scheme frozen after PAC/EEG literature audit (2026-07-28)
+
+**User goal:** hand off one model + pretraining + preprocessing recipe that can be run on the
+large cluster and has a coherent paper story. Borrowing existing ideas is explicitly acceptable;
+the criterion is a defensible story plus a credible path to SOTA, not novelty by architectural
+ornament.
+
+**Literature boundary (28-paper local library, `literature/`).** Direct neighbours are:
+Phase-Swap (phase/magnitude SSL), SleepPACNet (Hilbert-low + high-band CNN branch), PACNet
+(PAC-driven adaptive filter selection), and complex PAC CNN (magnitude + preferred phase).
+TFM-Tokenizer/BandVQ/SpecMoE already cover broad time-frequency masking or band tokenisation.
+Therefore we cannot claim "first PAC in deep learning" or "first frequency masking for EEG".
+The remaining differentiator is the combination of a frequency-explicit tri-axial backbone and
+a **directional asymmetric cross-frequency corruption objective**.
+
+**Measurement correction.** PAC methods papers show that conventional MVL depends critically
+on carrier sideband coverage, valid slow-phase→fast-amplitude support, window length, waveform
+shape, and estimator choice. The §13.41 result therefore rejects the current estimator+mixer
+combination, not PAC in every possible architecture. This does **not** reopen operator tuning:
+a measurement-valid PAC study would be a new line with pair-aware filters and matched controls.
+
+**Frozen method (`BIG_CLUSTER_HANDOFF.md`):**
+- backbone = tri-axial sinc/Hilbert model, frequency attention ON, xyz SpatialPE,
+  **index BandPE**, 8 bands;
+- scale = d256 / depth8 / 8 heads, **8.62M parameters**;
+- objective = `mixed_p=.5`: equal-budget random MAE + high-half cross-frequency mask;
+- target = per-token log analytic amplitude;
+- loss = **band-balanced Smooth-L1**, so heterogeneous amplitude scale / low-frequency
+  dominance cannot allocate most gradient to a few bands;
+- framing = **PAC-inspired mask distribution**, not "the only solution is biological PAC".
+  §13.40-D already falsified that stronger sentence.
+
+**Data decision.** Preserve the BIOT-aligned 200 Hz / 16-channel bipolar / per-channel q95
+normalisation. Crop all pool samples to 5 s. Sample datasets with probability proportional to
+sqrt(number of windows), in dataset-homogeneous batches; this limits corpus dominance and makes
+runtime montage coordinate selection possible. TUSZ and CHB-MIT `_add` seizure windows are
+created from labels and heavily overlap, so they are **excluded from SSL only** (kept for
+supervised finetuning). `scripts/prepare_ssl_pool.sh` creates clean `ssl_train` arrays.
+
+**Production path added:**
+- `foundation_pretrain.py`: torchrun/DDP, BF16/FP16, accumulation, AdamW+warmup-cosine,
+  clipping, epoch checkpoint, exact resume including RNG, and a plain `mae_state.pt` for
+  downstream loading;
+- `DatasetMixtureBatchSampler`: sqrt-size sampling and homogeneous batches, with disjoint
+  equal-step DDP rank schedules;
+- runtime pooled montage selection in `MAEPretrain` / `SpatialPE`;
+- main/random/band-random/low-frequency configs under `configs/foundation/`;
+- four full-finetune configs with discriminative encoder/head LR and cosine schedule;
+- cluster-neutral launch and SSL-pool preparation scripts.
+
+**Required evidence order on the big cluster:**
+1. full-budget main vs full-budget standard random MAE (matched model/data/steps);
+2. full-finetune seeds 0/1/2 on TUEV κ, TUSZ/CHB-MIT PR-AUC, TUAB AUROC/PR-AUC;
+3. only if (1) is positive: band-random, low-frequency direction and `mixed_p`
+   dose-response controls.
+
+The SOTA story is allowed to scope to clinical event detection if TUSZ/CHB-MIT win and TUEV
+does not. If main ties the band-random control, rename the contribution structured band masking;
+if main fails to beat random MAE, do not attribute an external SOTA number to the PAC-inspired
+objective.
+
+**Verification completed locally:**
+- `scratchpad/smoke_foundation.py`: mixture probabilities, homogeneous/DDP schedules,
+  runtime 16ch/2ch montage selection, mixed-batch guard, band-balanced loss, resume/plain
+  checkpoints — ALL GREEN;
+- `configs/smoke/foundation.yaml`: real TUAB one-update end-to-end pretrain, checkpoint save,
+  and resume — exit 0;
+- legacy `scratchpad/smoke_pooled.py` and `smoke_xyz_pe.py` — ALL GREEN after the changes;
+- `scratchpad/smoke_finetune_recipe.py`: env path expansion, discriminative LR, per-step
+  scheduler and encoder update — ALL GREEN;
+- Python compile, shell syntax, and `git diff --check` — clean.
+
+**Not yet evidence:** no large-cluster pretraining number exists, so no foundation-model or SOTA
+claim has been earned. This section freezes the executable design and the falsification rules;
+the large run supplies the missing result.
+
+### 13.43 Gauge-invariant mandatory PAC interaction tokenizer — supervised architecture test reopened by user (2026-07-29)
+
+**Why this line was reopened despite §13.41.** The user explicitly requested one more
+architecture-side experiment before any SSL run, with two hard constraints: PAC must enter the
+main computation structurally, and it must not be an optional branch, auxiliary loss, residual
+raw path, gate, or learned scalar that the classifier can turn off. This does not retract the
+negative MI-mixer evidence in §13.41. It tests a different proposition: whether PAC should define
+the EEG token itself rather than reweight an already complete raw token. **No SSL job is to be
+launched during this stage.**
+
+#### A. Failure being addressed
+
+The old `FreqPhaseSteered` result (§13.12) did not establish that the measured preferred phase
+was useful. Magnitude-only was often much worse, but phase scrambling barely hurt TUAB and Sleep
+and hurt TUEV only moderately. The likely ambiguity was that the operator rotated arbitrary
+learned real feature pairs as though they were physical complex analytic features. Those learned
+coordinates had no defined phase reference, so the rotation itself could help even when the
+measured phase-to-edge assignment did not.
+
+The new design binds the physical analytic phase to the learned representation before the
+Transformer sees it. The frequency mixer is returned to ordinary attention so that PAC is
+changed in exactly one place: token construction.
+
+#### B. Implemented operator (`models/frontend/triaxial.py`)
+
+For input EEG shaped batch × electrode × time:
+
+1. A learnable 8-band Sinc filterbank produces band signals. It starts in increasing
+   log-frequency order, with narrower low bands and wider high bands.
+2. A Hilbert transform produces, for every band, its unit complex phase and instantaneous
+   amplitude.
+3. Within every electrode and 1-second time patch, the directed complex PAC vector from source
+   band `i` to target band `j` is the time mean of:
+
+   `centered amplitude of j  ×  unit complex phase of i`
+
+   Its length is the debiased-MVL coupling strength. Its angle is the preferred phase. The
+   implementation retains this complex value rather than taking its magnitude too early.
+4. A single bias-free real patch convolution is shared by the real and imaginary parts of the
+   unit phase. This creates a learned complex phase feature while preserving exact phase
+   equivariance. A separate real patch convolution tokenises `log(1 + amplitude)`.
+5. For every target band above the lowest band, its token is:
+
+   `target amplitude feature`
+   `×`
+   `PAC-strength-weighted sum of all slower phase features after preferred-phase alignment`
+
+   Only edges `i < j` are valid. Each source phase is rotated backwards by its measured
+   preferred phase before aggregation. PAC magnitudes are normalised across all valid sources
+   for that target. The lowest band has no slower driver, so its own analytic interaction is the
+   root of the directed hierarchy.
+6. The complex interaction is converted to a real token by interleaving real and imaginary
+   components. The result is the existing electrode × band × time-patch grid, followed by index
+   BandPE, xyz SpatialPE, ordinary tri-axial attention, mean pooling and the supervised head.
+
+**Why it cannot be bypassed.** There is no raw high-band token beside the interaction token,
+no `pac_scale`, no learned gate, no PAC branch, and no PAC auxiliary loss. Every sample-dependent
+high-band feature that reaches the encoder contains both the target amplitude feature and an
+aligned slower-band phase feature. BandPE and SpatialPE are constants and cannot carry
+sample-specific EEG around the operator. `amplitude_scale` is only a diagonal calibration on
+the sole amplitude path, included to parameter-match the legacy tokenizer; it cannot open a
+raw path.
+
+#### C. Mathematical reason: invariance to an arbitrary phase reference
+
+If the phase reference of source band `i` is shifted by an arbitrary angle `delta`, then:
+
+- its learned complex phase feature rotates forward by `delta`;
+- the measured complex PAC vector for every edge starting at `i` also rotates forward by
+  `delta`;
+- preferred-phase alignment rotates the feature backwards by the PAC angle, which now includes
+  that same `delta`.
+
+The forward and backward rotations cancel exactly, so the final measured-mode token does not
+change. This is a property of the operator, not something training must discover. It is the main
+theoretical difference from the old phase-steered feature rotation.
+
+#### D. Matched supervised experiment
+
+All arms use TUEV, seed 0, 20 epochs, pure supervised classification, the same ordinary
+frequency attention, the same data/split/optimisation, and **1,635,734 parameters**:
+
+| arm | mandatory phase × amplitude topology | PAC magnitude | preferred-phase ownership |
+|---|---|---|---|
+| `measured` | yes | measured, target-normalised | correct measured edge |
+| `uniform` | yes | uniform across all slower sources | ignored |
+| `scramble` | yes | measured and unchanged | exact phase set preserved but permuted across valid edges each forward |
+
+Configs:
+
+- `configs/pacint_tuev_measured.yaml`
+- `configs/pacint_tuev_uniform.yaml`
+- `configs/pacint_tuev_scramble.yaml`
+
+The corrected legacy raw-token baseline is `ours_scratch_tuev_bandidx`, test kappa **0.4679**.
+
+**Pre-registered interpretation:**
+
+- `measured > raw`, `measured > uniform`, and `measured > scramble`: evidence that the measured
+  strength/preferred-phase pairing is useful in this tokenizer.
+- all interaction arms beat raw but measured ties controls: only the mandatory generic
+  slow-phase × fast-amplitude topology is supported; do not claim measured PAC.
+- measured beats uniform but ties scramble: PAC strength or generic complex alignment may help,
+  but exact preferred-phase ownership is unsupported.
+- measured fails to beat raw: reject this tokenizer; do not tune inside the TUEV noise band.
+- As established in §13.41, a single-seed difference below about 0.02 kappa is not interpreted.
+  TUSZ/TUAB expansion waits for positive TUEV evidence.
+
+#### E. Verification before submission
+
+`scratchpad/smoke_pac_interaction.py` passed all of the following:
+
+1. measured tokens are numerically invariant to independent per-band phase-reference shifts;
+2. the uniform topology control correctly lacks that invariance;
+3. changing either the target amplitude or a slower phase changes the target token;
+4. no legacy raw tokenizer exists in PAC-interaction mode;
+5. a full supervised forward/backward is finite and gradients reach the Sinc filters, phase
+   tokenizer and amplitude tokenizer.
+
+Additional checks:
+
+- legacy missing-key config and explicit `tokenizer_mode=raw` are bit-identical at the same seed;
+- measured/uniform/scramble full-model forward passes are finite;
+- raw/measured/uniform/scramble are exactly parameter-matched at 1,635,734;
+- `git diff --check` passed before submission.
+
+#### F. Literature borrowing and collision boundary
+
+The broad claim "first to put PAC, phase, or phase-amplitude information into deep learning" is
+false. The defensible distinction is the **mandatory, phase-reference-invariant PAC token
+operator**.
+
+| prior work | what is borrowed/overlapping | what remains different here | collision risk |
+|---|---|---|---|
+| Canolty et al. (2006), *High Gamma Power Is Phase-Locked to Theta Oscillations in Human Neocortex* | complex mean vector: high-band amplitude times low-band unit phase; magnitude and preferred phase | patch-local centred amplitude, learned token construction and canonical alignment | foundation, not an architectural novelty |
+| Lemkhenter & Favaro (2020), Phase-Swap | phase and amplitude jointly contain useful biosignal information | swaps whole-signal Fourier phase/magnitude for SSL; no directed slow-phase→fast-amplitude PAC or tokenizer | low |
+| Li et al. (2023), PACNet adaptive filters | PAC should determine how frequency information enters a decoder | ERPAC selects subject/task-specific high-frequency bands before EEGNet; no preferred-phase alignment or mandatory token product | medium |
+| Li et al. (2023), complex-valued PAC CNN | combines PAC strength and preferred phase and uses complex-valued learning | classifies an offline 10×10 complex PAC image; does not use PAC to canonicalise and construct end-to-end scalp-EEG tokens | medium-high |
+| Lee et al. (2026), SleepPACNet | closest architecture: Hilbert low-frequency real/imag information is fused with high-frequency EEG in CNNs | concatenation lets CNN discover an interaction, includes a separate raw-EEG branch, has no explicit pairwise PAC strength/preferred-phase routing and no invariance proof | **high** |
+| ERPAC and state-space PAC | time-varying coupling instead of one whole-record scalar | ERPAC estimates across trials at event time; state-space PAC is an estimator with uncertainty; ours is within single-trial/channel patches | low |
+| bispectrum/filter-bandwidth/triplet-filter work | PAC requires carrier sideband coverage; sharp transients can mimic PAC | current log-Sinc bank only makes high bands broadly wider; it does **not** implement pair-specific triplet filters or prove genuine nested oscillations | methodological constraint |
+
+Primary links retained for writing:
+
+- SleepPACNet: https://doi.org/10.1038/s41598-026-48881-w
+- Complex PAC CNN: https://pmc.ncbi.nlm.nih.gov/articles/PMC9849379/
+- PACNet adaptive filters: https://pmc.ncbi.nlm.nih.gov/articles/PMC10185763/
+- Phase-Swap: https://arxiv.org/abs/2009.07664
+- Canolty complex PAC: https://pmc.ncbi.nlm.nih.gov/articles/PMC2628289/
+- triplet filters: https://arxiv.org/abs/1910.04463
+- PAC filter parameters: https://pubmed.ncbi.nlm.nih.gov/33370562/
+- PAC/bispectrum caveats: https://pubmed.ncbi.nlm.nih.gov/29481965/
+
+**Safe novelty sentence:** "Unlike PAC feature images, PAC-selected filters, and concatenative
+low/high-frequency CNN branches, we instantiate local complex PAC as an unavoidable
+phase-reference-invariant tokenisation operator: measured preferred phase canonicalises slower
+analytic-phase features before their multiplicative interaction with target-band amplitude."
+
+Do not write "first PAC deep network", "first use of preferred phase", "first Hilbert
+phase-amplitude fusion", or "PAC proves a neural coupling mechanism." For scalp EEG
+classification, even a useful feature may reflect waveform shape, sharp transients, power or
+SNR rather than coupling between independent oscillators.
+
+#### G. Known risks and additional control needed for a paper
+
+1. **Band-order risk.** `i < j` assumes Sinc indices remain low→high. They are initialised in
+   order but learned independently, so bands can cross. Inspect final centre frequencies before
+   making any slow→fast claim; a future production version should parameterise ordered cutoffs.
+2. **Short-window estimator risk.** A 1-second patch contains only one or two cycles near the
+   lowest frequencies. Local complex MVL may be high variance or biased. A positive result needs
+   patch-length/estimator analysis; a negative result does not reject PAC generally.
+3. **Sideband risk.** Log spacing does not guarantee that every target filter contains
+   `carrier - source`, `carrier`, and `carrier + source`. Pair-valid/triplet filters remain a
+   measurement follow-up, not a claim of the present model.
+4. **Artifact risk.** Sharp edges, non-sinusoidal harmonics and power/SNR differences can produce
+   class-predictive statistical PAC. Call the learned quantity a phase-amplitude dependency
+   unless bispectral/harmonic and power-matched controls establish a physiological mechanism.
+5. **Control asymmetry.** Measured mode has the phase-reference invariance by construction;
+   uniform and incorrectly paired scramble do not. A measured win therefore supports correct
+   PAC-based canonical alignment as a package, but does not separately identify invariance,
+   magnitude and biological edge identity.
+6. **Scramble stochasticity.** Fresh phase ownership each forward prevents the model learning
+   an inverse fixed permutation, but also injects stochastic augmentation absent from measured.
+   For a paper, add a parameter-matched SleepPACNet-style analytic concatenation baseline and
+   consider a second phase-destruction control that preserves deterministic optimisation.
+
+The most important missing baseline is a parameter-matched concatenation model that exposes
+low-band analytic real/imaginary features and high-band amplitude but does not compute measured
+PAC. It directly answers the likely reviewer objection that any gain comes merely from exposing
+Hilbert phase, as SleepPACNet already does.
+
+#### H. Cluster submission and non-negotiable account rule
+
+Submitted supervised jobs:
+
+- `14937685`: measured
+- `14937686`: uniform
+- `14937687`: scramble
+
+Submission snapshot on 2026-07-29: all three were pending with reason `QOSGrpGRES`, using account
+`torch_pr_63_tandon_advanced` and partition `h100_tandon`.
+
+**Never change the user's priority account, partition, or QOS to obtain a GPU. Use only the
+existing priority account above; if no GPU is available, leave the jobs queued.** Earlier
+attempts with `torch_pr_63_general` failed and did not run. No future account/priority fallback
+is authorised.
