@@ -1,6 +1,9 @@
 # Parameter-matched topology control: the same mandatory amplitude x slower-phase
 # interaction, but all slower bands are averaged uniformly and measured PAC
 # magnitude/preferred phase is ignored.
+# `mixer` is unused by arch=triaxial (v1-only, models/build.py:60) but train.py:83
+# dereferences it eagerly inside a .get() default -> KeyError without it.
+mixer: attention
 arch: triaxial
 freq_mixer: attention
 tokenizer_mode: pac_interaction

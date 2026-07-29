@@ -1,5 +1,8 @@
 # Distribution-matched PAC control: preserve |Z| and the set of preferred
 # phases, but freshly permute which valid slow->fast edge owns each phase.
+# `mixer` is unused by arch=triaxial (v1-only, models/build.py:60) but train.py:83
+# dereferences it eagerly inside a .get() default -> KeyError without it.
+mixer: attention
 arch: triaxial
 freq_mixer: attention
 tokenizer_mode: pac_interaction

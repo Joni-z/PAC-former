@@ -1,0 +1,34 @@
+
+1. train.py startup path (the KeyError that would have killed all 3 jobs)
+  [[92mPASS[0m] measured: wandb.init + param print  pacint-tuev-measured
+  [[92mPASS[0m] uniform: wandb.init + param print  pacint-tuev-uniform
+  [[92mPASS[0m] scramble: wandb.init + param print  pacint-tuev-scramble
+
+2. Every arm differs from the baseline ONLY in the intended keys
+  [[92mPASS[0m] measured: config delta ⊆ ['pac_token_mode', 'tokenizer_mode', 'wandb_run_name']  ['pac_token_mode', 'tokenizer_mode', 'wandb_run_name']
+  [[92mPASS[0m] uniform: config delta ⊆ ['pac_token_mode', 'tokenizer_mode', 'wandb_run_name']  ['pac_token_mode', 'tokenizer_mode', 'wandb_run_name']
+  [[92mPASS[0m] scramble: config delta ⊆ ['pac_token_mode', 'tokenizer_mode', 'wandb_run_name']  ['pac_token_mode', 'tokenizer_mode', 'wandb_run_name']
+
+3. Strict parameter matching vs the raw-token baseline
+  [[92mPASS[0m] measured: 1,635,734 params == raw 1,635,734
+  [[92mPASS[0m] uniform: 1,635,734 params == raw 1,635,734
+  [[92mPASS[0m] scramble: 1,635,734 params == raw 1,635,734
+
+4. Forward/backward finite on real-shaped input
+  [[92mPASS[0m] measured: finite loss/grad, frontend reached  loss=1.9395 frontend params w/ grad: 6
+  [[92mPASS[0m] uniform: finite loss/grad, frontend reached  loss=1.9364 frontend params w/ grad: 6
+  [[92mPASS[0m] scramble: finite loss/grad, frontend reached  loss=1.9527 frontend params w/ grad: 6
+
+5. Gauge invariance: shift each band's phase reference by its own delta
+  [[92mPASS[0m] measured: bands 1..n are phase-reference invariant  max|diff| = 8.34e-07
+  [[92mPASS[0m] measured: band 0 (the root) DOES move -> shift really applied  max|diff| = 1.3422
+  [[92mPASS[0m] uniform: bands 1..n are NOT invariant (control is a real control)  max|diff| = 1.7233 (90.9%)
+  [[92mPASS[0m] scramble: bands 1..n are NOT invariant (control is a real control)  max|diff| = 1.8714 (108.2%)
+
+6. Band-order risk (AGENT.md 13.43-G1): are sinc bands still low->high?
+  [[92mPASS[0m] sinc centre frequencies are ascending at init  4.1 5.8 8.4 12.8 19.9 31.4 50.1 80.6
+     (init only -- G1 says this MUST be re-checked on the trained model)
+
+==================================================================
+[92mPASS[0m  all checks green -- the three pending jobs will start cleanly
+EXIT=0

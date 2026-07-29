@@ -1,5 +1,8 @@
 # Gauge-invariant PAC interaction tokenizer. High-band tokens have no raw path:
 # token_j = amplitude_j * sum_{i<j} aligned_phase_i.
+# `mixer` is unused by arch=triaxial (v1-only, models/build.py:60) but train.py:83
+# dereferences it eagerly inside a .get() default -> KeyError without it.
+mixer: attention
 arch: triaxial
 freq_mixer: attention
 tokenizer_mode: pac_interaction

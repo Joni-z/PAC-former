@@ -3017,6 +3017,11 @@ Its criss-cross backbone is strong on TUEV. TUAB separates no one (confirmed non
 Note both CBraMod and BIOT do WORSE pretrained-vs-scratch on TUEV — the released foundation
 weights transfer poorly through our TUEV pipeline (250→200 resample shift); single seed.
 
+> **SUPERSEDED 2026-07-29 (§13.43-I).** The 0.4679 row is the *raw-token* backbone. The
+> PAC-interaction tokenizer scores **0.5493** on the same config, split and protocol, which is
+> also above CBraMod-scratch's 0.5017. Do not quote 0.4679 as our TUEV number any more — quote
+> it only as the raw-token control that §13.43 is measured against. Still single seed.
+
 **C. Q1 TUSZ complete (PR-AUC, 9% positive) — cross-dataset INCONSISTENCY on hz-BandPE.**
 
 | variant | PR-AUC |
@@ -3436,7 +3441,106 @@ Submitted supervised jobs:
 Submission snapshot on 2026-07-29: all three were pending with reason `QOSGrpGRES`, using account
 `torch_pr_63_tandon_advanced` and partition `h100_tandon`.
 
+**Config bug caught while still queued — all three arms would have crashed at startup.**
+None of the three configs defined `mixer`, and `train.py:83` reads
+
+```python
+name=cfg.get("wandb_run_name", f"{cfg['dataset']}-{cfg['mixer']}"),
+```
+
+**Python evaluates a `.get()` default eagerly**, so `cfg['mixer']` is dereferenced even though
+`wandb_run_name` is present — `KeyError: 'mixer'` inside `wandb.init()`, before the dataloader is
+even built. `train.py:101` repeats it. `mixer` is a v1-only key (`models/build.py:60`,
+`PACFormer`); `TriAxialPACFormer` never reads it, so the fix is `mixer: attention` in each config,
+matching the baseline, with **zero effect on the model**. Verified by rebuild: still 1,635,734
+parameters, unchanged. `train.slurm` resolves `configs/$1.yaml` at *run* time, so the queued jobs
+pick the fix up with no resubmission. Swept all 87 train.py-launched configs: no other config is
+missing the key. (`biot_*`/`cbramod_*`/`sub_*` use other entry points and are unaffected.)
+
+**Lesson, same family as the §13.10a retraction:** a config-schema error is invisible to every
+unit test, because unit tests construct their own config dicts. `scratchpad/smoke_pac_interaction.py`
+was all-green while all three real runs were guaranteed to die. **Any new config must be exercised
+through the actual entry-point call path, not just through `build_model`.**
+
+**Independent re-verification (`scratchpad/verify_pacint_configs.py`, all green):** entry-point
+startup path for all three arms; config delta vs baseline ⊆ {`tokenizer_mode`, `pac_token_mode`,
+`wandb_run_name`}; 1,635,734 params on every arm == raw baseline; finite forward/backward with
+gradient reaching the sinc/phase/amplitude tokenizers; gauge invariance re-derived from scratch
+(bands 1..7 max |diff| **8.3e-07** under per-band phase-reference shifts, with band 0 — the
+hierarchy root, invariance not claimed — moving 1.34 as a positive control that the shift was
+actually applied); `uniform` and `scramble` correctly NOT invariant (90.9% / 108.2%); sinc centre
+frequencies ascending at init (4.1 5.8 8.4 12.8 19.9 31.4 50.1 80.6 Hz).
+
+*(First draft of that script asserted invariance over ALL bands and failed. That was a test bug,
+not a code bug — band 0 is gauge-covariant by construction. Diagnosed per-band before touching
+`models/`, the same discipline that caught the §13.41 top-k false alarm.)*
+
 **Never change the user's priority account, partition, or QOS to obtain a GPU. Use only the
 existing priority account above; if no GPU is available, leave the jobs queued.** Earlier
 attempts with `torch_pr_63_general` failed and did not run. No future account/priority fallback
 is authorised.
+
+#### I. RESULTS — measured PAC wins against both matched controls (2026-07-29)
+
+All three arms complete, TUEV, seed 0, 20 epochs, supervised, **1,635,734 parameters each**.
+Jobs `14937685` (measured), `14942979` (uniform), `14942980` (scramble). The uniform/scramble
+pair was cancelled and resubmitted after the §13.43-H config fix and the `train.slurm` resource
+trim; nothing about the model or data changed.
+
+| arm | test kappa | vs raw | median val kappa |
+|---|---|---|---|
+| raw baseline (`ours_scratch_tuev_bandidx`) | 0.4679 | — | 0.3971 |
+| `uniform` | 0.4734 | **+0.006 (tie)** | 0.4985 |
+| `scramble` | 0.5099 | +0.042 | 0.5394 |
+| **`measured`** | **0.5493** | **+0.081** | **0.5702** |
+
+**Pre-registered rule, first branch, satisfied:** `measured` > raw (+0.0814), > `uniform`
+(+0.0759), > `scramble` (+0.0394), every gap above the 0.02 noise line. **This is the first
+architecture-side PAC result in the project's history to beat a parameter-matched baseline AND
+both of its own matched controls.**
+
+**The decisive control is `uniform`, not `measured`.** `uniform` keeps the entire mandatory
+amplitude × slower-phase product topology and only replaces the measured coefficients with a
+uniform average — and it **ties the raw baseline (+0.006)**. So the win is *not* the
+multiplicative token structure, which was the leading alternative explanation and the outcome
+§13.43-D's second bullet was written to catch. The structure alone is worth nothing; what pays
+is the measured quantity poured into it.
+
+**The gain decomposes into two nearly equal, separately-attributable halves:**
+
+| component | contrast | gain |
+|---|---|---|
+| measured PAC **magnitude** weighting | `scramble` − `uniform` | **+0.0365** |
+| correct **preferred-phase** ownership | `measured` − `scramble` | **+0.0394** |
+
+**Checkpoint-selection audit — why the test ranking is trusted.** `best val` is NOT the evidence:
+the three interaction arms' best-val values overlap heavily (0.6484 / 0.6268 / 0.6072) and only
+**2/20** `measured` epochs clear `scramble`'s best, versus **19/20** clearing raw's best. Selecting
+argmax over a 20-epoch curve with val std 0.038–0.051 is exactly the luck-driven statistic §13.41
+warned about. **Median val kappa** — insensitive to that draw — reproduces the test ordering
+exactly *and* the gap sizes: `measured`−`scramble` is +0.031 in median val vs +0.039 in test;
+`scramble`−`uniform` is +0.041 vs +0.037. Two independent statistics, same ranking, same
+magnitude ⇒ not a selection artefact.
+
+**What is NOT yet established, stated plainly.** `measured` − `scramble` = +0.0394 is the *only*
+evidence that **preferred phase specifically** matters, it is barely 2× the noise line, and it is
+single seed. It also still carries the §13.43-G6 confound: `scramble` redraws its permutation
+every forward and `measured` does not, and `scramble` is measurably noisier (val std 0.0466 vs
+0.0382), so part of that gap may be injected stochasticity rather than lost phase information.
+Two follow-ups are required before the preferred-phase sentence goes in a paper:
+1. **seeds 1 and 2** on all three arms;
+2. **the deterministic phase-destruction arm** (real `mag/denom`, no `unit.conj()` factor) — keeps
+   measured magnitude, removes phase alignment, adds no randomness. This is the arm that cleanly
+   separates phase from noise, and §13.43-G6 already called for it.
+
+`measured > raw` and `uniform ≈ raw` are robust enough to write now.
+
+**Consequence for §13.41.** The MI-mixer rejection stands and is not retracted — but its scope is
+now empirically bounded, exactly as the literature note predicted. Reweighting an already-complete
+raw token with PAC fails; **defining the token by PAC succeeds.** The difference is not "harder
+prior" (§13.41's `mi_topk` was already a hard topology and lost) but *where* the prior enters.
+Note also that this tokenizer fixes a measurement defect the MI mixers had: `valid = tril(-1)`
+restricts edges to `i < j`, so only slow-phase → fast-amplitude drives are used, whereas the MI
+mixers scored all band pairs — a contamination of the treatment definition flagged in
+`literature/notes/PAC_FORMER_LITERATURE_REVIEW.md` §三. Both changes landed together, so this
+experiment does not separate "tokenizer vs mixer" from "valid pair support vs all pairs".
