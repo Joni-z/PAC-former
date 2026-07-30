@@ -3632,7 +3632,7 @@ full-finetune kappa 0.7963) uses **5-fold between-subjects CV** and a different 
 so it is not our protocol. If a head-to-head Sleep-EDF row is wanted, replicating that
 paper's protocol is the cheapest route — it lands four FMs at once.
 
-### 13.44 The objective, re-tested on the new tokenizer — cf_mixed's Tier A criterion is finally MET, and §13.40-B's BandPE rule is architecture-specific (2026-07-30)
+### 13.44 The objective, re-tested on the new tokenizer — [RETRACTED, see §13.44a] written from a partial 2x2; both Findings died when the remaining cells landed (2026-07-30)
 
 **Why.** Every piece of `cf_mixed` evidence was measured on the raw-token backbone. The PAC
 tokenizer is a far stronger architectural frequency prior than hz-BandPE, so §13.40-B's
@@ -3646,6 +3646,13 @@ all eight cells are directly comparable. Jobs 14973461-64.
 | random MAE + hz | 0.5466 | 0.4908 | −0.0558 |
 | cf_mixed + index | 0.5472 | 0.5624 | +0.0152 |
 | **cf_mixed + hz** | **0.4081** | **0.6659** | **+0.2578** |
+
+> **FINDINGS 1 AND 2 BELOW ARE RETRACTED — see §13.44a.** Both were written from three of
+> four CHB-MIT cells. The fourth cell (`rand_idx`) and a full TUEV replication landed hours
+> later and killed both. They are left in place, struck through in effect, because the
+> retraction is the lesson: **do not write a Finding from a partial 2x2, even when the
+> missing cell is explicitly flagged as decisive.** The text below already called `rand_idx`
+> "the decisive missing cell" and the Finding was written anyway.
 
 **Finding 1 — the Tier A criterion (§13.24) is met for the first time.** At matched BandPE:
 
@@ -3698,3 +3705,99 @@ docstring's "same parameter budget order" is true but is not equality. Consequen
   the asymmetry rather than implying a matched comparison.
 - §13.37's original call (index beats hz on TUEV/TUAB supervised) had index winning with
   FEWER parameters, i.e. it was the conservative direction.
+
+### 13.44a The 2x2 completed on two datasets — Findings 1 and 2 RETRACTED; the objective and the BandPE both wash out, and only the ARCHITECTURE survives (2026-07-30)
+
+`rand_idx` (CHB-MIT, job 14973463) plus a full four-cell TUEV replication on the PAC
+tokenizer (jobs 15008859-62) completed after §13.44 was written. Both of its Findings fall.
+
+**Complete data. All PAC-tokenizer cells, both datasets, seed 0.**
+
+| cell | CHB raw token | CHB PAC tok | TUEV PAC tok |
+|---|---|---|---|
+| random MAE + index | 0.1575 | **0.5767** | 0.4505 |
+| random MAE + hz | 0.5466 | 0.4908 | **0.5540** |
+| cf_mixed + index | 0.5472 | 0.5624 | 0.4726 |
+| cf_mixed + hz | 0.4081 | **0.6659** | 0.4245 |
+
+(CHB-MIT = PR-AUC, TUEV = kappa. The raw-token TUEV column does not exist in valid form —
+§13.33: those runs predate the §13.31 selection-metric fix and were never replaced.)
+
+**RETRACTION 1 — cf_mixed does NOT beat random MAE. The Tier A criterion (§13.24) is still
+not met.** Six matched-BandPE contrasts, no consistent direction:
+
+| | @hz | @index |
+|---|---|---|
+| CHB raw token | −0.1385 (loses) | +0.3897 (wins) |
+| CHB PAC token | +0.1751 (wins) | −0.0143 (tie) |
+| TUEV PAC token | −0.1295 (loses) | +0.0221 (wins) |
+
+§13.44's "+0.1751, the sign flips, Tier A is met" was **one cell of six**. Flip the BandPE
+and it vanishes; change the dataset and the sign inverts again. **"cf_mixed > standard MAE"
+remains unproven on the new architecture exactly as it was on the old one.**
+
+**RETRACTION 2 — the BandPE direction is unstable too, so §13.40-B is neither confirmed nor
+reversed; it is simply not a general rule in either direction.**
+
+| | @cf_mixed | @random MAE |
+|---|---|---|
+| CHB raw token | index wins | hz wins |
+| CHB PAC token | **hz wins** | index wins |
+| TUEV PAC token | index wins | hz wins |
+
+Six contrasts, all disagreeing. §13.44's "interference has become synergy" was again a
+single cell. **Keep `band_pe: index` in `BIG_CLUSTER_HANDOFF.md` — not because index is
+better, but because nothing supports changing it, and an unsupported change adds a free
+parameter.** §13.40-C had already flagged this call as dataset-dependent; that stands.
+
+Supervised TUEV on the PAC tokenizer gives the same non-answer: index 0.5493 vs hz 0.5688,
++0.0195 — on the 0.02 noise line, and hz carries +15,872 params (+0.97%, see the BandPE
+asymmetry note above). Not evidence.
+
+**WHAT SURVIVES — the architecture, and it is the largest clean effect in the whole study.**
+
+The cell that matters is `random MAE + index` on CHB-MIT: **no objective prior, no frequency
+PE, tokenizer only. 0.1575 → 0.5767 (+0.4192).** That single number beats the best cell of
+the entire raw-token 2x2 (`cfm_idx`, 0.5472). And the spread collapses as the prior moves
+into the token geometry:
+
+| | spread across the 4 cells |
+|---|---|
+| CHB raw token | 0.3897 |
+| CHB PAC token | 0.1751 |
+| TUEV PAC token | 0.1295 |
+
+**Reading: the PAC tokenizer supplies the frequency prior structurally. Once it does, adding
+the same class of prior again — through the objective or through the positional encoding —
+is noise-level jitter with no stable sign.** That is a coherent mechanism, and it explains
+every washed-out contrast above rather than treating them as failures to be re-run.
+
+**Negative result that must not be buried: on TUEV, pretraining is a REGRESSION.** Same PAC
+tokenizer throughout:
+
+| TUEV | kappa |
+|---|---|
+| supervised from scratch, index | 0.5493 |
+| supervised from scratch, hz | **0.5688** |
+| pretrain+finetune, best cell (`rand_hz`) | 0.5540 |
+| pretrain+finetune, `cfm_idx` | 0.4726 |
+
+The best pretrained cell is **below** plain supervised training (−0.0148), and the cf_mixed
+cell is 0.077 below. Protocol differs (30+20 epochs and weight_decay 1e-4 vs 20 epochs and
+1e-5), so this is not decisive — but the direction matches §13.40-B, where BIOT's and
+CBraMod's released pretrained weights both underperformed their own from-scratch runs in our
+pipeline. **Single-dataset small-scale pretraining currently shows no positive return.**
+
+**Consequences for the project, stated plainly.**
+1. **The paper's claim collapses to one thing: the mandatory, gauge-invariant PAC token.**
+   That claim is well-evidenced — TUEV +0.081, Sleep-EDF +0.052, three matched controls
+   (`uniform` ties raw, `concat` ties raw, `magnitude` ties raw), and the +0.4192 floor lift
+   here. Nothing else in the stack has survived contact with a second dataset.
+2. **cf_mixed is demoted from novelty to "a neutral pretraining recipe".** §13.42 froze a
+   big-cluster plan whose objective half now has no supporting evidence. Do not launch that
+   run on the current justification.
+3. **The open question is no longer "which objective" but "does pretraining help this
+   architecture at all".** The TUEV regression says that is unresolved, and it is upstream of
+   every objective comparison. Answer it before spending cluster time on objective variants.
+4. Method note, for the third time in this document (§13.10a, §13.30/13.31, and now §13.44):
+   **a result written before its own pre-registered decisive cell lands will be wrong.**
