@@ -1,0 +1,48 @@
+# Sleep-EDF arm of the PAC-tokenizer cross-dataset check (AGENT.md 13.43).
+# Sleep is the CANONICAL PAC setting (delta phase x spindle amplitude) and the
+# domain of our nearest neighbour SleepPACNet, so it is the most informative
+# dataset for this claim -- more so than TUAB, which 13.40-B showed is
+# non-discriminating. CHB-MIT is NOT run supervised: 13.10a shows every mixer
+# collapses there from scratch (bacc 0.500, pr_auc 0.018 = base rate); it is
+# covered instead by the pretrained objective 2x2.
+# Protocol kept from sleep_v2_attention (augmentation + 60 epochs + patience 15)
+# because that is the recipe proven non-degenerate on this dataset; only the two
+# positional encodings are moved to the current setting. The raw baseline is
+# re-run fresh rather than compared to the 11-day-old 13.10a number, so no code
+# drift can enter the contrast.
+mixer: attention
+dataset: sleepedf
+data_root: /scratch/zz5070/PAC-former/sleep_edf/processed
+n_channels: 2
+seq_len: 3000
+sample_rate: 100
+num_classes: 5
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 101
+patch_len: 150
+batch_size: 32
+epochs: 60
+eval_every: 1
+patience: 15
+lr: 0.0001
+weight_decay: 0.0001
+augmentations:
+- jitter0.1
+- frequency0.2
+- mask0.2
+- channel0.1
+- drop0.2
+num_workers: 8
+seed: 0
+device: cuda
+arch: triaxial
+spatial_pe: xyz
+band_pe: index
+freq_mixer: attention
+n_heads: 4
+wandb_run_name: pacint-sleep-measured
+tokenizer_mode: pac_interaction
+pac_token_mode: measured

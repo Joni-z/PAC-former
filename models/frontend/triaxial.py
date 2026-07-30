@@ -65,6 +65,7 @@ class TriAxialFrontend(nn.Module):
         return_pac_vector: bool = False,
         tokenizer_mode: str = "raw",
         pac_token_mode: str = "measured",
+        interaction_mode: str = "product",
         **_,
     ):
         super().__init__()
@@ -76,13 +77,18 @@ class TriAxialFrontend(nn.Module):
             raise ValueError(
                 f"tokenizer_mode must be raw/pac_interaction, got {tokenizer_mode!r}"
             )
-        if pac_token_mode not in ("measured", "uniform", "scramble"):
+        if pac_token_mode not in ("measured", "uniform", "scramble", "magnitude"):
             raise ValueError(
-                "pac_token_mode must be measured/uniform/scramble, got "
+                "pac_token_mode must be measured/uniform/scramble/magnitude, got "
                 f"{pac_token_mode!r}"
+            )
+        if interaction_mode not in ("product", "concat"):
+            raise ValueError(
+                f"interaction_mode must be product/concat, got {interaction_mode!r}"
             )
         self.tokenizer_mode = tokenizer_mode
         self.pac_token_mode = pac_token_mode
+        self.interaction_mode = interaction_mode
         self.sinc = SincBandpass(n_bands, sample_rate, kernel_size=kernel_size)
         if tokenizer_mode == "raw":
             # Per-(channel, band) raw-waveform patch tokenizer. Shared across
@@ -110,6 +116,19 @@ class TriAxialFrontend(nn.Module):
             # bias has hidden_dim rather than complex_dim entries). It lies on
             # the sole token path and cannot bypass the interaction.
             self.amplitude_scale = nn.Parameter(torch.ones(complex_dim))
+            if interaction_mode == "concat":
+                # SleepPACNet-style fusion control (AGENT.md 13.43-G, "most
+                # important missing baseline"): expose the SAME invariant
+                # ingredients (a_j, Re/Im of the aligned phase) but let a
+                # learned projection combine them instead of forcing a
+                # multiplicative interaction. This is the free path §13.18
+                # warns about: the network COULD learn to reduce to
+                # amplitude-only and ignore phase; the product arms cannot.
+                # Adds ~25K params vs the product arms (concat_proj below) --
+                # documented, not hidden -- so a product win is conservative
+                # (product wins with LESS capacity); a concat win would need
+                # this margin controlled before being taken at face value.
+                self.concat_proj = nn.Linear(3 * complex_dim, hidden_dim)
 
     def band_hz(self) -> torch.Tensor:
         """(n_bands, 2): [center_freq, bandwidth] in Hz, from the sinc params."""
@@ -127,18 +146,32 @@ class TriAxialFrontend(nn.Module):
 
             Z_ij = E[(A_j - mean A_j) exp(i phi_i)].
 
-        For target band j>0:
+        Both fusion modes start from the SAME gauge-invariant ingredient,
+        ``aligned_phase`` (the alpha-weighted, preferred-phase-aligned sum of
+        slower-band phase features):
 
-            h_j = a_j * sum_{i<j} alpha_ij exp(-i angle Z_ij) p_i
+            aligned_phase_j = sum_{i<j} alpha_ij exp(-i angle Z_ij) p_i   (j>0)
+            aligned_phase_0 = p_0                                        (root)
 
-        where alpha is the row-normalised |Z|.  The preferred-phase factor
-        canonicalises each source before aggregation. Under an arbitrary phase
+        where alpha is the row-normalised |Z|. Under an arbitrary phase
         reference shift delta_i, p_i -> exp(i delta_i)p_i and
-        Z_ij -> exp(i delta_i)Z_ij, so the two factors cancel exactly.  This is
-        the physical gauge invariance the old phase-steered mixer lacked.
+        Z_ij -> exp(i delta_i)Z_ij, so the two factors cancel exactly and
+        aligned_phase_{j>0} is gauge-invariant -- this holds regardless of how
+        it is later combined with amplitude, so BOTH fusion modes below
+        inherit it. This is the physical gauge invariance the old
+        phase-steered mixer lacked.
 
-        There is no raw high-band token beside this interaction. Every j>0 token
-        necessarily contains target amplitude multiplied by slower-band phase.
+        ``interaction_mode="product"`` (OURS, mandatory): h_j = a_j *
+        aligned_phase_j. There is no raw high-band token beside this
+        interaction, so the amplitude and the aligned phase cannot be pulled
+        apart again downstream -- the interaction is forced.
+
+        ``interaction_mode="concat"`` (SleepPACNet-style control): h_j =
+        Linear([a_j, Re(aligned_phase_j), Im(aligned_phase_j)]). The same
+        invariant ingredients are exposed, but nothing forces them to
+        interact -- the projection could in principle learn to ignore the
+        phase columns and pass amplitude through, exactly the free path
+        §13.18 says gets optimised away when a prior has one.
         """
         B, C, P, nb, K = phase_feat.shape
         edge = pac_vector.transpose(-2, -1)               # (B,C,P,target,source)
@@ -167,8 +200,20 @@ class TriAxialFrontend(nn.Module):
                 )
                 flat[..., valid_flat] = shuffled
                 unit = flat.reshape_as(unit)
+            if self.pac_token_mode == "magnitude":
+                # Deterministic phase-destruction control (AGENT.md 13.43-G6).
+                # Keeps the measured magnitude weighting, drops preferred-phase
+                # alignment entirely. Unlike `scramble` it injects NO randomness,
+                # so `measured - magnitude` isolates the preferred phase without
+                # scramble's per-forward permutation noise confound.
+                # Like `uniform`/`scramble`, it is NOT gauge-invariant -- only
+                # `measured` is, because only there does exp(-i angle Z) cancel
+                # the rotation of p_i.
+                phase_factor = torch.ones_like(unit)
+            else:
+                phase_factor = unit.conj()
             denom = mag.sum(dim=-1, keepdim=True)
-            measured = (mag / denom.clamp_min(1e-8)) * unit.conj()
+            measured = (mag / denom.clamp_min(1e-8)) * phase_factor
             count = valid.sum(dim=-1, keepdim=True).clamp_min(1)
             fallback = valid.to(edge.dtype) / count
             coeff = torch.where(denom > 1e-8, measured, fallback)
@@ -179,7 +224,16 @@ class TriAxialFrontend(nn.Module):
         # The slowest band has no lower-frequency driver. Preserve its own
         # analytic token as the root of the directed hierarchy.
         aligned_phase[:, :, :, 0, :] = phase_feat[:, :, :, 0, :]
-        return amplitude_feat.to(aligned_phase.dtype) * aligned_phase
+
+        if self.interaction_mode == "product":
+            return amplitude_feat.to(aligned_phase.dtype) * aligned_phase
+        # concat: expose the same ingredients, let a learned projection combine
+        # them. Real, already at the token width (hidden_dim), no view_as_real
+        # needed downstream.
+        feat = torch.cat(
+            [amplitude_feat, aligned_phase.real, aligned_phase.imag], dim=-1
+        )
+        return self.concat_proj(feat)
 
     def _interaction_tokens(self, phase_unit, amplitude, pac_vector):
         """Analytic phase/amplitude -> real interleaved PAC interaction tokens."""
@@ -200,8 +254,11 @@ class TriAxialFrontend(nn.Module):
         ).permute(0, 1, 3, 2, 4)
         interaction = self._pac_interaction(
             phase_feat, amplitude_feat, pac_vector
-        )                                                   # (B,C,P,nb,K), complex
-        tokens = torch.view_as_real(interaction).flatten(-2)
+        )
+        if self.interaction_mode == "product":
+            tokens = torch.view_as_real(interaction).flatten(-2)  # (B,C,P,nb,D)
+        else:
+            tokens = interaction                          # concat_proj already (B,C,P,nb,D) real
         return tokens.permute(0, 1, 3, 2, 4).contiguous()   # (B,C,nb,P,D)
 
     def forward(self, x: torch.Tensor, return_amp_target: bool = False):

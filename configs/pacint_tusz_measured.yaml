@@ -1,0 +1,40 @@
+# Gauge-invariant PAC interaction tokenizer (AGENT.md 13.43), extended to TUSZ.
+# TUEV evidence is positive (13.43-I: kappa 0.5493 vs raw 0.4679, uniform ties
+# raw, scramble in between) -- 13.43-D's "TUSZ/TUAB expansion waits for
+# positive TUEV evidence" is satisfied. This config is cell-for-cell identical
+# to configs/ours_scratch_tusz_bandidx_se.yaml except tokenizer_mode/pac_token_mode,
+# so the ONLY variable vs that raw-token baseline is the tokenizer.
+# `mixer` is unused by arch=triaxial (v1-only, models/build.py:60) but train.py:83
+# dereferences it eagerly inside a .get() default -> KeyError without it.
+mixer: attention
+arch: triaxial
+freq_mixer: attention
+tokenizer_mode: pac_interaction
+pac_token_mode: measured
+spatial_pe: xyz
+band_pe: index
+dataset: tusz
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed
+n_channels: 16
+seq_len: 2000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+n_heads: 4
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+epochs: 10             # TUSZ from-scratch; step-eval + best-ckpt catches the peak wherever it is
+eval_every_steps: 1500 # 7,202 steps/epoch at bs32 -> ~5 validations/epoch (13.36)
+patience: 0
+lr: 0.0001
+weight_decay: 0.00001
+augmentations: []
+wandb_run_name: pacint-tusz-measured

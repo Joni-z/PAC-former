@@ -1,0 +1,41 @@
+# TUEV replication of the objective x BandPE 2x2 on the PAC tokenizer (13.44).
+# Second dataset for 13.44's two findings; BOTH are answerable inside this
+# column alone -- Tier A is cfm_hz vs rand_hz, the BandPE call is cfm_hz vs
+# cfm_idx. The raw-token TUEV column is NOT run because it does not exist in
+# valid form: 14629684/14651217 predate the 13.31 selection-metric fix and are
+# retracted (13.33: 'TUEV has no valid objective result at all').
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+num_classes: 6
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+n_heads: 4
+sampling_rate: 200
+arch: triaxial
+freq_mixer: attention
+mask_ratio: 0.5
+pretrain_epochs: 30
+probe_epochs: 20
+lr: 0.0001
+weight_decay: 0.0001
+probe_lr: 0.001
+mask_mode: mixed
+mixed_p: 0.5
+probe_mode: finetune
+finetune_lr: 0.0001
+spatial_pe: xyz
+band_pe: hz
+tokenizer_mode: pac_interaction
+pac_token_mode: measured
+wandb_run_name: pretrain-tuev-pac_cfm_hz

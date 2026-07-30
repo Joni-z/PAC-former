@@ -83,6 +83,7 @@ class TriAxialPACFormer(nn.Module):
             return_pac_vector=self.freq_mixer == "phase",
             tokenizer_mode=cfg.get("tokenizer_mode", "raw"),
             pac_token_mode=cfg.get("pac_token_mode", "measured"),
+            interaction_mode=cfg.get("interaction_mode", "product"),
         )
         self.band_pe = BandPE(d, n_bands=cfg["n_bands"], mode=cfg.get("band_pe", "hz"))
         self.spatial_pe = SpatialPE(cfg["n_channels"], d, coords=_spatial_coords(cfg))

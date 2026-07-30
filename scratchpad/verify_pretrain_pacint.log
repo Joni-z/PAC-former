@@ -1,0 +1,21 @@
+
+1. MAEPretrain builds and trains with the PAC tokenizer
+  [[92mPASS[0m] raw: forward+backward finite  loss=1.1008
+  [[92mPASS[0m] pac_interaction: forward+backward finite  loss=1.9372
+  [[92mPASS[0m] pac_interaction: frontend really is the PAC tokenizer
+  [[92mPASS[0m] pac_interaction: encode() path (used by probe/finetune) is finite
+
+2. LEAKAGE -- no visible token may depend on a MASKED band's amplitude
+  [[92mPASS[0m] crossfreq mask [4, 5, 6, 7]: visible tokens get ZERO grad from masked amplitude  max|grad| = 0.00e+00
+  [[92mPASS[0m] band 3 masked, bands 4..7 visible: still ZERO grad from masked amplitude  max|grad| = 0.00e+00
+  [[92mPASS[0m] positive control: band 5's own amplitude DOES reach its own token  max|grad| = 0.6778
+  [[92mPASS[0m] band 0 (lowest) depends on NO higher band's amplitude (i<j holds)  max|grad| = 0.00e+00
+
+3. New `magnitude` arm: deterministic, measured-magnitude, no phase alignment
+  [[92mPASS[0m] magnitude is parameter-matched to the other arms  {'measured': 1635734, 'uniform': 1635734, 'scramble': 1635734, 'magnitude': 1635734}
+  [[92mPASS[0m] magnitude differs from measured (the arm is live)  max|diff| = 0.0496
+  [[92mPASS[0m] magnitude is DETERMINISTIC (unlike scramble, which redraws every forward)  max|diff| = 0.00e+00
+
+======================================================================
+[92mPASS[0m  all green -- safe to launch the objective 2x2
+EXIT=0

@@ -1,0 +1,42 @@
+# Objective x BandPE 2x2 REPLICATED ON THE PAC-INTERACTION TOKENIZER.
+# Cell-for-cell identical to configs/pretrain_chbmit_q2_cfm_hz.yaml (the raw-token 2x2 of
+# AGENT.md 13.40-B) except the two tokenizer lines, so the eight cells are
+# directly comparable. Asks: does cf_mixed still beat random MAE once the
+# ARCHITECTURE already carries a strong frequency prior, or does the
+# substitution effect 13.40-B found for hz-BandPE now repeat for the tokenizer?
+dataset: chbmit
+data_root: /scratch/zz5070/PAC-former/chb_mit/processed
+n_channels: 16
+seq_len: 2000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 2
+n_bands: 8
+d_model: 128
+depth: 6
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+n_heads: 4
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+arch: triaxial
+freq_mixer: attention
+spatial_pe: xyz
+band_pe: hz
+mask_ratio: 0.5
+mask_mode: mixed
+mixed_p: 0.5
+pretrain_epochs: 15
+probe_epochs: 10
+probe_mode: finetune
+finetune_lr: 0.0001
+eval_every_steps: 1500
+lr: 0.0001
+weight_decay: 0.0001
+probe_lr: 0.001
+wandb_run_name: pretrain-chbmit-pac_cfm_hz
+tokenizer_mode: pac_interaction
+pac_token_mode: measured

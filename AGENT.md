@@ -3544,3 +3544,157 @@ restricts edges to `i < j`, so only slow-phase → fast-amplitude drives are use
 mixers scored all band pairs — a contamination of the treatment definition flagged in
 `literature/notes/PAC_FORMER_LITERATURE_REVIEW.md` §三. Both changes landed together, so this
 experiment does not separate "tokenizer vs mixer" from "valid pair support vs all pairs".
+
+#### J. Cross-dataset + the deterministic control that OVERTURNS §13.43-I's decomposition (2026-07-29/30)
+
+**J1. The `magnitude` arm retracts the "two equal halves" claim in §13.43-I.**
+
+§13.43-G6 predicted the problem and it was real. `scramble` redraws its permutation every
+forward; `measured` does not. That injected stochasticity acts as augmentation, so
+`measured − scramble` UNDERSTATES the preferred-phase contribution. The new
+`pac_token_mode=magnitude` arm (real `mag/denom`, no `unit.conj()` factor, **deterministic**,
+parameter-matched) removes the confound. TUEV, seed 0, all arms 1,635,734 params:
+
+| arm | what it keeps | test kappa |
+|---|---|---|
+| raw baseline | nothing (no interaction) | 0.4679 |
+| `uniform` | product topology only | 0.4734 |
+| **`magnitude`** | **+ measured strength, deterministic** | **0.4826** |
+| `concat` | same ingredients, learned fusion | 0.4838 |
+| `scramble` | + measured strength, WRONG phase, stochastic | 0.5099 |
+| **`measured`** | **+ correct preferred phase** | **0.5493** |
+
+| decomposition | contrast | gain |
+|---|---|---|
+| PAC **magnitude** weighting | `magnitude` − `uniform` | **+0.0092  (tie, noise)** |
+| **preferred-phase** alignment | `measured` − `magnitude` | **+0.0667  (PASS)** |
+
+**RETRACTED from §13.43-I:** "the gain decomposes into two nearly equal halves (+0.0365
+magnitude / +0.0394 phase)". The correct reading is that **magnitude weighting is worth
+essentially nothing on its own; almost the entire gain is the preferred-phase alignment.**
+`scramble` (0.5099) sits *above* `magnitude` (0.4826) despite carrying a WRONG phase
+assignment — i.e. a stochastic complex rotation is itself worth ~+0.027, which is exactly
+the augmentation effect G6 warned about.
+
+This *strengthens* the paper: the load-bearing quantity is the measured preferred phase —
+the most PAC-specific and least generic ingredient — not "weight by coupling strength",
+which any reviewer would call an obvious move.
+
+**J2. Cross-dataset.** Each arm paired against its own freshly-run raw-token baseline;
+only `tokenizer_mode`/`pac_token_mode` differ; parameters matched within each pair.
+
+| dataset | metric | raw | pacint measured | gap | |
+|---|---|---|---|---|---|
+| TUEV (6-class, 16ch, 200 Hz) | kappa | 0.4679 | **0.5493** | **+0.0814** | PASS |
+| Sleep-EDF (5-class, **2ch**, **100 Hz**) | kappa | 0.5211 | **0.5732** | **+0.0521** | PASS |
+| TUSZ (binary, 9% pos) | pr_auc | 0.5871 | 0.5690 | −0.0181 | tie |
+| TUAB | auroc | 0.8775 | **not measured** | — | job cancelled |
+
+**Two wins, one tie, no loss beyond noise.** Sleep-EDF is the most probative cell, for three
+reasons: (a) sleep is the canonical PAC setting (delta phase × spindle amplitude) and the
+learned band centres 4.0 / 13.7 Hz bracket exactly that pair; (b) it is the home turf of
+SleepPACNet, our nearest neighbour (§13.43-F); (c) it shares nothing with TUEV — different
+task, **2 channels not 16**, 100 Hz not 200, 30 s not 5 s epochs — so the two wins are not
+one effect measured twice. The 2-channel result also supports the montage-agnostic claim.
+
+Note `pacint` early-stopped at epoch 46 vs the baseline's 22 under identical patience: the
+prior lengthens useful training rather than merely adding capacity (params identical).
+
+**TUAB honesty note:** the job was cancelled mid-run at the user's instruction after it had
+clearly peaked at epoch 2 and begun overfitting. `train.py` keeps the best checkpoint in
+memory only, so **no test number exists**. Write "not measured", never "ties".
+
+**Caveat:** all single seed. Sleep-EDF's val std (0.0392) is the same order as its +0.0521
+gap, so that cell needs seeds more urgently than TUEV's +0.0814 (4x the noise line).
+
+**J3. Correction to the foundation-model comparison.** Published FM numbers are NOT
+comparable to ours. Measured proof: the *same* released CBraMod scores **0.6772 in its own
+paper and 0.4436 in our pipeline** (§13.40-B) — a 0.23 gap, larger than any effect we study.
+Cause: CBraMod's TUEV runs at 250 Hz, ours at 200 Hz (BIOT-aligned). The only zero-confound
+comparison is same-pipeline, same-split, all-from-scratch:
+
+| model | params | TUEV kappa (our pipeline) |
+|---|---|---|
+| BIOT scratch | 3.2M | 0.4449 |
+| BIOT pretrained | 3.2M | 0.4125 |
+| CBraMod scratch | 4.88M | 0.5017 |
+| CBraMod pretrained | 4.88M | 0.4436 |
+| **ours, PAC tokenizer** | **1.64M** | **0.5493** |
+
+**We now lead CBraMod-scratch by +0.048 with 34% of its parameters** — reversing §13.40-B's
+"CBraMod-scratch is the single best number, above ours". Published LaBraM-Base (0.6637) and
+CBraMod (0.6772) are *background*, not opponents, until either they are re-run in our pipeline
+or we are re-run in theirs. **Do not put our number in the same table as theirs without that.**
+
+Sleep-EDF has no comparable published FM number either: CBraMod/LaBraM/BIOT all report
+**ISRUC**, not Sleep-EDF. The one Sleep-EDF FM table found (Kommineni et al. 2026, CBraMod
+full-finetune kappa 0.7963) uses **5-fold between-subjects CV** and a different channel set,
+so it is not our protocol. If a head-to-head Sleep-EDF row is wanted, replicating that
+paper's protocol is the cheapest route — it lands four FMs at once.
+
+### 13.44 The objective, re-tested on the new tokenizer — cf_mixed's Tier A criterion is finally MET, and §13.40-B's BandPE rule is architecture-specific (2026-07-30)
+
+**Why.** Every piece of `cf_mixed` evidence was measured on the raw-token backbone. The PAC
+tokenizer is a far stronger architectural frequency prior than hz-BandPE, so §13.40-B's
+substitution effect might repeat — or reverse. §13.40-B's own 2x2 was replicated cell-for-cell
+(CHB-MIT, 15-epoch pretrain + finetune, PR-AUC), changing only the two tokenizer lines, so
+all eight cells are directly comparable. Jobs 14973461-64.
+
+| cell | raw token | PAC tokenizer | change |
+|---|---|---|---|
+| random MAE + index | 0.1575 | *(running)* | — |
+| random MAE + hz | 0.5466 | 0.4908 | −0.0558 |
+| cf_mixed + index | 0.5472 | 0.5624 | +0.0152 |
+| **cf_mixed + hz** | **0.4081** | **0.6659** | **+0.2578** |
+
+**Finding 1 — the Tier A criterion (§13.24) is met for the first time.** At matched BandPE:
+
+```
+raw token:  cf_mixed − random (hz) = −0.1385   cf_mixed LOSES
+PAC token:  cf_mixed − random (hz) = +0.1751   cf_mixed WINS
+```
+
+The sign flips. Previously the honest position was that `cfm_idx` (0.5472) merely *ties*
+`rand_hz` (0.5466) at each one's best BandPE, and the quoted "3.5x" used a mis-configured
+denominator (`rand_idx`, 0.1575). **On the new tokenizer cf_mixed beats random MAE
+head-to-head at identical configuration.**
+
+**Finding 2 — §13.40-B's "frequency priors are substitutes, do not stack" is a property of
+the RAW-TOKEN architecture, not a general rule.** There, `cfm_hz` (0.4081) was the *worst*
+cell, below both singles — the interference that justified fixing `band_pe: index`. Here
+`cfm_hz` (0.6659) is the *best* cell, +0.104 over `cfm_idx`. Interference has become synergy.
+Plausible reason: hz-BandPE labels bands by physical frequency, whereas the PAC tokenizer
+encodes frequency *relationships* in the token geometry — different information, so they no
+longer compete for the same slot.
+
+**Consequence: `BIG_CLUSTER_HANDOFF.md`'s frozen `band_pe: index` rests entirely on
+§13.40-B and must be revisited.** Do NOT flip it on this evidence alone — §13.40-C already
+showed the BandPE call is dataset-dependent (hz HELPS on TUSZ, opposite to TUAB/TUEV). A
+second dataset is required; `pacint_tuev_hz` is queued for exactly this.
+
+**Finding 3 — the tokenizer is not a uniform lift.** `rand_hz` *dropped* 0.056 under the new
+tokenizer. So this is specific synergy between the tokenizer and cf_mixed, not "the new
+frontend makes everything better".
+
+**The decisive missing cell is `rand_idx`** (still running). Raw-token it is 0.1575, the
+"no frequency prior at all" floor. If it jumps to ~0.55, the tokenizer itself supplies what
+hz-BandPE used to and cf_mixed's margin needs re-attribution; if it stays near 0.2, the
++0.1751 belongs cleanly to the objective.
+
+**Caveats.** Single seed; CHB-MIT is 1% positive and §13.40-B already flagged its PR-AUC as
+noisy. Mitigating: the effects (+0.2578, +0.1751) are far above previously observed
+run-to-run variation, and AUROC moves the same way (0.9321 vs 0.8974). One dataset — §13.40-B
+carried the same caveat and it is now known to have generalised badly, so this must be
+checked on a second dataset before the handoff is edited.
+
+**Parameter asymmetry in every hz-vs-index comparison (measured 2026-07-30, applies
+retroactively to §13.37 / §13.40-B / §13.44 Finding 2).** `BandPE` is not parameter-matched
+across modes: `hz` is `Linear(2,d)+Linear(d,d)` = **16,896** params, `index` is
+`Embedding(n_bands,d)` = **1,024**. `hz` therefore carries **+15,872 (+0.97%)**. The
+docstring's "same parameter budget order" is true but is not equality. Consequences:
+- §13.44 Finding 2 (`cfm_hz` 0.6659 > `cfm_idx` 0.5624, +0.104) has hz winning with ~1% more
+  capacity. The gap is two orders larger than that 1%, and `rand_hz` (0.4908) *lost* to
+  `cfm_idx` (0.5624) despite the same surplus, so capacity does not explain it — but state
+  the asymmetry rather than implying a matched comparison.
+- §13.37's original call (index beats hz on TUEV/TUAB supervised) had index winning with
+  FEWER parameters, i.e. it was the conservative direction.
