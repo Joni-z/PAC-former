@@ -55,6 +55,24 @@ class MAEPretrain(nn.Module):
                 "structured_mask_mode must be crossfreq/lowfreq/bandrand"
             )
         self.pretrain_task = cfg.get("pretrain_task", "mae")
+        # Negative construction for pretrain_task="pac_consistency" (see below):
+        # "scramble" = same preferred-phase multiset, permuted across edges, fresh
+        # each forward (tight control, but stochastic); "magnitude" = deterministic,
+        # no alignment at all (removes the stochasticity confound, looser control).
+        self.consistency_weight = cfg.get("consistency_weight", 1.0)
+        self.pac_consistency_negative = cfg.get("pac_consistency_negative", "scramble")
+        if self.pac_consistency_negative not in ("scramble", "magnitude", "uniform"):
+            raise ValueError(
+                "pac_consistency_negative must be scramble/magnitude/uniform, got "
+                f"{self.pac_consistency_negative!r}"
+            )
+        if self.pretrain_task in ("pac_consistency", "mae_plus_consistency") and \
+                cfg.get("tokenizer_mode", "raw") != "pac_interaction":
+            raise ValueError(
+                "pretrain_task=pac_consistency needs tokenizer_mode=pac_interaction: "
+                "the positive/negative pair is built by swapping pac_token_mode, "
+                "which the raw tokenizer does not have."
+            )
         self.freq_mixer = cfg.get("freq_mixer", "attention")
         self.needs_pac_vector = (
             self.freq_mixer == "phase" or self.pretrain_task == "phase_align"
@@ -160,7 +178,20 @@ class MAEPretrain(nn.Module):
     def forward(self, x, dataset_idx=None):
         if self.pretrain_task == "phase_align":
             return self._phase_alignment_loss(x, dataset_idx)
+        if self.pretrain_task == "pac_consistency":
+            return self._pac_consistency_loss(x, dataset_idx)
+        if self.pretrain_task == "mae_plus_consistency":
+            # The two objectives supervise different halves of the token: MAE
+            # reconstructs the AMPLITUDE (log mean A_j), pac_consistency judges
+            # the PREFERRED PHASE. Their per-dataset winners disagree, so the
+            # combination is the cell that could win on both.
+            # Scales differ by ~20x at convergence (recon ~0.02-0.05, BCE ~0.69),
+            # so `consistency_weight` is a real knob, not cosmetic.
+            return (self._mae_loss(x, dataset_idx)
+                    + self.consistency_weight * self._pac_consistency_loss(x, dataset_idx))
+        return self._mae_loss(x, dataset_idx)
 
+    def _mae_loss(self, x, dataset_idx=None):
         frontend_out = self.frontend(x, return_amp_target=True)
         if self.needs_pac_vector:
             tokens, coupling, band_hz, amp_target, pac_vector = frontend_out
@@ -223,6 +254,65 @@ class MAEPretrain(nn.Module):
         if not band_losses:
             raise RuntimeError("masked reconstruction produced an empty mask")
         return torch.stack(band_losses).mean()
+
+    def _pac_consistency_loss(self, x, dataset_idx=None):
+        """OURS. Discriminate token grids built from the TRUE preferred phase from
+        ones built with the preferred phase permuted across edges.
+
+        Why this objective exists, in one line: **our own ablation says the
+        load-bearing quantity is the preferred phase, and masked-amplitude MAE
+        never supervises it.** §13.43-J1 decomposed the tokenizer's gain
+        deterministically -- preferred-phase alignment +0.0667, magnitude
+        weighting +0.0092 (noise) -- while the MAE target is `log mean A_j`, a
+        pure amplitude scalar. The pretext and the mechanism were aimed at
+        different halves of the token.
+
+        The task: with `pac_token_mode=measured` the token is
+            h_j = a_j * sum_{i<j} alpha_ij exp(-i angle Z_ij) p_i,
+        with `scramble` it is the same expression with the SET of preferred
+        phases permuted across valid edges. Positives and negatives therefore
+        share, exactly:
+          * the amplitude features a_j,
+          * the phase features p_i,
+          * every coupling magnitude |Z_ij| and hence every alpha_ij,
+          * the whole multiset of preferred phases.
+        The ONLY difference is which edge owns which phase. Power, spectral
+        shape and amplitude shortcuts are unavailable by construction -- the
+        model can only win by knowing what a physically consistent
+        phase-amplitude assignment looks like.
+
+        Why not simply regress the preferred phase? Because the measured tokens
+        are **gauge-invariant** (§13.43-C) while `angle Z_ij` is gauge-COVARIANT:
+        shifting band i's phase reference by delta_i leaves h_j unchanged but
+        moves the target by delta_i. An invariant representation cannot
+        determine a covariant quantity, so that regression is unsolvable in
+        principle. A binary consistency label is invariant, so it is well posed.
+        This constraint is specific to this architecture -- no competing model
+        has an invariance to respect.
+
+        Known confound (inherited from §13.43-G6): `scramble` redraws its
+        permutation every forward while `measured` is deterministic, so a
+        discriminator could in principle key on stochasticity rather than on
+        phase correctness. `pac_consistency_negative=magnitude` swaps in the
+        deterministic no-alignment control instead; run both if the pretext
+        succeeds.
+        """
+        neg_mode = self.pac_consistency_negative
+        pos = self.encode(x)                                   # measured tokens
+        saved = self.frontend.pac_token_mode
+        self.frontend.pac_token_mode = neg_mode
+        try:
+            neg = self.encode(x)
+        finally:
+            self.frontend.pac_token_mode = saved
+
+        pooled = torch.cat([pos.mean(dim=(1, 2, 3)), neg.mean(dim=(1, 2, 3))], dim=0)
+        logits = self.align_head(pooled).squeeze(-1)
+        labels = torch.cat([
+            torch.ones(x.shape[0], device=x.device),
+            torch.zeros(x.shape[0], device=x.device),
+        ])
+        return F.binary_cross_entropy_with_logits(logits, labels)
 
     def _phase_alignment_loss(self, x, dataset_idx=None):
         """Discriminate measured PAC geometry from magnitude-matched phase scrambles.

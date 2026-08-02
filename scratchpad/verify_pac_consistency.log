@@ -1,0 +1,25 @@
+
+1. Guard rejects the raw tokenizer (the pretext is undefined there)
+  [[92mPASS[0m] raw tokenizer raises
+
+2. Builds, trains, gradient reaches the frontend
+  [[92mPASS[0m] finite loss, frontend receives gradient  loss=0.6978  frontend params w/ grad=6
+  [[92mPASS[0m] loss starts near chance (-ln 0.5 = 0.693)  0.6978
+
+3. THE core claim: positive and negative share everything but phase ownership
+  [[92mPASS[0m] positive/negative frontends are weight-identical
+  [[92mPASS[0m] |Z| (and therefore every alpha) is identical for pos and neg  by construction: scramble permutes `unit` only, `mag` is computed before it
+  [[92mPASS[0m] negative tokens actually differ from positive  max|diff| = 1.4119
+  [[92mPASS[0m] band 0 (root, no incoming edge) is IDENTICAL in pos and neg  max|diff| = 0.00e+00
+  [[92mPASS[0m] amplitude features are bit-identical (no amplitude shortcut)
+
+4. The `magnitude` negative is deterministic (the G6 confound control)
+  [[92mPASS[0m] magnitude negative gives a reproducible loss  0.699581 vs 0.699581
+  [[92mPASS[0m] scramble negative is stochastic (documented G6 confound, not a bug)  0.698861 vs 0.697481
+
+5. Downstream path (encode) is unaffected by the new task
+  [[92mPASS[0m] encode() finite -- probe/finetune path intact
+
+====================================================================
+[92mPASS[0m  all green
+EXIT=0

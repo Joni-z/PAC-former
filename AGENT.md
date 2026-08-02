@@ -3801,3 +3801,83 @@ pipeline. **Single-dataset small-scale pretraining currently shows no positive r
    every objective comparison. Answer it before spending cluster time on objective variants.
 4. Method note, for the third time in this document (§13.10a, §13.30/13.31, and now §13.44):
    **a result written before its own pre-registered decisive cell lands will be wrong.**
+
+### 13.45 Pretraining-objective ablation, settled — the answer is standard random MAE, and it only pays where supervised training fails (2026-07-30/31)
+
+Nine objectives on the frozen PAC-tokenizer architecture (`tokenizer_mode=pac_interaction`,
+`pac_token_mode=measured`, `band_pe=index`, `freq_mixer=attention`), three datasets, seed 0.
+TUEV/Sleep-EDF are kappa, CHB-MIT is PR-AUC; compare only within a column.
+
+| objective | TUEV | CHB-MIT | Sleep-EDF |
+|---|---|---|---|
+| **no pretraining (supervised)** | **0.5688** (hz) / 0.5493 (index) | 0.0180 *(collapses)* | **0.5732** |
+| **`random` MAE** | 0.5024 | **0.5767** | 0.5572 |
+| `mixed` (cf_mixed) | 0.5164 | 0.5624 | — |
+| `crossfreq` | 0.4531 | 0.5273 | — |
+| `bandrand` | 0.4034 | 0.3319 | — |
+| `pac_consistency` (scramble neg) | 0.5693 | 0.3685 | — |
+| `pac_consistency` (magnitude neg) | **0.5879** | 0.3196 | 0.5278 |
+| MAE + 0.3·consistency | 0.5027 | 0.4887 | — |
+| MAE + 1.0·consistency | 0.5783 | *(cancelled)* | 0.5476 |
+
+Jobs 15106220, 15107124-28, 15123905-10, 15150645-51. Two new objectives were implemented
+for this (`models/pretrain.py`): `pretrain_task=pac_consistency` and
+`pretrain_task=mae_plus_consistency`.
+
+**DECISION: `random` MAE.** Pre-registered minimax (worst case across datasets vs `random`,
+adopted in §13.44a because three prior objective findings died on their second dataset):
+
+| objective | TUEV | CHB-MIT | Sleep-EDF | worst |
+|---|---|---|---|---|
+| `pac_consistency` (mag) | +0.0855 | −0.2571 | −0.0294 | **−0.2571** |
+| MAE + 1.0·cons | +0.0759 | *(≤ −0.088)* | −0.0096 | **≤ −0.088** |
+| MAE + 0.3·cons | +0.0003 | −0.0880 | — | **−0.0880** |
+| `crossfreq` | −0.0493 | −0.0494 | — | **−0.0494** |
+| `mixed` | +0.0140 | −0.0143 | — | **−0.0143** |
+
+Nothing clears `random` MAE. `cf_mixed` — the objective this project was built around and
+the one frozen into `BIG_CLUSTER_HANDOFF.md` — is the closest loser at −0.0143, i.e. a tie,
+never a win.
+
+**The condition of use matters more than the choice.** Pretraining is not a general gain:
+
+```
+TUEV        random MAE 0.5024  <  supervised 0.5688     −0.067
+Sleep-EDF   random MAE 0.5572  <  supervised 0.5732     −0.016
+CHB-MIT     random MAE 0.5767  >  supervised 0.0180     +0.559
+```
+
+**On both datasets where supervised training works, the best pretraining recipe still loses
+to not pretraining at all.** The only win is CHB-MIT, where supervised collapses to the base
+rate (1% positives). So the recipe of record is: **`random` MAE, used only where supervised
+training fails — a rescue for low-label / extreme-imbalance regimes, not a general prior.**
+At this scale (single dataset, 15-30 epochs) there is no evidence for anything more.
+
+**Three hypotheses closed.**
+
+1. *PAC-shaped masking helps.* `crossfreq` loses to `random` on both datasets (−0.049 each).
+   It does beat `bandrand` consistently and by a lot (+0.0497 TUEV, +0.1954 CHB-MIT) while
+   hiding the same number of whole bands, so **the direction of the mask genuinely carries
+   information** — but the whole-band family loses to token-level masking regardless.
+2. *Difficulty explains transfer.* It does not. Final reconstruction losses: TUEV `crossfreq`
+   0.3767→**0.0193** (19.5x, the most completely solved pretext) transfers worst among the
+   sane arms, matching Phase-Swap's "too easy" failure mode — but `bandrand` is the *hardest*
+   (0.0500) and transfers worst overall. Difficulty is not monotone with transfer; do not
+   build a design rule on it.
+3. *A discriminative preferred-phase pretext helps.* `pac_consistency` was designed from our
+   own ablation (§13.43-J1: preferred phase +0.0667, magnitude +0.0092) on the observation
+   that MAE supervises only the amplitude half of the token. It wins on TUEV (+0.086 over
+   `random`, and the first objective ever to beat supervised-from-scratch there) and loses on
+   the other two. **One of three is not a result.**
+
+   Worth keeping on record: the stochasticity confound was ruled out. `scramble` redraws its
+   permutation every forward; `magnitude` is deterministic. On TUEV `magnitude` (0.5879)
+   beats `scramble` (0.5693), so the discriminator keys on phase ownership, not on a noise
+   signature. The TUEV number is real; it just does not generalise.
+
+**Design note for anyone reviving this line:** regressing `angle Z_ij` directly is impossible
+in principle on this architecture — measured tokens are gauge-INVARIANT (§13.43-C) while
+`angle Z_ij` is gauge-COVARIANT, so an invariant representation cannot determine it. Only
+gauge-invariant targets are well posed: a binary consistency label, `|Z_ij|`, or phase
+*differences* that share a source band. This constraint is unique to this architecture and
+rules out most of the obvious phase-prediction designs before any compute is spent.
