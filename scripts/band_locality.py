@@ -46,11 +46,11 @@ MAX_WINDOWS = 4000          # per split; enough for a stable logistic fit, cheap
 
 # (dataset, data_root, sample_rate, num_classes, n_channels, seq_len)
 DATASETS = {
-    "tuab":    ("/scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed", 200, 2, 16, 2000),
-    "tuev":    ("/scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf",           200, 6, 16, 1000),
-    "tusz":    ("/scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed", 200, 2, 16, 2000),
-    "chbmit":  ("/scratch/zz5070/PAC-former/chb_mit/processed",            200, 2, 16, 2000),
-    "sleepedf": ("/scratch/zz5070/PAC-former/sleep_edf/processed",                   100, 5, 2,  3000),
+    "tuab":    ("/scratch/zz5070/PACLock/tuh_eeg/v3.0.1/edf/processed", 200, 2, 16, 2000),
+    "tuev":    ("/scratch/zz5070/PACLock/tuh_eeg/v2.0.1/edf",           200, 6, 16, 1000),
+    "tusz":    ("/scratch/zz5070/PACLock/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed", 200, 2, 16, 2000),
+    "chbmit":  ("/scratch/zz5070/PACLock/chb_mit/processed",            200, 2, 16, 2000),
+    "sleepedf": ("/scratch/zz5070/PACLock/sleep_edf/processed",                   100, 5, 2,  3000),
 }
 
 

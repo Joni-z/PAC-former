@@ -1,7 +1,7 @@
 """Full-model build/forward/backward for the 4 MI variants on REAL TUEV data.
 
 Mixer-level correctness is covered by smoke_mi_mixers.py. This one checks the thing
-that unit tests cannot: that the mixer survives being wired into TriAxialPACFormer
+that unit tests cannot: that the mixer survives being wired into TriAxialPACLock
 with the actual config, the actual token grid, and real EEG -- finite loss, finite
 gradient on every parameter, and the per-variant diagnostic actually firing on real
 coupling (not just on the synthetic draw used in the unit test).

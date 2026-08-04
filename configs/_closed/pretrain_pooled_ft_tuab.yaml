@@ -5,10 +5,10 @@
 # NOT TO BE SUBMITTED until sec. 13.28 Links 2 and 3 return: if the xyz PE or the
 # frequency axis turn out to buy nothing, this run would bake in the wrong design.
 pretrain_pool:
-  - {name: tuab,   data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed}
-  - {name: tuev,   data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf}
-  - {name: tusz,   data_root: /scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed}
-  - {name: chbmit, data_root: /scratch/zz5070/PAC-former/chb_mit/processed}
+  - {name: tuab,   data_root: /scratch/zz5070/PACLock/tuh_eeg/v3.0.1/edf/processed}
+  - {name: tuev,   data_root: /scratch/zz5070/PACLock/tuh_eeg/v2.0.1/edf}
+  - {name: tusz,   data_root: /scratch/zz5070/PACLock/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed}
+  - {name: chbmit, data_root: /scratch/zz5070/PACLock/chb_mit/processed}
 pool_crop_len: 1000      # 5 s at 200 Hz = TUEV's window, the shortest member
 pool_sample_rate: 200
 # Sleep-EDF is deliberately absent: different montage (2 ch) AND crossfreq masking
@@ -16,7 +16,7 @@ pool_sample_rate: 200
 
 # ---- downstream target (phase 2) ----
 dataset: tuab
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+data_root: /scratch/zz5070/PACLock/tuh_eeg/v3.0.1/edf/processed
 n_channels: 16
 seq_len: 2000            # 10 s -- phase 1 ran at 5 s; the model must take both
 sample_rate: 200

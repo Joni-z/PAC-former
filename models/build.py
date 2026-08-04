@@ -1,4 +1,4 @@
-"""config -> assembled PAC-Former model.
+"""config -> assembled PACLock model.
 
 Two architectures, selected by ``cfg['arch']``:
 
@@ -40,7 +40,7 @@ def _spatial_coords(cfg: dict):
     return coords
 
 
-class PACFormer(nn.Module):
+class PACLock(nn.Module):
     def __init__(self, cfg: dict):
         super().__init__()
         d = cfg["d_model"]
@@ -69,7 +69,7 @@ class PACFormer(nn.Module):
         return self.head(h)
 
 
-class TriAxialPACFormer(nn.Module):
+class TriAxialPACLock(nn.Module):
     """v2 foundation-model backbone (AGENT.md sec. 13)."""
 
     def __init__(self, cfg: dict):
@@ -179,5 +179,5 @@ class TriAxialPACFormer(nn.Module):
 
 def build_model(cfg: dict) -> nn.Module:
     if cfg.get("arch", "flat") == "triaxial":
-        return TriAxialPACFormer(cfg)
-    return PACFormer(cfg)
+        return TriAxialPACLock(cfg)
+    return PACLock(cfg)

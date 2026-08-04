@@ -32,7 +32,7 @@ from multiprocessing import Pool
 import mne
 import numpy as np
 
-ROOT = "/scratch/zz5070/PAC-former/chb_mit/raw"
+ROOT = "/scratch/zz5070/PACLock/chb_mit/raw"
 WIN_SAMPLES = 2000   # 10s @ 200Hz, matches TUAB/TUEP/TUSZ
 OVERLAP_THRESH = 0.5
 TARGET_RATE = 200

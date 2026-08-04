@@ -16,7 +16,7 @@
 # valid form: 14629684/14651217 predate the 13.31 selection-metric fix and are
 # retracted (13.33: 'TUEV has no valid objective result at all').
 dataset: tuev
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+data_root: /scratch/zz5070/PACLock/tuh_eeg/v2.0.1/edf
 n_channels: 16
 seq_len: 1000
 sample_rate: 200

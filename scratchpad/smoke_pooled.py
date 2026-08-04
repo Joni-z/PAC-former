@@ -21,7 +21,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-sys.path.insert(0, "/scratch/zz5070/PAC-former")
+sys.path.insert(0, "/scratch/zz5070/PACLock")
 
 from data.loaders import PooledPretrainDataset          # noqa: E402
 from models.pretrain import MAEPretrain                 # noqa: E402

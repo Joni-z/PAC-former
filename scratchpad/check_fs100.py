@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import yaml
 
-sys.path.insert(0, "/scratch/zz5070/PAC-former")
+sys.path.insert(0, "/scratch/zz5070/PACLock")
 from models.pretrain import MAEPretrain     # noqa: E402
 from data import build_dataloaders          # noqa: E402
 

@@ -3,7 +3,7 @@ arch: triaxial
 freq_mixer: attention
 spatial_pe: xyz
 dataset: tusz
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed
+data_root: /scratch/zz5070/PACLock/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf/processed
 n_channels: 16
 seq_len: 2000
 sample_rate: 200

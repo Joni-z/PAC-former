@@ -16,7 +16,7 @@ import sys
 import torch
 import torch.nn as nn
 
-sys.path.insert(0, "/scratch/zz5070/PAC-former")
+sys.path.insert(0, "/scratch/zz5070/PACLock")
 
 import train as train_mod                    # noqa: E402
 import baseline_biot as biot_mod             # noqa: E402

@@ -5,7 +5,7 @@ sample_rate: 200
 sampling_rate: 200
 num_classes: 2
 pretrain_pool:
-  - {name: tuab, data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed}
+  - {name: tuab, data_root: /scratch/zz5070/PACLock/tuh_eeg/v3.0.1/edf/processed}
 pool_crop_len: 1000
 pool_sampling_alpha: 0.5
 pool_batches_per_epoch: 1

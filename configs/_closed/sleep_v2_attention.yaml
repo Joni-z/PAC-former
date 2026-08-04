@@ -1,6 +1,6 @@
 mixer: attention
 dataset: sleepedf
-data_root: /scratch/zz5070/PAC-former/sleep_edf/processed
+data_root: /scratch/zz5070/PACLock/sleep_edf/processed
 n_channels: 2
 seq_len: 3000
 sample_rate: 100

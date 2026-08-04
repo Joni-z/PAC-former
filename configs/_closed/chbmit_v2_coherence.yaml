@@ -1,6 +1,6 @@
 mixer: coherence
 dataset: chbmit
-data_root: /scratch/zz5070/PAC-former/chb_mit/processed
+data_root: /scratch/zz5070/PACLock/chb_mit/processed
 n_channels: 16
 seq_len: 2000
 sample_rate: 200

@@ -18,8 +18,8 @@
 \newcommand{\pending}[1]{\textcolor{blue}{\textit{[pending: #1]}}}
 % ---------------------------------------------------------------------------
 
-\title{Phase--Amplitude Coupling as a Mandatory,\\
-Gauge-Invariant Tokenization Operator for EEG}
+\title{{\sc PACLock}: Gauge-Invariant Phase--Amplitude\\
+Tokenization for EEG}
 
 % ICLR 2026 提交必须匿名：\iclrfinalcopy 保持注释状态。
 % 模板原文：Non-anonymous submissions will be rejected without review.
@@ -50,13 +50,12 @@ the slowest band no raw path exists, so the prior cannot be routed around. The
 construction has a further property no prior PAC model has: it is provably
 invariant to the arbitrary choice of phase reference, because the measured
 preferred phase cancels exactly the gauge rotation it induces on the learned
-phase features. On supervised EEG classification this operator improves Cohen's
-$\kappa$ on TUEV from $0.4679$ to $0.5493$ at identical parameter count, and by a
-similar margin on sleep staging. Three parameter-matched controls each remove one
-ingredient and each falls back to baseline, isolating the measured preferred
-phase --- not the multiplicative form, not the exposure of phase features, not
-coupling-strength weighting --- as the source of the gain.
-\pending{pretraining and full foundation-model baselines}
+phase features. We further give an evaluation design whose parameter-matched
+controls are constructed to isolate the measured preferred phase from the three
+explanations that would otherwise confound it: the multiplicative form itself,
+the mere exposure of analytic phase features, and weighting by coupling strength.
+\pending{empirical results; downstream task suite and baseline set are not yet
+fixed and are deliberately omitted from this draft}
 \end{abstract}
 
 \section{Introduction}
@@ -84,8 +83,8 @@ these designs fails for a shared and predictable reason.
 We ran four architectural injections of PAC on identical backbones and data
 (Section~\ref{sec:whyfail}). An additive $\alpha \cdot \mathrm{PAC}$ bias drove
 its scalar $\alpha \to 0$. A sigmoid gate, initialised at its no-op value so it
-could ``only help,'' never left that value across five datasets --- an entire
-result table that turned out to measure plain attention. Two hyperparameter-free
+could ``only help,'' never left that value over the whole of training --- an
+entire result table that turned out to measure plain attention. Two hyperparameter-free
 PAC-modulated attention operators, one soft and one a hard top-$k$ topology,
 matched but did not beat plain attention, and did not beat their own
 label-destroying shuffle controls. In each case the module sat next to a path
@@ -118,14 +117,14 @@ phase-reference invariance or equivariance in this sense.
 \item A documented account of \emph{why} architecturally injected PAC priors
 fail, from four controlled negative results, and the design rule this implies:
 the prior must be constitutive, not modulatory (Section~\ref{sec:whyfail}).
-\item A mandatory PAC tokenization operator, with a proof of exact invariance to
-the phase reference (Sections~\ref{sec:method}--\ref{sec:gauge}).
-\item Evidence that isolates the responsible quantity. Three parameter-matched
-controls remove, respectively, the measured coefficients, the preferred-phase
-alignment, and the forced multiplication. All three fall back to baseline; only
-the complete operator gains (Section~\ref{sec:controls}).
-\item A capacity control showing the gain is not an artefact of model size: at
-$5.2\times$ parameters the advantage is unchanged (Section~\ref{sec:capacity}).
+\item {\sc PACLock}, a mandatory PAC tokenization operator, with a proof of exact
+invariance to the phase reference (Sections~\ref{sec:method}--\ref{sec:gauge}).
+\item An evaluation design that isolates the responsible quantity rather than
+merely demonstrating an aggregate gain. Three parameter-matched controls remove,
+respectively, the measured coefficients, the preferred-phase alignment, and the
+forced multiplication, so that each competing explanation is falsified separately
+(Section~\ref{sec:controls}), together with a capacity control that separates the
+operator's effect from model size (Section~\ref{sec:capacity}).
 \end{enumerate}
 
 \section{Related work}
@@ -312,157 +311,118 @@ constrains what a phase-based objective may target: a gauge-\emph{covariant}
 quantity such as $\angle Z_{ij}$ itself cannot be predicted from a
 gauge-invariant representation, so only invariant targets are well posed.
 
-\section{Experiments}
+\section{Evaluation design}
+\label{sec:eval}
 
-\subsection{Setup}
+\pending{The downstream task suite and the baseline set are not yet fixed. This
+section therefore states the design and the falsification criteria; the tables
+are deliberately left empty rather than populated with results that a change of
+task suite would invalidate.}
 
-All comparisons are supervised training from scratch, identical data, splits,
-preprocessing, optimiser, schedule and seed; the only variable is the tokenizer.
-Selection follows \citet{yang2023biot}: Cohen's $\kappa$ for multi-class,
-AUROC/PR-AUC for binary. \emph{All arms within a comparison have identical
-parameter counts} ($1{,}635{,}734$ at the base capacity), so no result can be
-attributed to capacity.
-\pending{multi-seed; all numbers below are seed 0}
+Our claim is not that a PAC tokenizer improves an aggregate number --- that
+claim would be satisfied by any of several mechanisms we consider uninteresting.
+The claim is that a \emph{specific measured quantity}, the preferred phase, is
+what carries the improvement, and that it does so only when the interaction is
+made unavoidable. The design below is built so that each competing explanation
+can be rejected on its own.
 
-\subsection{Main result}
+\subsection{Controlled comparison}
+
+Every comparison holds data, splits, preprocessing, optimiser, schedule and seed
+fixed and varies only the tokenizer. \textbf{All arms are constructed to have
+identical parameter counts}, so no outcome can be attributed to capacity. The
+reference point is a raw-token backbone: the same learnable filterbank, the same
+frequency axis, the same encoder, differing only in that each token is a
+convolution of one band's filtered waveform rather than the interaction
+\eqref{eq:token}.
+
+\subsection{Controls that isolate the mechanism}
+\label{sec:controls}
+
+Each control removes exactly one ingredient of \eqref{eq:token} and thereby
+targets one alternative explanation.
 
 \begin{table}[t]
-\caption{Tokenizer comparison. Each dataset is paired against a raw-token
-baseline retrained under the same protocol. TUEV and Sleep-EDF report $\kappa$,
-TUSZ reports PR-AUC. Parameter counts are identical within each pair.}
+\caption{Control arms. Each is parameter-matched to the full operator and
+disables a single component, so that the corresponding alternative explanation
+can be rejected independently.}
+\label{tab:controls}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Arm & Component removed & Explanation it rejects \\
+\midrule
+raw baseline & the entire interaction & --- (reference point) \\
+\texttt{uniform} & measured $\alpha_{ij}$ \emph{and} $\angle Z_{ij}$ & ``the multiplicative form is what helps'' \\
+\texttt{magnitude} & $\angle Z_{ij}$ only, deterministically & ``coupling strength alone suffices'' \\
+\texttt{concat} & the forced product only & ``exposing analytic phase suffices'' \\
+\texttt{scramble} & the phase-to-edge pairing & ``any complex rotation suffices'' \\
+\midrule
+\texttt{measured} & nothing & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Two of these deserve comment. \texttt{uniform} retains the entire multiplicative
+topology and replaces only the measured coefficients with a uniform average; if
+the multiplicative form were itself responsible, this arm would retain the gain.
+\texttt{concat} is the sharper control: it receives \emph{identical ingredients}
+--- the same amplitude feature and the same gauge-invariant aligned phase --- and
+differs only in combining them through a learned linear map instead of the forced
+product. It is the concatenative fusion used by the closest prior work
+\citep{lee2026sleeppacnet}, evaluated inside our own architecture so that
+exactly one variable changes: whether the interaction is optional. Note that
+\texttt{concat} necessarily carries slightly more parameters than the product
+arm, which biases the comparison \emph{against} our operator.
+
+\texttt{scramble} preserves every $|Z_{ij}|$ and the entire multiset of preferred
+phases but permutes which edge owns which, redrawing the permutation on every
+forward pass so that no fixed permutation can be learned and inverted. Because
+this injects stochasticity that the deterministic arms lack, we use
+\texttt{magnitude}, not \texttt{scramble}, when decomposing the contribution of
+the preferred phase.
+
+\begin{table}[t]
+\caption{Main comparison. \pending{task suite not fixed}}
 \label{tab:main}
 \begin{center}
 \begin{tabular}{lccc}
 \toprule
-Dataset & raw token & PAC interaction & $\Delta$ \\
+Task & raw token & PAC interaction & $\Delta$ \\
 \midrule
-TUEV \small(6-class, 16 ch, 200\,Hz) & 0.4679 & \textbf{0.5493} & $+0.0814$ \\
-Sleep-EDF \small(5-class, 2 ch, 100\,Hz) & 0.5211 & \textbf{0.5732} & $+0.0521$ \\
-TUSZ \small(binary, 9\% positive) & 0.5871 & 0.5690 & $-0.0181$ \\
+\pending{---} & & & \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-Table~\ref{tab:main} shows gains on two datasets and a tie on the third. The
-Sleep-EDF cell is the most informative: sleep is the canonical PAC setting
-(delta phase modulating spindle amplitude, both inside the learned band range),
-it is the domain of the closest prior work, and it shares nothing with TUEV ---
-different task, two channels rather than sixteen, $100$\,Hz rather than $200$.
-The two-channel result also supports montage-agnosticism, since the electrode
-embedding is a function of coordinates rather than an index.
-
-Under an identical pipeline, from-scratch BIOT reaches $\kappa=0.4449$ and
-from-scratch CBraMod $\kappa=0.5017$ on TUEV; our model reaches $0.5493$ with
-$41\%$ of CBraMod's parameters. We stress that published numbers for these
-models are \emph{not} comparable to ours: the same released CBraMod checkpoint
-scores $0.6772$ in its own pipeline and $0.4436$ in ours, a gap larger than any
-effect we study, because its TUEV protocol runs at a different sampling rate.
-Only same-pipeline comparisons are reported here.
-\todo{decide whether to also report our model inside their pipeline}
-
-\subsection{What is responsible for the gain}
-\label{sec:controls}
-
-\begin{table}[t]
-\caption{Parameter-matched controls on TUEV. Each removes exactly one ingredient
-of \eqref{eq:token}. All arms have $1{,}635{,}734$ parameters except
-\texttt{concat}, which has $1.5\%$ more.}
-\label{tab:controls}
-\begin{center}
-\begin{tabular}{llc}
-\toprule
-Arm & What is removed & $\kappa$ \\
-\midrule
-raw baseline & the entire interaction & 0.4679 \\
-\texttt{uniform} & measured $\alpha$ \emph{and} phase alignment & 0.4734 \\
-\texttt{magnitude} & phase alignment only & 0.4826 \\
-\texttt{concat} & the forced product (replaced by a learned projection) & 0.4838 \\
-\texttt{scramble} & the pairing of phases to edges (multiset preserved) & 0.5099 \\
-\textbf{\texttt{measured}} & nothing & \textbf{0.5493} \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{table}
-
-Table~\ref{tab:controls} is the core evidence. Three controls each fall back to
-the baseline, and each rules out a distinct alternative explanation.
-
-\texttt{uniform} retains the full multiplicative topology and replaces only the
-measured coefficients by a uniform average. It ties the baseline ($+0.0055$).
-\textbf{The multiplicative token structure is therefore worth nothing on its
-own}; what is worth something is the measured quantity placed inside it.
-
-\texttt{concat} receives \emph{identical ingredients} --- the same $a_j$ and the
-same gauge-invariant aligned phase --- and differs only in combining them by a
-learned linear map instead of the forced product. It also ties the baseline,
-despite $1.5\%$ more parameters. This is the SleepPACNet-style fusion evaluated
-inside our own architecture, and it isolates a single variable: whether the
-interaction is optional. It is the direct answer to the objection that our gain
-merely comes from exposing analytic phase.
-
-\texttt{magnitude} keeps measured coupling strengths but drops the preferred
-phase, deterministically. Comparing the two deterministic controls decomposes the
-gain:
-\[
-\underbrace{\texttt{magnitude} - \texttt{uniform} = +0.0092}_{\text{coupling strength}},
-\qquad
-\underbrace{\texttt{measured} - \texttt{magnitude} = +0.0667}_{\text{preferred phase}} .
-\]
-Almost all of the effect is attributable to the preferred phase --- the most
-PAC-specific and least generic ingredient --- rather than to weighting by
-coupling strength, which any reader would regard as the obvious move.
-
-\texttt{scramble} preserves every $|Z_{ij}|$ and the entire multiset of preferred
-phases but permutes which edge owns which, redrawing the permutation every
-forward pass so the model cannot learn to invert a fixed one. It lands
-\emph{above} \texttt{magnitude}, indicating that a stochastic complex rotation is
-itself mildly beneficial; this is why the deterministic \texttt{magnitude} arm,
-not \texttt{scramble}, is used for the decomposition above.
-
-\subsection{The gain is not a capacity artefact}
+\subsection{Separating the operator from model capacity}
 \label{sec:capacity}
 
-A natural objection is that a small model may simply overfit less than a larger
-baseline. We scale both arms to $8{,}558{,}870$ parameters ($5.2\times$).
-
-\begin{table}[t]
-\caption{Capacity control on TUEV. Arms are parameter-matched within each column.}
-\label{tab:capacity}
-\begin{center}
-\begin{tabular}{lccc}
-\toprule
-& 1.64M & 8.6M & $\Delta$ (scale) \\
-\midrule
-raw token & 0.4679 & 0.4498 & $-0.0181$ \\
-PAC interaction & 0.5493 & 0.5379 & $-0.0114$ \\
-\midrule
-\textbf{difference} & $\mathbf{+0.0814}$ & $\mathbf{+0.0881}$ & --- \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{table}
-
-The advantage does not shrink; it is flat to marginally wider. Moreover, at a
-capacity \emph{exceeding} CBraMod's, the raw tokenizer still loses to
-from-scratch CBraMod ($0.4498$ vs $0.5017$) while the PAC tokenizer wins
-($0.5379$). Building a larger model does not reproduce the effect; changing the
-token construction does.
+A tokenizer that helps a small model may only be compensating for limited
+capacity. We therefore repeat the raw-versus-interaction comparison at a
+substantially larger width and depth, with both arms again parameter-matched
+within each capacity. The quantity of interest is not either arm's absolute
+score but whether the \emph{gap} between them narrows as capacity grows. A gap
+that persists indicates that the operator supplies something the encoder does
+not otherwise recover; a gap that closes would indicate that it merely
+accelerates learning of a representation a larger model finds unaided.
 
 \subsection{Pretraining}
 
-\pending{This section is not yet run. The planned protocol pretrains on 18
-corpora totalling $\approx 4{,}953$ hours, selected for corpus diversity rather
-than volume, and evaluates against a supervised-from-scratch baseline at matched
-budget. Our present evidence is that on datasets where supervised training
-already works, single-corpus masked pretraining does not improve over no
-pretraining; whether multi-corpus pretraining changes this is the question the
-run is designed to answer.}
+\pending{The pretraining corpus and protocol are specified but not yet run. The
+design prioritises corpus diversity over volume, and evaluates against a
+supervised-from-scratch reference at matched budget rather than against other
+pretraining variants, since our present evidence is that on tasks where
+supervised training already succeeds, single-corpus masked pretraining does not
+improve on no pretraining at all.}
 
 \section{Limitations}
 
-Single seed throughout; the Sleep-EDF margin in particular is of the same order
-as its within-run validation variance. One TUEV cell was not measured. The
+\pending{Limitations arising from the empirical results are deferred until the
+task suite is fixed.} Two limitations are properties of the operator itself and
+hold regardless of the evaluation. First, the
 learned band edges are unconstrained and could in principle cross, which would
 invalidate the slow-to-fast reading of $i<j$; final centre frequencies should be
 inspected before any physiological claim. A one-second patch contains few cycles
@@ -480,7 +440,7 @@ repeatedly failing architectural idea into a working one, and the resulting
 operator is exactly invariant to the arbitrary phase reference. Parameter-matched
 controls locate the gain specifically in the measured preferred phase.
 
-\bibliography{pacformer}
+\bibliography{paclock}
 \bibliographystyle{iclr2026_conference}
 
 \end{document}

@@ -14,7 +14,7 @@ import numpy as np
 import pickle
 from tqdm import tqdm
 
-ROOT = "/scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf"
+ROOT = "/scratch/zz5070/PACLock/tuh_eeg/v2.0.1/edf"
 
 
 def BuildEvents(signals, times, EventData):

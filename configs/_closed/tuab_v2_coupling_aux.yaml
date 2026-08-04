@@ -1,6 +1,6 @@
 mixer: coupling
 dataset: tuab
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+data_root: /scratch/zz5070/PACLock/tuh_eeg/v3.0.1/edf/processed
 n_channels: 16
 seq_len: 2000
 sample_rate: 200

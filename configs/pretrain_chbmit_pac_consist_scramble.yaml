@@ -17,7 +17,7 @@
 # ARCHITECTURE already carries a strong frequency prior, or does the
 # substitution effect 13.40-B found for hz-BandPE now repeat for the tokenizer?
 dataset: chbmit
-data_root: /scratch/zz5070/PAC-former/chb_mit/processed
+data_root: /scratch/zz5070/PACLock/chb_mit/processed
 n_channels: 16
 seq_len: 2000
 sample_rate: 200

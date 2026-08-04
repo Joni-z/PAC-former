@@ -10,7 +10,7 @@ pac_token_mode: measured
 spatial_pe: xyz
 band_pe: index
 dataset: tuev
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+data_root: /scratch/zz5070/PACLock/tuh_eeg/v2.0.1/edf
 n_channels: 16
 seq_len: 1000
 sample_rate: 200

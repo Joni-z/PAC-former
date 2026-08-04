@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-RAW_DIR="${1:-/scratch/zz5070/PAC-former/sleep_edf/raw}"
+RAW_DIR="${1:-/scratch/zz5070/PACLock/sleep_edf/raw}"
 BASE="https://physionet.org/files/sleep-edfx/1.0.0"
 
 mkdir -p "$RAW_DIR"

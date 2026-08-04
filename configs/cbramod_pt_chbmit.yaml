@@ -1,5 +1,5 @@
 # CBraMod backbone + our spectral objective, single-dataset pretrain on CHB-MIT.
-data_root: /scratch/zz5070/PAC-former/chb_mit/processed
+data_root: /scratch/zz5070/PACLock/chb_mit/processed
 native_rate: 200
 duration_s: 10
 n_channels: 16

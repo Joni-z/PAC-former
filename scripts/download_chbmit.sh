@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-RAW_DIR="${1:-/scratch/zz5070/PAC-former/chb_mit/raw}"
+RAW_DIR="${1:-/scratch/zz5070/PACLock/chb_mit/raw}"
 JOBS="${2:-10}"
 BASE="https://physionet.org/files/chbmit/1.0.0"
 

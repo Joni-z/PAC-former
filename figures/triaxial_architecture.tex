@@ -1,5 +1,5 @@
 % ======================================================================
-%  PAC-Former v2 -- CURRENT architecture (AGENT.md sec. 13.22-13.27)
+%  PACLock v2 -- CURRENT architecture (AGENT.md sec. 13.22-13.27)
 %  The EEG foundation model: tri-axial (electrode x band x time) analytic-
 %  signal transformer + the cf_mixed cross-frequency pretraining objective.
 %
@@ -53,7 +53,7 @@
 % ======================================================================
 \begin{tikzpicture}[node distance=6mm]
   \node[font=\small\bfseries] (title)
-        {PAC-Former v2 --- tri-axial analytic-signal EEG foundation model};
+        {PACLock v2 --- tri-axial analytic-signal EEG foundation model};
 
   \node[io, below=4mm of title] (raw) {Raw EEG \quad $(B,\,C,\,T)$};
   \node[op,   below=of raw]  (aug)  {RandomAugment};

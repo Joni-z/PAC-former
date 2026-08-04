@@ -1,6 +1,6 @@
 import sys, torch, yaml
-sys.path.insert(0,"/scratch/zz5070/PAC-former")
-sys.path.insert(0,"/scratch/zz5070/PAC-former/reference/CBraMod")
+sys.path.insert(0,"/scratch/zz5070/PACLock")
+sys.path.insert(0,"/scratch/zz5070/PACLock/reference/CBraMod")
 import cbramod_pretrain as M
 ok=True
 x=torch.randn(2,16,10,200)

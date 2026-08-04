@@ -26,7 +26,7 @@ from multiprocessing import Pool
 
 import mne
 
-ROOT = "/scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf"
+ROOT = "/scratch/zz5070/PACLock/tuh_eeg/tuh_eeg_seizure/v2.0.6/edf"
 CHANNEL_STD = "01_tcp_ar"
 WIN_SAMPLES = 2000   # 10s @ 200Hz, matches TUAB/TUEP
 OVERLAP_THRESH = 0.5

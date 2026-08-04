@@ -9,8 +9,8 @@
 #SBATCH --account=torch_pr_63_tandon_advanced
 #SBATCH --mail-user=zz5070@nyu.edu
 #SBATCH --mail-type=ALL
-#SBATCH --output=/scratch/zz5070/PAC-former/logs/%j.log
-#SBATCH --error=/scratch/zz5070/PAC-former/logs/%j.log
+#SBATCH --output=/scratch/zz5070/PACLock/logs/%j.log
+#SBATCH --error=/scratch/zz5070/PACLock/logs/%j.log
 
 # usage: sbatch pretrain.slurm pretrain_tuab_crossfreq
 # Runs MAE pretraining + linear probe (pretrain.py) for the given config.
@@ -30,7 +30,7 @@ source "$CONDA_SH"
 conda activate pacformer
 export PATH="$CONDA_PREFIX/bin:$PATH"
 
-cd /scratch/zz5070/PAC-former
+cd /scratch/zz5070/PACLock
 
 CFG_NAME="$1"
 CONFIG_PATH="configs/${CFG_NAME}.yaml"

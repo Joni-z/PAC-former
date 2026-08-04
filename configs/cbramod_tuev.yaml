@@ -1,5 +1,5 @@
 # CBraMod baseline on OUR splits+eval. TUEV npy is 250Hz -> resampled to 200Hz.
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+data_root: /scratch/zz5070/PACLock/tuh_eeg/v2.0.1/edf
 native_rate: 250
 duration_s: 5           # 5s @200Hz -> 5 patches of 200
 n_channels: 16

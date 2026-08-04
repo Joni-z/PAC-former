@@ -1,10 +1,10 @@
 import sys, yaml, torch, numpy as np
-sys.path.insert(0,"/scratch/zz5070/PAC-former")
-sys.path.insert(0,"/scratch/zz5070/PAC-former/reference/CBraMod")
+sys.path.insert(0,"/scratch/zz5070/PACLock")
+sys.path.insert(0,"/scratch/zz5070/PACLock/reference/CBraMod")
 import baseline_cbramod as B
 ok=True
 for cfgp,init in [("configs/cbramod_tuab.yaml","pretrained"),("configs/cbramod_tuev.yaml","scratch")]:
-    cfg=yaml.safe_load(open("/scratch/zz5070/PAC-former/"+cfgp))
+    cfg=yaml.safe_load(open("/scratch/zz5070/PACLock/"+cfgp))
     ds=B.CBraModNpy(cfg["data_root"],"test",cfg["native_rate"],200,200,cfg.get("label_shift",0))
     X,y=ds[0]; npat=(200*cfg["duration_s"])//200
     print(f"{cfgp.split('/')[-1]}: X={tuple(X.shape)} exp(16,{npat},200) y={y} abs95%={np.quantile(np.abs(X.numpy()),0.95):.3f}")

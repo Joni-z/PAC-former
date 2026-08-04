@@ -1,6 +1,6 @@
-# PAC-Former 论文库
+# PACLock 论文库
 
-这个目录用于保存 PAC-Former 的方法学依据、相近工作和 EEG 评测背景。当前共
+这个目录用于保存 PACLock 的方法学依据、相近工作和 EEG 评测背景。当前共
 28 篇 PDF；每篇均已通过 PDF 头、页数和全文抽取检查。原始 PDF 在 `papers/`，
 便于检索的纯文本在 `text/`，文件校验值在 `SHA256SUMS.txt`。
 
@@ -59,5 +59,5 @@
 ## 阅读产物
 
 项目级结论、撞车矩阵、当前实现审计与建议实验见
-[`notes/PAC_FORMER_LITERATURE_REVIEW.md`](notes/PAC_FORMER_LITERATURE_REVIEW.md)。
+[`notes/PACLOCK_LITERATURE_REVIEW.md`](notes/PACLOCK_LITERATURE_REVIEW.md)。
 

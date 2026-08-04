@@ -1,7 +1,7 @@
 """Smoke test for freq_mixer='none' (the 2-axis / CBraMod-style control).
 
 Checks, on CPU with a tiny config:
-  1. supervised TriAxialPACFormer builds + forwards + backprops with freq_mixer=none
+  1. supervised TriAxialPACLock builds + forwards + backprops with freq_mixer=none
   2. MAEPretrain builds + forwards + backprops with freq_mixer=none
   3. NO cross-band information flow: d(output at band j) / d(input at band i) == 0
      for i != j  -- this is what makes it the honest 2-axis control and the
@@ -12,7 +12,7 @@ Checks, on CPU with a tiny config:
 import sys
 import torch
 
-sys.path.insert(0, "/scratch/zz5070/PAC-former")
+sys.path.insert(0, "/scratch/zz5070/PACLock")
 
 from models.build import build_model
 from models.pretrain import MAEPretrain

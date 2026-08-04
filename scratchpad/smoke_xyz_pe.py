@@ -1,7 +1,7 @@
 """Smoke the xyz SpatialPE (AGENT.md sec 13.23 A): backward compat + xyz path
 on both the supervised backbone and the MAE pretrainer, forward+backward."""
 import torch, torch.nn as nn, yaml, copy
-from models.build import build_model, TriAxialPACFormer
+from models.build import build_model, TriAxialPACLock
 from models.pretrain import MAEPretrain
 from models.montage import coords_for
 

@@ -1,5 +1,5 @@
 # CBraMod baseline on OUR splits+eval. CBraMod-native normalization (µV/100).
-data_root: /scratch/zz5070/PAC-former/tuh_eeg/v3.0.1/edf/processed
+data_root: /scratch/zz5070/PACLock/tuh_eeg/v3.0.1/edf/processed
 native_rate: 200
 duration_s: 10          # 10s @200Hz -> 10 patches of 200
 n_channels: 16

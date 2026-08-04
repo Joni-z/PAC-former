@@ -9,8 +9,8 @@
 #SBATCH --account=torch_pr_63_tandon_advanced
 #SBATCH --mail-user=zz5070@nyu.edu
 #SBATCH --mail-type=ALL
-#SBATCH --output=/scratch/zz5070/PAC-former/logs/%j.log
-#SBATCH --error=/scratch/zz5070/PAC-former/logs/%j.log
+#SBATCH --output=/scratch/zz5070/PACLock/logs/%j.log
+#SBATCH --error=/scratch/zz5070/PACLock/logs/%j.log
 
 # usage: sbatch train.slurm pacint_tuev_measured
 #        sbatch --time=10:00:00 --mem=32G train.slurm ours_scratch_tuab_bandidx
@@ -47,7 +47,7 @@ set -euo pipefail
 # CUDA_VISIBLE_DEVICES 可能指错卡，和 SLURM 自己的可见性设置混用会报 No CUDA GPUs。
 unset CUDA_VISIBLE_DEVICES
 
-cd /scratch/zz5070/PAC-former
+cd /scratch/zz5070/PACLock
 
 CFG_NAME="$1"
 CONFIG_PATH="configs/${CFG_NAME}.yaml"

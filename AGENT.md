@@ -1,11 +1,11 @@
-# PAC-Former — Status & Build Guide (for coding agent)
+# PACLock — Status & Build Guide (for coding agent)
 
 ## 0. What this project is
 
 > **Project positioning (updated 2026-07-12, post-meeting with PI — this
 > supersedes any earlier framing in this doc that reads as "we are competing
 > head-to-head with CoTAR"):**
-> **PAC-Former's actual goal is an EEG foundation model.** CoTAR/attention are
+> **PACLock's actual goal is an EEG foundation model.** CoTAR/attention are
 > not the opponents we're trying to beat in a vacuum — they are a source of
 > *time-series architecture ideas/tricks* we are evaluating for inclusion in
 > the eventual foundation-model backbone. The mixer-swap ablation
@@ -14,7 +14,7 @@
 > **Large-scale self-supervised pretraining is the next planned phase** once
 > the backbone design (frontend + mixer) is settled — see §11.
 
-**PAC-Former**: a differentiable phase-amplitude coupling (PAC) operator that
+**PACLock**: a differentiable phase-amplitude coupling (PAC) operator that
 replaces self-attention in a frequency-domain EEG encoder. Frequency bands are
 tokens. The mixer that moves information between tokens is a learnable
 Modulation Index (MI) operator instead of QKᵀ softmax attention.
@@ -1077,7 +1077,7 @@ v3版本目前表现最佳，但优势和数据集强相关：在PAC先验强的
 
 ---
 
-## 13. PAC-Former v2 architecture spec (decided 2026-07-15; skeleton built + running)
+## 13. PACLock v2 architecture spec (decided 2026-07-15; skeleton built + running)
 
 **Status: design of record. Supersedes the v1..v6 mixer-patching line (§9.15-9.17).**
 The decision to stop patching the mixer and redesign wholesale came from the PI
@@ -1090,8 +1090,8 @@ PAC-former, not as an EEG foundation model, which is the actual deliverable (§0
 - `models/triaxial.py` — `BandPE`/`SpatialPE`/`rope`, axis mixers
   (`FreqCoupling`/`FreqAttention`/`FreqCoTAR` + `_MHA`), `TriAxialBlock`,
   `TriAxialEncoder`.
-- `models/build.py` — `TriAxialPACFormer`, selected by `cfg["arch"]=="triaxial"`;
-  v1 `PACFormer` kept intact. Frequency-axis mixer chosen by `cfg["freq_mixer"]`.
+- `models/build.py` — `TriAxialPACLock`, selected by `cfg["arch"]=="triaxial"`;
+  v1 `PACLock` kept intact. Frequency-axis mixer chosen by `cfg["freq_mixer"]`.
 - Configs `configs/{chbmit,sleep,tuab,tuev,tusz}_v2_{coupling,attention,cotar}.yaml`
   (n_bands=8, batch=32 — the channel axis is restored so tokens are ~C× more).
 - CPU-verified: all 3 freq mixers forward/backward with finite grads; coupling is
@@ -1116,7 +1116,7 @@ Known simplifications in this build, to revisit before pretraining:
 
 Existing EEG foundation models (BIOT, LaBraM, CBraMod, REVE) tokenize by
 **time segment** and let the model discover frequency structure implicitly.
-PAC-Former v2 makes the three physical axes of EEG — **space (electrode),
+PACLock v2 makes the three physical axes of EEG — **space (electrode),
 frequency (band), time (patch)** — explicit token dimensions, mixes along each
 axis with a physically-appropriate operator, and **pretrains with an objective
 that forces cross-frequency mechanism learning**. The frequency axis is mixed
@@ -1650,7 +1650,7 @@ explicit incentive to preserve low→high coupling information, does `pac_scale`
 stop collapsing?** No previous run answers this — §9.17's collapse-vs-no-collapse
 contrast is confounded with dataset (Sleep kept `pac_scale` alive, CHB-MIT did not).
 
-**Implementation.** `TriAxialPACFormer.crossfreq_aux_loss` (`models/build.py`) plus
+**Implementation.** `TriAxialPACLock.crossfreq_aux_loss` (`models/build.py`) plus
 `aux_weight` in `train.py`'s `run_epoch`:
 
 ```
@@ -1841,7 +1841,7 @@ for EEG", and it is orthogonal to scale — which matters, because competing wit
 BIOT/LaBraM/CBraMod/REVE on data or compute is not viable for this group.
 
 **Consequence to face:** if the surviving contribution is the objective, the paper
-is not "PAC-Former: a new operator" but "a physiologically-grounded pretraining
+is not "PACLock: a new operator" but "a physiologically-grounded pretraining
 objective that forces cross-frequency structure", and the framing, title, and
 §13.2 novelty stack all need rewriting. Note this also costs the §13.2 layer-4
 selling point (free interpretability via the operator's comodulogram) — with no
@@ -2225,7 +2225,7 @@ Closes the §13.23-A gap (SpatialPE was a learned index embedding, not coordinat
   `spatial_pe` key is bit-for-bit unchanged**).
 - Wiring: `build.py:_spatial_coords(cfg)` returns coords only when `cfg["spatial_pe"]=="xyz"`
   (opt-in; default `index` preserves all current runs), with an (n_ch)-mismatch guard.
-  `TriAxialPACFormer` and `MAEPretrain` both use it.
+  `TriAxialPACLock` and `MAEPretrain` both use it.
 - Verified (`scratchpad/smoke_xyz_pe.py`, CPU, all green): backward-compat index path;
   xyz path active with correct (2,6)/(16,6) coords; supervised fwd/bwd with finite grad into
   the coordinate MLP; MAEPretrain xyz + cf_mixed fwd/bwd; channel-mismatch guard fires.
@@ -3498,7 +3498,7 @@ name=cfg.get("wandb_run_name", f"{cfg['dataset']}-{cfg['mixer']}"),
 **Python evaluates a `.get()` default eagerly**, so `cfg['mixer']` is dereferenced even though
 `wandb_run_name` is present — `KeyError: 'mixer'` inside `wandb.init()`, before the dataloader is
 even built. `train.py:101` repeats it. `mixer` is a v1-only key (`models/build.py:60`,
-`PACFormer`); `TriAxialPACFormer` never reads it, so the fix is `mixer: attention` in each config,
+`PACLock`); `TriAxialPACLock` never reads it, so the fix is `mixer: attention` in each config,
 matching the baseline, with **zero effect on the model**. Verified by rebuild: still 1,635,734
 parameters, unchanged. `train.slurm` resolves `configs/$1.yaml` at *run* time, so the queued jobs
 pick the fix up with no resubmission. Swept all 87 train.py-launched configs: no other config is
@@ -3589,7 +3589,7 @@ prior" (§13.41's `mi_topk` was already a hard topology and lost) but *where* th
 Note also that this tokenizer fixes a measurement defect the MI mixers had: `valid = tril(-1)`
 restricts edges to `i < j`, so only slow-phase → fast-amplitude drives are used, whereas the MI
 mixers scored all band pairs — a contamination of the treatment definition flagged in
-`literature/notes/PAC_FORMER_LITERATURE_REVIEW.md` §三. Both changes landed together, so this
+`literature/notes/PACLOCK_LITERATURE_REVIEW.md` §三. Both changes landed together, so this
 experiment does not separate "tokenizer vs mixer" from "valid pair support vs all pairs".
 
 #### J. Cross-dataset + the deterministic control that OVERTURNS §13.43-I's decomposition (2026-07-29/30)

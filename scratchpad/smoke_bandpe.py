@@ -8,7 +8,7 @@ with no `band_pe` key is bit-for-bit the old default.
 import sys
 import torch
 
-sys.path.insert(0, "/scratch/zz5070/PAC-former")
+sys.path.insert(0, "/scratch/zz5070/PACLock")
 
 from models.build import build_model                 # noqa: E402
 from models.pretrain import MAEPretrain              # noqa: E402

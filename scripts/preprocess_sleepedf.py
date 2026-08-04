@@ -1,4 +1,4 @@
-"""Preprocess Sleep-EDF Cassette into per-epoch pkl files for PAC-Former.
+"""Preprocess Sleep-EDF Cassette into per-epoch pkl files for PACLock.
 
 Each output pkl:  {'signal': np.float32 (C, T), 'label': int}
   C = 2 channels (Fpz-Cz, Pz-Oz), T = 3000 (30 s @ 100 Hz)

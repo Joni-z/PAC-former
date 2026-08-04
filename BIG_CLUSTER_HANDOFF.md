@@ -1,4 +1,4 @@
-# PAC-Former 大集群预训练 —— 交接方案
+# PACLock 大集群预训练 —— 交接方案
 
 **更新 2026-07-31。** 依据：AGENT.md §13.43(架构)、§13.44a / §13.45(目标函数)。
 
@@ -67,7 +67,7 @@ Sleep-EDF 上验证过（监督 0.5732）。它是唯一的健康人群语料，
 ### 数据准备
 
 ```bash
-export PACFORMER_DATA_ROOT=/scratch/zz5070/PAC-former
+export PACFORMER_DATA_ROOT=/scratch/zz5070/PACLock
 bash scripts/prepare_ssl_pool.sh     # 生成不含 _add 的 ssl_train mmap
 ```
 

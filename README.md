@@ -1,4 +1,4 @@
-# PAC-Former
+# PACLock
 
 强制、规范不变的相位-幅值耦合(PAC)tokenization 算子 + 三轴 EEG Transformer。
 

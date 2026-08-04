@@ -26,7 +26,7 @@ from multiprocessing import Pool
 import numpy as np
 import mne
 
-ROOT = "/scratch/zz5070/PAC-former/tuh_eeg/tuh_eeg_epilepsy/v3.1.0"
+ROOT = "/scratch/zz5070/PACLock/tuh_eeg/tuh_eeg_epilepsy/v3.1.0"
 CHANNEL_STD = "01_tcp_ar"
 
 

@@ -1,5 +1,5 @@
 import sys, torch
-sys.path.insert(0,"/scratch/zz5070/PAC-former")
+sys.path.insert(0,"/scratch/zz5070/PACLock")
 from models.pretrain import MAEPretrain
 cfg=dict(dataset="chbmit",arch="triaxial",freq_mixer="attention",spatial_pe="index",band_pe="index",
   n_channels=4,seq_len=400,sample_rate=200,num_classes=2,n_bands=8,d_model=32,depth=2,dropout=0.0,

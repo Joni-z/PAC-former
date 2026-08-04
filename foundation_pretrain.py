@@ -1,4 +1,4 @@
-"""Distributed, resumable foundation pretraining for PAC-Former.
+"""Distributed, resumable foundation pretraining for PACLock.
 
 This entry point intentionally performs phase 1 only.  One expensive pooled
 checkpoint is produced once, then the existing ``pretrain.py`` finetune path
