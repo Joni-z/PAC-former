@@ -10,3 +10,13 @@ chb_mit/
 logs/
 *.edf
 *.edf.seizures
+
+# LaTeX 编译产物
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+*.xdv

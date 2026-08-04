@@ -1,0 +1,44 @@
+# 容量外推检验(BIG_CLUSTER_HANDOFF 冻结的 d256/depth8 = 8.6M 无实验依据)。
+# §13.40-A 在 raw tokenizer 上单独测过两个方向,都变差:
+#   d_model=192  0.4181 (base 0.4679, -0.050)   depth=8  0.3632 (-0.105)
+# 而 8.6M 正是 d=256 且 depth=8,两个叠加。唯一的辩护是"监督小数据的结论
+# 不能外推到预训练规模",那是假设不是证据。
+# 这一格问的是唯一真正要紧的事:PAC tokenizer 相对 raw 的优势(1.64M 上 +0.0814)
+# 在 5.3 倍参数下还在不在。若消失,则扩容会抹掉本项目唯一的贡献,大 run 不能开。
+# Gauge-invariant PAC interaction tokenizer. High-band tokens have no raw path:
+# token_j = amplitude_j * sum_{i<j} aligned_phase_i.
+# `mixer` is unused by arch=triaxial (v1-only, models/build.py:60) but train.py:83
+# dereferences it eagerly inside a .get() default -> KeyError without it.
+mixer: attention
+arch: triaxial
+freq_mixer: attention
+tokenizer_mode: pac_interaction
+pac_token_mode: measured
+spatial_pe: xyz
+band_pe: index
+dataset: tuev
+data_root: /scratch/zz5070/PAC-former/tuh_eeg/v2.0.1/edf
+n_channels: 16
+seq_len: 1000
+sample_rate: 200
+sampling_rate: 200
+num_classes: 6
+n_bands: 8
+d_model: 256
+depth: 8
+dropout: 0.2
+kernel_size: 201
+patch_len: 200
+n_heads: 8
+batch_size: 32
+num_workers: 8
+seed: 0
+device: cuda
+epochs: 20
+eval_every: 1
+patience: 20
+lr: 0.0001
+weight_decay: 0.00001
+augmentations: []
+wandb_run_name: pacint-tuev-d256-measured
+

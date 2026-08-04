@@ -3928,3 +3928,61 @@ in principle on this architecture — measured tokens are gauge-INVARIANT (§13.
 gauge-invariant targets are well posed: a binary consistency label, `|Z_ij|`, or phase
 *differences* that share a source band. This constraint is unique to this architecture and
 rules out most of the obvious phase-prediction designs before any compute is spent.
+
+### 13.46 Capacity check — does the tokenizer's win survive scaling to the handoff's frozen 8.6M, and is it just "small model beats big model on small data"? (2026-08-03)
+
+**Motivation.** `BIG_CLUSTER_HANDOFF.md` froze capacity at d=256/depth=8 (8.6M params) with
+no experimental support — §13.40-A had separately measured both directions (d_model=192,
+depth=8) as *worse* than the d=128/depth=6 base under supervised training on TUEV (0.4181
+and 0.3632 vs 0.4679). A live objection during discussion: is the tokenizer's TUEV win
+(§13.43-J, +0.0814 at 1.64M) actually a capacity artefact — i.e. does our small model merely
+overfit *less* than CBraMod-scratch (4.0M, 0.5017), rather than the PAC token construction
+being genuinely better? If so, scaling up would erase the advantage.
+
+**Design.** Same TUEV protocol, seed 0, `d_model=256, depth=8, n_heads=8` (5.23x params,
+matches the frozen handoff capacity exactly). Only two arms, `raw` vs `measured`
+(`tokenizer_mode`/`pac_token_mode` toggle only), parameter-matched within each capacity:
+`cap_tuev_d256_raw.yaml` / `cap_tuev_d256_measured.yaml`. Jobs 15195885 (raw), 15195886
+(measured), both 8,558,870 params (verified via CPU build before submission).
+
+**Result.**
+
+| | 1.64M | 8.6M | Δ (scale) |
+|---|---|---|---|
+| `raw` | 0.4679 | 0.4498 | −0.0181 |
+| `measured` | 0.5493 | 0.5379 | −0.0114 |
+| **measured − raw** | **+0.0814** | **+0.0881** | (gap widens slightly) |
+
+**The capacity-artefact objection is refuted.** The tokenizer's advantage over raw does not
+shrink under 5.23x scale-up — it is flat to slightly larger (+0.081 → +0.088). If the TUEV
+win were "small model, less overfitting", scaling both arms together should have narrowed
+this gap; it did not.
+
+**The sharper test — same capacity as CBraMod, does `raw` alone still lose?**
+
+```
+measured @ 8.6M (0.5379)  vs  CBraMod-scratch @ 4.0M (0.5017)   +0.0362  (still wins)
+raw      @ 8.6M (0.4498)  vs  CBraMod-scratch @ 4.0M (0.5017)   −0.0519  (now LOSES, by more)
+```
+
+At capacity *larger than* CBraMod, `raw` loses to it, and by a wider margin than at 1.64M.
+**"Our win is because CBraMod overfits at 4.0M" cannot be the explanation** — we built a
+model bigger than CBraMod and, with the raw tokenizer, still lost to it. Swapping only the
+tokenizer (identical param count) is what flips scratch-CBraMod from a winner to a loser.
+The win is attributable to the token construction, not to model size in either direction.
+
+**Confirms, separately, that supervised-from-scratch scaling is still bad for us at 8.6M**
+(`raw` −0.018, `measured` −0.011 — both negative, consistent with §13.40-A's d192/depth8
+results). This does not bear on pretraining: overfitting-under-small-supervised-data and
+capacity-vs-pretraining-corpus-size are different regimes, and 8.6M was frozen for the
+*pretraining* setting, not for supervised-from-scratch TUEV. Do not use this section to
+justify shrinking the pretraining backbone — it only justifies that the backbone choice
+does not need to precede or gate the pretraining-corpus decision (§ PRETRAIN_DATA_PLAN.md).
+
+**Caveat:** single seed, one dataset, one capacity point (8.6M). Does not establish that the
+gap holds at LaBraM-Large/Huge scale (46M/369M) — those regimes are pretraining-corpus-scale
+questions this project has not tested, and LaBraM's and CBraMod's own scaling results
+(Large 0.6622 < Base 0.6637; CBraMod 4.0M 0.6772 > LaBraM-Huge 369M 0.6745) suggest scaling
+in EEG has no reliable monotonic payoff regardless of architecture — a Base/Large/Huge sweep
+should wait until pretraining itself is validated to help this architecture at all (§13.45's
+open question), not be run in parallel with it.

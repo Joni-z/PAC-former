@@ -1,8 +1,0 @@
-  [PASS] pretrain_tuev_pac_cfm_hz  loss=1.2058 tok=pac_interaction pe=hz
-  [PASS] pretrain_tuev_pac_cfm_idx  loss=2.4763 tok=pac_interaction pe=index
-  [PASS] pretrain_tuev_pac_rand_hz  loss=2.1628 tok=pac_interaction pe=hz
-  [PASS] pretrain_tuev_pac_rand_idx  loss=2.4087 tok=pac_interaction pe=index
-  [PASS] pacint_tuev_hz: 只差 band_pe + 名字  ['band_pe', 'wandb_run_name']
-  [FAIL] hz 与 index 参数量一致  {'index': 1635734, 'hz': 1651606}
-
-FAIL: ['hz 与 index 参数量一致']
